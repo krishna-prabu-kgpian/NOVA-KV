@@ -1,0 +1,266 @@
+# clean-clone build of commit 95a53beb85abb94d2f5fb86038f984f1363acae2, 2026-10-12T08:11:53Z
+# cmake: /usr/bin/cmake (cmake version 4.2.3)
+# commands: git clone -q <repo> clone; cmake -S clone -B clone/build -DCMAKE_BUILD_TYPE=Release; cmake --build clone/build -j; ctest --test-dir clone/build --output-on-failure; (cd clone && scripts/check_part_a_artifacts.sh && scripts/check_part_a_report.sh)
+# git clone exit_status: 0
+# untracked-or-modified files in clone: 0
+-- The CXX compiler identification is GNU 15.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: <scratch>/clone/build
+# configure exit_status: 0
+[  9%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/alloc.cpp.o
+[  8%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/arena.cpp.o
+[  9%] Building CXX object CMakeFiles/hash_segment_test.dir/tests/hash_segment_test.cpp.o
+[  8%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/kvstore.cpp.o
+[  8%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/hash_segment.cpp.o
+[  9%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/arena.cpp.o
+[  8%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/inspect.cpp.o
+[ 12%] Building CXX object CMakeFiles/nova_workload.dir/supplied/workload_gen.cpp.o
+[ 12%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/hash_segment.cpp.o
+[ 13%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/kvstore.cpp.o
+[ 14%] Building CXX object CMakeFiles/hash_segment_test.dir/src/hash_segment.cpp.o
+[ 17%] Building CXX object CMakeFiles/hash_segment_test.dir/src/alloc.cpp.o
+[ 17%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/kvstore.cpp.o
+[ 20%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/alloc.cpp.o
+[ 20%] Building CXX object CMakeFiles/nova_kv_single.dir/src/arena.cpp.o
+[ 21%] Building CXX object CMakeFiles/bench_histogram_test.dir/tests/bench_histogram_test.cpp.o
+[ 22%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/inspect.cpp.o
+[ 24%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/hash_segment.cpp.o
+[ 25%] Building CXX object CMakeFiles/arena_test.dir/tests/arena_test.cpp.o
+[ 26%] Building CXX object CMakeFiles/layout_bench.dir/benchmarks/layout_bench.cpp.o
+[ 28%] Building CXX object CMakeFiles/arena_test.dir/src/alloc.cpp.o
+[ 29%] Building CXX object CMakeFiles/arena_test.dir/src/arena.cpp.o
+[ 30%] Building CXX object CMakeFiles/nova_kv_single.dir/src/alloc.cpp.o
+[ 32%] Building CXX object CMakeFiles/nova_kv_single.dir/src/inspect.cpp.o
+[ 33%] Building CXX object CMakeFiles/nova_kv_single.dir/src/kvstore.cpp.o
+[ 34%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/alloc.cpp.o
+[ 36%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/arena.cpp.o
+[ 37%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/inspect.cpp.o
+[ 38%] Building CXX object CMakeFiles/nova_kv_single.dir/src/hash_segment.cpp.o
+[ 40%] Linking CXX static library libnova_kv_single_testhooks.a
+[ 41%] Linking CXX static library libnova_kv_single.a
+[ 41%] Built target nova_kv_single_testhooks
+[ 42%] Building CXX object CMakeFiles/alloc_failure_test.dir/tests/alloc_failure_test.cpp.o
+[ 42%] Built target nova_kv_single
+[ 45%] Building CXX object CMakeFiles/kvstore_test_single.dir/tests/kvstore_test.cpp.o
+[ 45%] Building CXX object CMakeFiles/api_conformance_test.dir/tests/api_conformance_test.cpp.o
+[ 46%] Building CXX object CMakeFiles/concurrent_bench_single.dir/benchmarks/concurrent_bench.cpp.o
+[ 48%] Building CXX object CMakeFiles/smoke_test_single.dir/tests/smoke_test.cpp.o
+[ 49%] Linking CXX static library libnova_kv_rwlock.a
+[ 50%] Linking CXX static library libnova_kv_global_lock.a
+[ 52%] Linking CXX executable api_conformance_test
+[ 52%] Built target nova_kv_rwlock
+[ 56%] Building CXX object CMakeFiles/concurrent_bench_rwlock.dir/benchmarks/concurrent_bench.cpp.o
+[ 56%] Building CXX object CMakeFiles/kvstore_test_rwlock.dir/tests/kvstore_test.cpp.o
+[ 56%] Building CXX object CMakeFiles/smoke_test_rwlock.dir/tests/smoke_test.cpp.o
+[ 57%] Building CXX object CMakeFiles/concurrent_lock_test_rwlock.dir/tests/concurrent_lock_test.cpp.o
+[ 57%] Built target nova_kv_global_lock
+[ 58%] Building CXX object CMakeFiles/kvstore_test_global_lock.dir/tests/kvstore_test.cpp.o
+[ 60%] Linking CXX executable smoke_test_single
+[ 61%] Building CXX object CMakeFiles/concurrent_lock_test_global_lock.dir/tests/concurrent_lock_test.cpp.o
+[ 62%] Building CXX object CMakeFiles/smoke_test_global_lock.dir/tests/smoke_test.cpp.o
+[ 64%] Building CXX object CMakeFiles/concurrent_bench_global_lock.dir/benchmarks/concurrent_bench.cpp.o
+[ 64%] Built target api_conformance_test
+[ 65%] Linking CXX executable smoke_test_rwlock
+[ 65%] Built target smoke_test_single
+[ 66%] Linking CXX executable smoke_test_global_lock
+[ 66%] Built target smoke_test_rwlock
+[ 68%] Linking CXX executable arena_test
+[ 68%] Built target smoke_test_global_lock
+[ 68%] Built target arena_test
+[ 69%] Linking CXX executable bench_histogram_test
+[ 70%] Linking CXX executable hash_segment_test
+[ 70%] Built target bench_histogram_test
+[ 72%] Linking CXX executable concurrent_lock_test_rwlock
+[ 72%] Built target hash_segment_test
+[ 73%] Linking CXX executable alloc_failure_test
+[ 73%] Built target concurrent_lock_test_rwlock
+[ 73%] Built target alloc_failure_test
+[ 73%] Built target nova_workload
+[ 76%] Building CXX object CMakeFiles/global_lock.dir/drivers/global_lock.cpp.o
+[ 76%] Building CXX object CMakeFiles/rwlock.dir/drivers/rwlock.cpp.o
+[ 77%] Building CXX object CMakeFiles/reference_workload_link_test_rwlock.dir/tests/reference_workload_link_test.cpp.o
+[ 78%] Building CXX object CMakeFiles/single_thread.dir/drivers/single_thread.cpp.o
+[ 81%] Building CXX object CMakeFiles/reference_workload_link_test_single.dir/tests/reference_workload_link_test.cpp.o
+[ 81%] Building CXX object CMakeFiles/reference_workload_link_test_global_lock.dir/tests/reference_workload_link_test.cpp.o
+[ 82%] Linking CXX executable concurrent_lock_test_global_lock
+[ 82%] Built target concurrent_lock_test_global_lock
+[ 84%] Linking CXX executable rwlock
+[ 85%] Linking CXX executable global_lock
+[ 86%] Linking CXX executable reference_workload_link_test_single
+[ 88%] Linking CXX executable single_thread
+[ 88%] Built target rwlock
+[ 89%] Linking CXX executable reference_workload_link_test_global_lock
+[ 89%] Built target reference_workload_link_test_single
+[ 90%] Linking CXX executable reference_workload_link_test_rwlock
+[ 90%] Built target global_lock
+[ 92%] Linking CXX executable layout_bench
+[ 92%] Built target single_thread
+[ 92%] Built target reference_workload_link_test_global_lock
+[ 92%] Built target layout_bench
+[ 92%] Built target reference_workload_link_test_rwlock
+[ 93%] Linking CXX executable kvstore_test_single
+[ 93%] Built target kvstore_test_single
+[ 94%] Linking CXX executable concurrent_bench_rwlock
+[ 96%] Linking CXX executable concurrent_bench_global_lock
+[ 96%] Built target concurrent_bench_rwlock
+[ 97%] Linking CXX executable concurrent_bench_single
+[ 97%] Built target concurrent_bench_global_lock
+[ 97%] Built target concurrent_bench_single
+[ 98%] Linking CXX executable kvstore_test_global_lock
+[100%] Linking CXX executable kvstore_test_rwlock
+[100%] Built target kvstore_test_rwlock
+[100%] Built target kvstore_test_global_lock
+# build exit_status: 0
+Test project <scratch>/clone/build
+      Start  1: api_conformance_test
+ 1/27 Test  #1: api_conformance_test .............................   Passed    0.00 sec
+      Start  2: hash_segment_test
+ 2/27 Test  #2: hash_segment_test ................................   Passed    0.01 sec
+      Start  3: arena_test
+ 3/27 Test  #3: arena_test .......................................   Passed    0.00 sec
+      Start  4: alloc_failure_test
+ 4/27 Test  #4: alloc_failure_test ...............................   Passed    0.01 sec
+      Start  5: kvstore_test_single
+ 5/27 Test  #5: kvstore_test_single ..............................   Passed    0.26 sec
+      Start  6: smoke_test_single
+ 6/27 Test  #6: smoke_test_single ................................   Passed    0.00 sec
+      Start  7: reference_workload_link_test_single
+ 7/27 Test  #7: reference_workload_link_test_single ..............   Passed    3.07 sec
+      Start  8: kvstore_test_global_lock
+ 8/27 Test  #8: kvstore_test_global_lock .........................   Passed    0.27 sec
+      Start  9: concurrent_lock_test_global_lock
+ 9/27 Test  #9: concurrent_lock_test_global_lock .................   Passed    0.03 sec
+      Start 10: smoke_test_global_lock
+10/27 Test #10: smoke_test_global_lock ...........................   Passed    0.00 sec
+      Start 11: reference_workload_link_test_global_lock
+11/27 Test #11: reference_workload_link_test_global_lock .........   Passed    2.76 sec
+      Start 12: kvstore_test_rwlock
+12/27 Test #12: kvstore_test_rwlock ..............................   Passed    0.27 sec
+      Start 13: concurrent_lock_test_rwlock
+13/27 Test #13: concurrent_lock_test_rwlock ......................   Passed    0.29 sec
+      Start 14: smoke_test_rwlock
+14/27 Test #14: smoke_test_rwlock ................................   Passed    0.00 sec
+      Start 15: reference_workload_link_test_rwlock
+15/27 Test #15: reference_workload_link_test_rwlock ..............   Passed    2.77 sec
+      Start 16: driver_single_thread
+16/27 Test #16: driver_single_thread .............................   Passed    1.28 sec
+      Start 17: driver_global_lock
+17/27 Test #17: driver_global_lock ...............................   Passed    1.35 sec
+      Start 18: driver_rwlock
+18/27 Test #18: driver_rwlock ....................................   Passed    1.43 sec
+      Start 19: bench_histogram_test
+19/27 Test #19: bench_histogram_test .............................   Passed    0.01 sec
+      Start 20: bench_validate_concurrent_global_lock
+20/27 Test #20: bench_validate_concurrent_global_lock ............   Passed    0.51 sec
+      Start 21: bench_validate_concurrent_rwlock
+21/27 Test #21: bench_validate_concurrent_rwlock .................   Passed    0.51 sec
+      Start 22: bench_validate_concurrent_rwlock_paced
+22/27 Test #22: bench_validate_concurrent_rwlock_paced ...........   Passed    0.51 sec
+      Start 23: bench_validate_concurrent_reference_keys
+23/27 Test #23: bench_validate_concurrent_reference_keys .........   Passed    0.41 sec
+      Start 24: bench_validate_concurrent_single_readonly
+24/27 Test #24: bench_validate_concurrent_single_readonly ........   Passed    0.41 sec
+      Start 25: bench_validate_concurrent_single_inline_writer
+25/27 Test #25: bench_validate_concurrent_single_inline_writer ...   Passed    0.41 sec
+      Start 26: bench_validate_layout
+26/27 Test #26: bench_validate_layout ............................   Passed    0.02 sec
+      Start 27: bench_rejects_concurrent_single
+27/27 Test #27: bench_rejects_concurrent_single ..................   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 27
+
+Total Test time (real) =  16.62 sec
+# ctest exit_status: 0
+-- store, sanity test, drivers
+ok       include/kvstore.h
+ok       src/kvstore.cpp
+ok       tests/kvstore_test.cpp
+ok       drivers/single_thread.cpp
+ok       drivers/global_lock.cpp
+ok       drivers/rwlock.cpp
+ok       supplied/workload_gen.cpp
+ok       supplied/workload_gen.h
+-- benchmark harness and layout microbenchmark
+ok       benchmarks/concurrent_bench.cpp
+ok       benchmarks/layout_bench.cpp
+-- raw measurements
+ok       results/part_a/environment.txt
+ok       results/part_a/campaign_config.txt
+ok       results/part_a/conditions.log
+ok       results/part_a/concurrent/runs.csv
+ok       results/part_a/reference/runs.csv
+ok       results/part_a/layout/runs.csv
+-- perf stat: global_lock and rwlock at 1/2/4/8 readers, writer active
+ok       5 x perf stat global_lock r1 (writer_max)
+ok       5 x perf stat global_lock r2 (writer_max)
+ok       5 x perf stat global_lock r4 (writer_max)
+ok       5 x perf stat global_lock r8 (writer_max)
+ok       5 x perf stat rwlock r1 (writer_max)
+ok       5 x perf stat rwlock r2 (writer_max)
+ok       5 x perf stat rwlock r4 (writer_max)
+ok       5 x perf stat rwlock r8 (writer_max)
+-- perf record / perf script / flame graphs: global_lock and rwlock at 1/2/4/8 readers
+ok       results/part_a/flamegraphs/global_lock_r1.svg
+ok       results/part_a/flamegraphs/global_lock_r1.folded
+ok       results/part_a/flamegraphs/global_lock_r1.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r2.svg
+ok       results/part_a/flamegraphs/global_lock_r2.folded
+ok       results/part_a/flamegraphs/global_lock_r2.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r4.svg
+ok       results/part_a/flamegraphs/global_lock_r4.folded
+ok       results/part_a/flamegraphs/global_lock_r4.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r8.svg
+ok       results/part_a/flamegraphs/global_lock_r8.folded
+ok       results/part_a/flamegraphs/global_lock_r8.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r1.svg
+ok       results/part_a/flamegraphs/rwlock_r1.folded
+ok       results/part_a/flamegraphs/rwlock_r1.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r2.svg
+ok       results/part_a/flamegraphs/rwlock_r2.folded
+ok       results/part_a/flamegraphs/rwlock_r2.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r4.svg
+ok       results/part_a/flamegraphs/rwlock_r4.folded
+ok       results/part_a/flamegraphs/rwlock_r4.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r8.svg
+ok       results/part_a/flamegraphs/rwlock_r8.folded
+ok       results/part_a/flamegraphs/rwlock_r8.perf-script.txt.xz
+ok       results/part_a/flamegraphs/COMMANDS.txt
+-- perf c2c cache-line contention reports
+ok       results/part_a/c2c/global_lock_r1.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r2.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r4.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r8.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r1.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r2.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r4.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r8.c2c-report.txt
+-- layout hardware counters
+ok       18 x layout perf stat files
+-- summaries, figures, report
+ok       results/part_a/summary/concurrent_summary.csv
+ok       results/part_a/summary/reference_summary.csv
+ok       results/part_a/summary/layout_summary.csv
+ok       results/part_a/summary/layout_perf_summary.csv
+ok       results/part_a/summary/flamegraph_breakdown.csv
+ok       results/part_a/summary/c2c_summary.csv
+ok       results/part_a/figures/fig_scaling.pdf
+ok       results/part_a/figures/fig_layout.pdf
+ok       reports/part_a_report.pdf
+ok       reports/part_a_report.md
+ok       docs/part_a_compliance.md
+all Part A artifacts present
+# check_part_a_artifacts exit_status: 0
+report: reports/part_a_report.pdf
+pages: 4 (limit 5)
+design note: pages 3-4, at most 2 page(s) (limit 3)
+PASS
+# check_part_a_report exit_status: 0
