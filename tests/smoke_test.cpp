@@ -11,6 +11,7 @@
 #include "test_util.h"
 
 #include <cstring>
+#include <stdexcept>
 #include <utility>
 
 #ifndef NOVA_EXPECTED_SYNC_MODE
@@ -44,8 +45,13 @@ int main() {
     store.set_reclaim_batch(-5);
 
     // Snapshot handle lifecycle: acquire, move-construct, move-assign, destroy.
-    {
+    // Only the rcu build has versions to pin; the lock-based baselines refuse
+    // (snapshot_test.cpp covers the behaviour in detail).
+    const bool versioned = std::strcmp(nova_kv_sync_mode_name(), "rcu") == 0;
+    bool acquired = false;
+    try {
         KVStore::Snapshot a = cstore.acquire_snapshot();
+        acquired = true;
         KVStore::Snapshot b = std::move(a);
         KVStore::Snapshot c = cstore.acquire_snapshot();
         c = std::move(b);
@@ -53,7 +59,10 @@ int main() {
         NOVA_CHECK(cstore.index_get(c, "SYM001", 8, keys_out, 4) == 0);
         NOVA_CHECK(cstore.keys(c, keys_out, 4) == 0);
         NOVA_CHECK(keys_out[0] == 7);
+    } catch (const std::logic_error&) {
+        NOVA_CHECK(!versioned);
     }
+    NOVA_CHECK(acquired == versioned);
 
     // A Transaction destroyed without commit() must be harmless.
     {

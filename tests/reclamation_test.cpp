@@ -723,6 +723,62 @@ void test_comparator_modes() {
     }
 }
 
+// ---- 11. A long-lived pin protects its version in EVERY reclamation mode -------------
+// (Post-B2 audit, decision D-049: the stop-the-world comparator used to free the
+// whole retire list without consulting pins.) The pin is taken, 3000 versions
+// are published over the same keys with large values, and reclamation is run as
+// hard as the mode allows. While the pin lives: every pinned value is intact, no
+// version retired since the pin is destroyed, no chunk is freed and no chunk ID
+// is reused. After release the mode's normal behaviour resumes.
+void test_pin_protected_in_mode(nova::ReclaimMode mode, const char* label) {
+    VersionedStore s(nova::StoreOptions{mode, nova::CleanerMode::Manual});
+    const int nkeys = 20;
+    for (long k = 0; k < nkeys; ++k) NOVA_CHECK(put(s, k, pattern(30000, static_cast<std::uint64_t>(k))));
+    VersionedStore::Pin pin = s.acquire_pin();
+    VersionedStore::Pin moved = pin;   // a move is a copy of the handle ...
+    pin = VersionedStore::Pin{};       // ... and clearing the source: the slot is untouched
+    const nova::VersionedStats before = s.stats();
+    for (std::uint64_t i = 0; i < 3000; ++i) {
+        NOVA_CHECK(put(s, static_cast<long>(i % nkeys), pattern(30000, 1000 + i)));
+        if (i % 500 == 499) passes(s, 50);
+    }
+    passes(s, 2000);
+    const nova::VersionedStats held = s.stats();
+    NOVA_CHECK(held.versions_reclaimed == before.versions_reclaimed);
+    NOVA_CHECK(held.arena.chunks_freed == before.arena.chunks_freed);
+    NOVA_CHECK(held.arena.ids_reused == before.arena.ids_reused);
+    NOVA_CHECK(s.backlog() >= 3000);
+    bool intact = true;
+    for (long k = 0; k < nkeys; ++k) {
+        const Bytes expect = pattern(30000, static_cast<std::uint64_t>(k));
+        Bytes buf(expect.size());
+        intact = intact && s.get_pinned(moved, k, buf.data(), buf.size()) && buf == expect;
+    }
+    NOVA_CHECK(intact);
+    NOVA_CHECK(s.stats().epoch.slots_owned == 1);
+    s.release_pin(moved);
+    s.release_pin(moved);              // releasing an inert pin does nothing
+    s.release_pin(pin);
+    NOVA_CHECK(s.stats().epoch.slots_owned == 0 && s.stats().epoch.slots_active == 0);
+    passes(s, 2000);
+    const nova::VersionedStats after = s.stats();
+    if (mode == nova::ReclaimMode::Disabled) {
+        NOVA_CHECK(after.versions_reclaimed == before.versions_reclaimed);  // never, by definition
+        NOVA_CHECK(after.arena.ids_reused == before.arena.ids_reused);
+    } else {
+        NOVA_CHECK(s.backlog() == 0);
+        NOVA_CHECK(after.arena.chunks_freed > before.arena.chunks_freed);
+        // Only now may the freed IDs be handed out again.
+        for (std::uint64_t i = 0; i < 40; ++i) NOVA_CHECK(put(s, static_cast<long>(i % nkeys), pattern(30000, 9000 + i)));
+        NOVA_CHECK(s.stats().arena.ids_reused > before.arena.ids_reused);
+    }
+    for (long k = 0; k < nkeys; ++k) NOVA_CHECK(s.get(k, nullptr, 0) == false);  // present, buffer too small
+    check_valid(s);
+    std::printf("  pin in %s mode: %llu versions held back while pinned, %llu chunks freed after release\n", label,
+                static_cast<unsigned long long>(held.versions_retained),
+                static_cast<unsigned long long>(after.arena.chunks_freed - before.arena.chunks_freed));
+}
+
 }  // namespace
 
 int main() {
@@ -749,6 +805,9 @@ int main() {
     test_long_lived_pin_moved_between_threads();
     test_reader_slots_reused_after_thread_exit();
     test_comparator_modes();
+    test_pin_protected_in_mode(nova::ReclaimMode::Epoch, "epoch");
+    test_pin_protected_in_mode(nova::ReclaimMode::StopTheWorld, "stop-the-world");
+    test_pin_protected_in_mode(nova::ReclaimMode::Disabled, "disabled");
 
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Version) == 0);
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Segment) == 0);

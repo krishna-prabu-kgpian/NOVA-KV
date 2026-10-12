@@ -1,0 +1,9 @@
+# reclamation_test at part-b-audited (87d38aa) + the new test test_pin_protected_in_mode, BEFORE the stop-the-world fix (debug build)
+$ build/verify/debug/reclamation_test
+CHECK FAILED: held.versions_reclaimed == before.versions_reclaimed at /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/reclamation_test.cpp:747
+CHECK FAILED: held.arena.chunks_freed == before.arena.chunks_freed at /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/reclamation_test.cpp:748
+CHECK FAILED: held.arena.ids_reused == before.arena.ids_reused at /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/reclamation_test.cpp:749
+CHECK FAILED: s.backlog() >= 3000 at /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/reclamation_test.cpp:750
+CHECK FAILED: intact at /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/reclamation_test.cpp:757
+reclamation_test: 65992 checks, 5 failed
+exit status: 1
