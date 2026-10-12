@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# verify_all.sh -- runs every verification gate that applies to the milestones
+# implemented so far and exits nonzero unless every MANDATORY gate is PASS.
+#
+# Evidence goes to results/verification/<git-sha>[-dirty]/:
+#   summary.md             gate table (PASS / FAIL / NOT RUN, exit codes, logs)
+#   environment.txt        machine, kernel, compiler, tool versions
+#   source_manifest.sha256 SHA-256 of every tracked file
+#   logs/<gate>.log        full stdout+stderr of each gate, with its command
+#
+# A gate is NOT RUN when a prerequisite is missing or failed (e.g. tests after a
+# failed build, or a sanitizer runtime that cannot start here). NOT RUN on a
+# mandatory gate blocks overall PASS exactly like FAIL does.
+#
+# Gates are added here as milestones land; expectations are never loosened to
+# hide a failure. Currently covered: A0.
+set -u -o pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+cd "$NOVA_ROOT"
+
+JOBS="${JOBS:-$(nproc)}"
+SHA="$(git rev-parse --short=12 HEAD 2>/dev/null || echo nogit)"
+[ -n "$(git status --porcelain 2>/dev/null)" ] && SHA="${SHA}-dirty"
+OUT="results/verification/${SHA}"
+LOGS="$OUT/logs"
+BUILD_ROOT="build/verify"
+rm -rf "$OUT"
+mkdir -p "$LOGS"
+
+SUMMARY_ROWS=()
+OVERALL=0
+
+# record <gate> <mandatory:yes|no> <PASS|FAIL|NOT RUN> <exit|-> <note>
+record() {
+    local gate="$1" mandatory="$2" result="$3" rc="$4" note="$5"
+    SUMMARY_ROWS+=("| $gate | $mandatory | $result | $rc | $note |")
+    printf '%-28s %-8s (mandatory: %s)\n' "$gate" "$result" "$mandatory"
+    if [ "$mandatory" = yes ] && [ "$result" != PASS ]; then OVERALL=1; fi
+}
+
+# run_gate <gate> <mandatory> <command...>   -> returns the command's status
+run_gate() {
+    local gate="$1" mandatory="$2"; shift 2
+    local log="$LOGS/$gate.log" rc
+    {
+        echo "# gate: $gate"
+        echo "# started_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "# cwd: $PWD"
+        echo "# command: $*"
+        echo
+    } > "$log"
+    "$@" >> "$log" 2>&1
+    rc=$?
+    printf '\n# exit_status: %d\n' "$rc" >> "$log"
+    if [ $rc -eq 0 ]; then record "$gate" "$mandatory" PASS 0 "logs/$gate.log"
+    else record "$gate" "$mandatory" FAIL "$rc" "logs/$gate.log"; fi
+    return $rc
+}
+
+skip_gate() { record "$1" "$2" "NOT RUN" - "$3"; }
+
+# ---- Environment and provenance ---------------------------------------------
+scripts/env_info.sh > "$OUT/environment.txt" 2>&1
+scripts/source_manifest.sh > "$OUT/source_manifest.sha256" 2>&1
+
+run_gate supplied_files_unchanged yes sh -c 'cd supplied && sha256sum -c SHA256SUMS'
+run_gate no_external_deps yes scripts/check_no_external_deps.sh
+
+# Whitespace errors in project-authored tracked files and in uncommitted edits.
+# The imported originals are excluded: they are preserved as received.
+EMPTY_TREE="$(git hash-object -t tree /dev/null)"
+run_gate whitespace_check yes sh -c "
+    git diff --check $EMPTY_TREE HEAD -- . ':!NOVA_KV_*.md' ':!assignment2.pdf' ':!supplied/workload_gen.cpp' ':!results' &&
+    git diff --check HEAD -- . ':!results'"
+
+# ---- Build + test matrix -----------------------------------------------------
+if ! nova_resolve_cmake 2> "$LOGS/cmake_resolve.log"; then
+    for mode in debug release asan_ubsan tsan; do
+        skip_gate "${mode}_configure" yes "cmake not found (run scripts/bootstrap_tools.sh)"
+        skip_gate "${mode}_build" yes "cmake not found"
+        skip_gate "${mode}_ctest" yes "cmake not found"
+    done
+else
+    rm -f "$LOGS/cmake_resolve.log"
+
+    # sanitizer_usable <flags>: can a trivial threaded program built with these
+    # flags actually start on this machine? (Distinguishes "runtime unusable
+    # here" = NOT RUN from "our code has a defect" = FAIL.)
+    sanitizer_usable() {
+        local dir="$BUILD_ROOT/probe" ok=0
+        mkdir -p "$dir"
+        printf '#include <thread>\nint main(){ std::thread t([]{}); t.join(); return 0; }\n' > "$dir/probe.cpp"
+        g++ -std=c++17 -pthread "$@" "$dir/probe.cpp" -o "$dir/probe" && "$dir/probe" || ok=1
+        return $ok
+    }
+
+    # verify_mode <name> <sanitizer probe flags or ''> <cmake args...>
+    verify_mode() {
+        local mode="$1" probe_flags="$2"; shift 2
+        local bdir="$BUILD_ROOT/$mode"
+        if [ -n "$probe_flags" ] && ! sanitizer_usable $probe_flags > "$LOGS/${mode}_probe.log" 2>&1; then
+            skip_gate "${mode}_configure" yes "sanitizer runtime unusable here, see logs/${mode}_probe.log"
+            skip_gate "${mode}_build" yes "sanitizer runtime unusable here"
+            skip_gate "${mode}_ctest" yes "sanitizer runtime unusable here"
+            return
+        fi
+        rm -rf "$bdir"  # every run is a clean configure + build
+        if ! run_gate "${mode}_configure" yes "$NOVA_CMAKE" -S . -B "$bdir" "$@"; then
+            skip_gate "${mode}_build" yes "configure failed"
+            skip_gate "${mode}_ctest" yes "configure failed"
+            return
+        fi
+        if ! run_gate "${mode}_build" yes "$NOVA_CMAKE" --build "$bdir" -j "$JOBS"; then
+            skip_gate "${mode}_ctest" yes "build failed"
+            return
+        fi
+        run_gate "${mode}_ctest" yes "$NOVA_CTEST" --test-dir "$bdir" --output-on-failure
+    }
+
+    verify_mode debug      ""                           -DCMAKE_BUILD_TYPE=Debug
+    verify_mode release    ""                           -DCMAKE_BUILD_TYPE=Release
+    verify_mode asan_ubsan "-fsanitize=address,undefined" -DCMAKE_BUILD_TYPE=Debug -DNOVA_ENABLE_ASAN_UBSAN=ON
+    verify_mode tsan       "-fsanitize=thread"          -DCMAKE_BUILD_TYPE=Debug -DNOVA_ENABLE_TSAN=ON
+fi
+
+# ---- Informational (do not affect the verdict) ------------------------------
+# Profiling is first needed in A2; A0 only records whether it will be possible.
+run_gate perf_stat_usable no perf stat -e task-clock -- true
+run_gate flamegraph_scripts_present no sh -c 'command -v stackcollapse-perf.pl && command -v flamegraph.pl'
+
+# ---- Summary ------------------------------------------------------------------
+{
+    echo "# Verification summary"
+    echo
+    echo "- git: \`$SHA\`"
+    echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "- compiler: $(g++ --version | head -1)"
+    echo "- cmake: ${NOVA_CMAKE:-not found}"
+    echo "- milestones covered: A0"
+    echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
+    echo
+    echo "| Gate | Mandatory | Result | Exit | Evidence / note |"
+    echo "|---|---|---|---|---|"
+    printf '%s\n' "${SUMMARY_ROWS[@]}"
+} > "$OUT/summary.md"
+
+echo
+echo "evidence: $OUT/summary.md"
+echo "overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)"
+exit $OVERALL

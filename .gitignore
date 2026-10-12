@@ -1,0 +1,15 @@
+# Build trees and project-local tools (scripts/bootstrap_tools.sh)
+/build/
+/.tools/
+
+# Large raw profiler captures; folded stacks, SVGs and perf stat text are kept
+perf.data
+perf.data.old
+*.perf.data
+
+# Editor / OS noise
+compile_commands.json
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -1,0 +1,63 @@
+// reference_workload_link_test.cpp -- proves the UNMODIFIED supplied
+// workload_gen.cpp compiles and links against this repository's kvstore.h and
+// store library, and that every code path it contains (plain puts, Transaction
+// batching, instrument index probes, reader threads) executes to completion.
+//
+// This is a compatibility check, not a benchmark: the configuration is tiny and
+// the numbers it prints are meaningless. It also compiles the driver shape
+// printed at the end of Appendix A.2.
+#include "workload_gen.h"
+
+#include "test_util.h"
+
+#include <string>
+
+namespace {
+
+WorkloadConfig tiny_config() {
+    WorkloadConfig cfg;
+    cfg.m = 20;
+    cfg.n = 10;         // 200 trades
+    cfg.hot_every = 10; // 20 hot ids
+    cfg.num_readers = 2;
+    cfg.duration_sec = 1;
+    return cfg;
+}
+
+void run(const std::string& label, const WorkloadConfig& cfg, bool with_instruments) {
+    KVStore trades;
+    KVStore instruments;
+    WorkloadResults res;
+    workload_run(trades, with_instruments ? &instruments : nullptr, cfg, res);
+    print_results(label, res);
+    NOVA_CHECK(res.total_ops > 0);
+    NOVA_CHECK(res.rps > 0);
+    NOVA_CHECK(res.p50_us <= res.p99_us);
+    NOVA_CHECK(res.p99_us <= res.p999_us);
+}
+
+}  // namespace
+
+int main() {
+    // Appendix A.2 defaults, as printed in the PDF.
+    {
+        WorkloadConfig d;
+        NOVA_CHECK(d.m == 1000 && d.n == 100);
+        NOVA_CHECK(d.hot_every == 100);
+        NOVA_CHECK(d.num_readers == 8);
+        NOVA_CHECK(d.duration_sec == 5);
+        NOVA_CHECK(!d.use_txn);
+        NOVA_CHECK(d.txn_size == 1);
+        NOVA_CHECK(!d.use_join);
+    }
+
+    run("link/put", tiny_config(), false);
+
+    WorkloadConfig txn_join = tiny_config();
+    txn_join.use_txn = true;
+    txn_join.txn_size = 4;
+    txn_join.use_join = true;
+    run("link/txn+join", txn_join, true);
+
+    return nova_test::finish("reference_workload_link_test");
+}
