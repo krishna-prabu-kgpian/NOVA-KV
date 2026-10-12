@@ -1,0 +1,28 @@
+# Verification summary
+
+- git: `12eb6306e2a2`
+- finished_utc: 2026-10-12T06:23:40Z
+- compiler: g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+- cmake: /home/overmind/Documents/DOCS/assignment2/NOVA-KV/.tools/venv/bin/cmake
+- milestones covered: A0
+- overall: PASS  (every mandatory gate must be PASS)
+
+| Gate | Mandatory | Result | Exit | Evidence / note |
+|---|---|---|---|---|
+| supplied_files_unchanged | yes | PASS | 0 | logs/supplied_files_unchanged.log |
+| no_external_deps | yes | PASS | 0 | logs/no_external_deps.log |
+| whitespace_check | yes | PASS | 0 | logs/whitespace_check.log |
+| debug_configure | yes | PASS | 0 | logs/debug_configure.log |
+| debug_build | yes | PASS | 0 | logs/debug_build.log |
+| debug_ctest | yes | PASS | 0 | logs/debug_ctest.log |
+| release_configure | yes | PASS | 0 | logs/release_configure.log |
+| release_build | yes | PASS | 0 | logs/release_build.log |
+| release_ctest | yes | PASS | 0 | logs/release_ctest.log |
+| asan_ubsan_configure | yes | PASS | 0 | logs/asan_ubsan_configure.log |
+| asan_ubsan_build | yes | PASS | 0 | logs/asan_ubsan_build.log |
+| asan_ubsan_ctest | yes | PASS | 0 | logs/asan_ubsan_ctest.log |
+| tsan_configure | yes | PASS | 0 | logs/tsan_configure.log |
+| tsan_build | yes | PASS | 0 | logs/tsan_build.log |
+| tsan_ctest | yes | PASS | 0 | logs/tsan_ctest.log |
+| perf_stat_usable | no | FAIL | 1 | logs/perf_stat_usable.log |
+| flamegraph_scripts_present | no | FAIL | 127 | logs/flamegraph_scripts_present.log |

@@ -1,0 +1,39 @@
+# gate: asan_ubsan_build
+# started_utc: 2026-10-12T06:22:46Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: /home/overmind/Documents/DOCS/assignment2/NOVA-KV/.tools/venv/bin/cmake --build build/verify/asan_ubsan -j 16
+
+[  9%] Building CXX object CMakeFiles/nova_workload.dir/supplied/workload_gen.cpp.o
+[ 14%] Building CXX object CMakeFiles/nova_kv_single.dir/src/kvstore.cpp.o
+[ 14%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/kvstore.cpp.o
+[ 19%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/kvstore.cpp.o
+[ 23%] Linking CXX static library libnova_kv_single.a
+[ 28%] Linking CXX static library libnova_kv_rwlock.a
+[ 28%] Built target nova_kv_single
+[ 33%] Linking CXX static library libnova_kv_global_lock.a
+[ 33%] Built target nova_kv_rwlock
+[ 38%] Building CXX object CMakeFiles/api_conformance_test.dir/tests/api_conformance_test.cpp.o
+[ 42%] Building CXX object CMakeFiles/smoke_test_single.dir/tests/smoke_test.cpp.o
+[ 42%] Built target nova_kv_global_lock
+[ 47%] Building CXX object CMakeFiles/smoke_test_rwlock.dir/tests/smoke_test.cpp.o
+[ 52%] Building CXX object CMakeFiles/smoke_test_global_lock.dir/tests/smoke_test.cpp.o
+[ 57%] Linking CXX executable api_conformance_test
+[ 61%] Linking CXX executable smoke_test_single
+[ 66%] Linking CXX executable smoke_test_rwlock
+[ 71%] Linking CXX executable smoke_test_global_lock
+[ 71%] Built target api_conformance_test
+[ 71%] Built target smoke_test_single
+[ 71%] Built target smoke_test_rwlock
+[ 71%] Built target smoke_test_global_lock
+[ 71%] Built target nova_workload
+[ 76%] Building CXX object CMakeFiles/reference_workload_link_test_rwlock.dir/tests/reference_workload_link_test.cpp.o
+[ 80%] Building CXX object CMakeFiles/reference_workload_link_test_global_lock.dir/tests/reference_workload_link_test.cpp.o
+[ 85%] Building CXX object CMakeFiles/reference_workload_link_test_single.dir/tests/reference_workload_link_test.cpp.o
+[ 90%] Linking CXX executable reference_workload_link_test_rwlock
+[ 95%] Linking CXX executable reference_workload_link_test_single
+[100%] Linking CXX executable reference_workload_link_test_global_lock
+[100%] Built target reference_workload_link_test_rwlock
+[100%] Built target reference_workload_link_test_single
+[100%] Built target reference_workload_link_test_global_lock
+
+# exit_status: 0

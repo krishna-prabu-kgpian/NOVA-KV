@@ -1,0 +1,71 @@
+# clean-clone build of commit 12eb6306e2a2912fe3748f8a736fcfa4b05d3263, 2026-10-12T06:23:49Z
+# commands: git clone -q <repo> clone; cmake -S clone -B clone/build -DCMAKE_BUILD_TYPE=Release; cmake --build clone/build -j; ctest --test-dir clone/build --output-on-failure
+# git clone exit_status: 0
+# untracked-or-modified files in clone: 0
+-- The CXX compiler identification is GNU 15.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: <scratch>/clone/build
+# configure exit_status: 0
+[  4%] Building CXX object CMakeFiles/nova_kv_single.dir/src/kvstore.cpp.o
+[  9%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/kvstore.cpp.o
+[ 14%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/kvstore.cpp.o
+[ 19%] Building CXX object CMakeFiles/nova_workload.dir/supplied/workload_gen.cpp.o
+[ 28%] Linking CXX static library libnova_kv_single.a
+[ 28%] Linking CXX static library libnova_kv_global_lock.a
+[ 33%] Linking CXX static library libnova_kv_rwlock.a
+[ 33%] Built target nova_kv_rwlock
+[ 33%] Built target nova_kv_single
+[ 33%] Built target nova_kv_global_lock
+[ 38%] Building CXX object CMakeFiles/smoke_test_global_lock.dir/tests/smoke_test.cpp.o
+[ 42%] Building CXX object CMakeFiles/api_conformance_test.dir/tests/api_conformance_test.cpp.o
+[ 47%] Building CXX object CMakeFiles/smoke_test_rwlock.dir/tests/smoke_test.cpp.o
+[ 52%] Building CXX object CMakeFiles/smoke_test_single.dir/tests/smoke_test.cpp.o
+[ 57%] Linking CXX executable api_conformance_test
+[ 61%] Linking CXX executable smoke_test_global_lock
+[ 66%] Linking CXX executable smoke_test_single
+[ 71%] Linking CXX executable smoke_test_rwlock
+[ 71%] Built target api_conformance_test
+[ 71%] Built target smoke_test_single
+[ 71%] Built target smoke_test_rwlock
+[ 71%] Built target smoke_test_global_lock
+[ 71%] Built target nova_workload
+[ 76%] Building CXX object CMakeFiles/reference_workload_link_test_single.dir/tests/reference_workload_link_test.cpp.o
+[ 80%] Building CXX object CMakeFiles/reference_workload_link_test_rwlock.dir/tests/reference_workload_link_test.cpp.o
+[ 85%] Building CXX object CMakeFiles/reference_workload_link_test_global_lock.dir/tests/reference_workload_link_test.cpp.o
+[ 90%] Linking CXX executable reference_workload_link_test_global_lock
+[ 95%] Linking CXX executable reference_workload_link_test_single
+[100%] Linking CXX executable reference_workload_link_test_rwlock
+[100%] Built target reference_workload_link_test_rwlock
+[100%] Built target reference_workload_link_test_single
+[100%] Built target reference_workload_link_test_global_lock
+# build exit_status: 0
+Internal ctest changing into directory: <scratch>/clone/build
+Test project <scratch>/clone/build
+    Start 1: api_conformance_test
+1/7 Test #1: api_conformance_test .......................   Passed    0.00 sec
+    Start 2: smoke_test_single
+2/7 Test #2: smoke_test_single ..........................   Passed    0.00 sec
+    Start 3: reference_workload_link_test_single
+3/7 Test #3: reference_workload_link_test_single ........   Passed    3.20 sec
+    Start 4: smoke_test_global_lock
+4/7 Test #4: smoke_test_global_lock .....................   Passed    0.00 sec
+    Start 5: reference_workload_link_test_global_lock
+5/7 Test #5: reference_workload_link_test_global_lock ...   Passed    3.16 sec
+    Start 6: smoke_test_rwlock
+6/7 Test #6: smoke_test_rwlock ..........................   Passed    0.00 sec
+    Start 7: reference_workload_link_test_rwlock
+7/7 Test #7: reference_workload_link_test_rwlock ........   Passed    3.19 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   9.59 sec
+# ctest exit_status: 0

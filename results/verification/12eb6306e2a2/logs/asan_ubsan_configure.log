@@ -1,0 +1,19 @@
+# gate: asan_ubsan_configure
+# started_utc: 2026-10-12T06:22:46Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: /home/overmind/Documents/DOCS/assignment2/NOVA-KV/.tools/venv/bin/cmake -S . -B build/verify/asan_ubsan -DCMAKE_BUILD_TYPE=Debug -DNOVA_ENABLE_ASAN_UBSAN=ON
+
+-- The CXX compiler identification is GNU 15.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/overmind/Documents/DOCS/assignment2/NOVA-KV/build/verify/asan_ubsan
+
+# exit_status: 0
