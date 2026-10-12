@@ -690,13 +690,101 @@ advances is about two per pin cycle.
   processes plus four parallel copies), because the cleaner then gets too little CPU before
   the writer has finished. Run the suite serially, as `scripts/verify_all.sh` does.
 
+## D-057 — Isolation wording corrected (ACCEPTED, C1 audit, 2026-10-12, user direction)
+
+`docs/transactions.md` §5 (and the C1 report, compliance note 1) said that under the
+assignment's single-writer assumption every execution is serializable. Removed. Serializing
+commits orders the writes; it says nothing about the reads a client based them on, and a
+single thread working from an earlier snapshot can make a stale decision by itself. The
+documents now state only what is implemented: serialized, atomically published commits;
+consistent reads of one store version through a `Snapshot`; independent gets may see
+different versions; a client-side read followed by a commit is not a transaction; no read
+set, no validation; lost updates and write skew possible; no durability.
+
+## D-058 — Reclamation progress is tested from accounting, not from an advance count (ACCEPTED, C1 audit)
+
+Audit of the threshold change of D-056. Evidence
+(`results/C1_audit/stress_epoch_advance_distribution.txt`, 100 sub-runs each, release, serial,
+one session): unmodified `part-b-audited` min 99, p10 150, median 228, **one sub-run at or
+below 100 and one failed check**; C1 min 86, p10 155, median 232, one sub-run at or below 100.
+Same distribution: the old floor was a scheduling-sensitive coverage heuristic and its
+lowering concealed no regression. (Why it is scheduling-bound: while the test's pinning
+thread holds a pin the epoch can advance once more at most, so advances ≈ two per pin cycle.)
+
+Added, so that no advance count is the progress assertion:
+`reclamation_test::test_reclamation_progress` (manual passes, batches 1/8/64/1024, three
+stall/release cycles): with a pin, backlog stays exactly at the number retired, nothing is
+reclaimed over 3000 passes, memory held grows by at least the retained values; after release
+the backlog falls by exactly the batch on every pass, reaches 0 within `retired/batch + 3`
+passes, reclaimed == retired, chunks and bytes return to the idle level.
+`test_background_cleaner_resumes_after_release`: the same end state with the store's own
+cleaner thread.
+
+## D-059 — Cross-store snapshot: analysis and position for C2 (RECORDED, C1 audit; O-1 stays OPEN / INSTRUCTOR)
+
+The texts. PDF C.2: "Build a secondary index … on one non-primary-key column of a second
+table you add to the store (see Appendix A for the two-table shape used by the benchmark)";
+"Acquire exactly one Snapshot handle (Appendix A.1) at the very start of the join, and pass
+that same handle to every keys(), index_get(), and get() call the join makes." Appendix A.2:
+`workload_run(KVStore& trades, KVStore* instruments, …)`, and the supplied generator calls
+`instruments.create_index(…)` on the second object. Appendix A.1: `acquire_snapshot()`,
+`get(const Snapshot&, …)`, `index_get(const Snapshot&, …)`, `keys(const Snapshot&, …)` are
+all member functions of one `KVStore`.
+
+The conflict. Two `KVStore` objects are constructed, owned and destroyed independently and
+each has its own "current version" pointer (the PDF's own description of what a `KVStore`
+owns). One handle obtained from one of them pins one of those pointers. Nothing in the API
+relates the two objects.
+
+Can one handle cover both without changing the API? Only by coupling the objects behind the
+interface: every `KVStore` in the process would publish through one hidden shared root (and
+share one epoch domain and one writer order), so that a handle acquired from any store pins
+all of them and any store accepts it. No signature changes, but it changes what the API
+visibly promises: stores stop being independent (a write to one republishes the shared root;
+writers of different stores serialize; a snapshot of one store holds back reclamation in all
+of them; destruction order matters), and it is a redesign of root publication, i.e. of the
+part of the system whose safety argument has just been audited. The assignment does not
+describe any such "database" object. Implementing it would be inventing cross-store
+atomicity that the stated contract does not ask for in so many words.
+
+Alternative reading: "a second table you add to **the** store" — both tables in one
+`KVStore`, one snapshot, literally one handle. But `create_index(field_offset, field_len)`
+indexes "a byte range within each stored value" of that store, the two row types have the
+field at different offsets, and the supplied benchmark passes two objects. Not compatible
+with Appendix A.2 as given.
+
+Position for C2 unless the instructor says otherwise (the minimal interpretation that
+violates nothing in the API): the join acquires **one Snapshot per store, both at the very
+start**, and passes each store's handle to every call on that store. Guarantee: each table is
+read at one unchanging version for the whole join; never rows from two versions of the same
+table; the writer is never blocked. **Not** guaranteed, and to be stated wherever the join is
+described: that the two versions belong to one instant. If both tables are written
+concurrently, the pair is not an atomic cross-store snapshot, and the PDF's literal "exactly
+one Snapshot handle" is not met. (With the benchmark's shape, where instruments are loaded
+once and not modified during the join, the two instants are indistinguishable from one.)
+
+Question for the instructor (verbatim proposal):
+
+> Part C.2 asks the join to "acquire exactly one Snapshot handle … and pass that same handle
+> to every keys(), index_get(), and get() call", while Appendix A.2 gives the benchmark two
+> separate KVStore objects (trades, instruments), and Appendix A.1 makes acquire_snapshot()
+> and the snapshot-scoped calls members of a single KVStore. A Snapshot taken from one
+> KVStore pins that store's version only. Which do you intend?
+> (a) one Snapshot per store, both acquired at the start of the join (each table consistent
+>     on its own; the Instrument table is static during the benchmark);
+> (b) both tables inside one KVStore, so that one handle covers them — and if so, how should
+>     create_index's single byte range apply to two row types; or
+> (c) the two KVStore objects must share one global version, so that a handle from one is
+>     valid for the other — and if so, may stores be coupled internally (shared writer order
+>     and reclamation) to achieve it?
+
 ---
 
 ## Open items carried forward
 
 | ID | Item | Needed from | Blocks |
 |---|---|---|---|
-| O-1 | Exactly-one-Snapshot join across two `KVStore` instances (PDF p. 5 vs Appendix A two-table shape) | Instructor | Full PASS of C2 |
+| O-1 | Exactly-one-Snapshot join across two `KVStore` instances (PDF p. 5 vs Appendix A two-table shape). Analysis, C2 position (one snapshot per store, labelled per-store) and the question to send: D-059 | Instructor | Full PASS of C2 |
 | O-2 | RESOLVED for user-space profiling: `perf_event_paranoid = 1` (set by the user, D-022). Remaining: `kptr_restrict = 1` hides kernel symbols (D-025) | User, if kernel symbol names are wanted (`sudo sysctl kernel.kptr_restrict=0`) | Nothing mandatory |
 | O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |

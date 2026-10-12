@@ -52,12 +52,12 @@ NOT STARTED. Statuses for C.1 were filled in from the verification run recorded 
 
 1. The assignment says of the isolation level: "It is snapshot isolation, not
    serializability." The note states what is implemented without stretching it: atomic,
-   serialized commits with snapshot-consistent reads. Readers get what snapshot isolation
-   gives a reader. The `Transaction` interface has no reads and commit detects no conflicts,
-   so for clients that read and then write this is weaker than textbook snapshot isolation
-   (lost updates are possible), and write skew is possible; under the assignment's single
-   writer neither can occur. Whether the grader wants the bare phrase "snapshot isolation" is
-   the grader's call; the note explains both readings.
+   serialized commits with snapshot-consistent reads. A read-only operation pinned to one
+   `Snapshot` gets what snapshot isolation gives a reader. The `Transaction` interface has no
+   reads and `commit()` validates nothing, so a read followed by a commit is not an isolated
+   transaction: lost updates (which snapshot isolation would prevent) and write skew are both
+   possible, and serializing the writers does not change that. Whether the grader wants the
+   bare phrase "snapshot isolation" is the grader's call; the note explains both readings.
 2. `Snapshot` exists on the `rcu` build only. The lock-based baselines are Part A artifacts
    with no versions to pin; `acquire_snapshot()` throws there instead of returning a handle
    whose reads would silently report "absent" (`docs/transactions.md` §3.5).

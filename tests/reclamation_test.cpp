@@ -18,6 +18,7 @@
 #include "test_points.h"
 #include "test_util.h"
 
+#include <chrono>
 #include <condition_variable>
 #include <cstring>
 #include <mutex>
@@ -779,6 +780,133 @@ void test_pin_protected_in_mode(nova::ReclaimMode mode, const char* label) {
                 static_cast<unsigned long long>(after.arena.chunks_freed - before.arena.chunks_freed));
 }
 
+// ---- 12. Reclamation progress, deterministically -------------------------------------
+// (C1 audit.) Progress is asserted from what the store accounts for (backlog,
+// versions reclaimed, chunks alive, bytes held), never from how many times the
+// epoch happened to advance. Manual passes, so every number below is exact:
+//   1. with nobody pinned, everything retired is reclaimed, in a bounded number
+//      of passes, and memory returns to the size of the current state;
+//   2. a pinned reader delays reclamation of everything retired after it, for
+//      as many passes as are tried, and the backlog and memory show it;
+//   3. after its release reclamation resumes at once: the backlog falls on
+//      every pass by exactly the batch until it is empty;
+//   4. all of it again, several times: a stall leaves nothing behind.
+void test_reclamation_progress(int batch) {
+    VersionedStore s(kManual);
+    s.set_reclaim_batch(batch);
+    const std::uint64_t b = static_cast<std::uint64_t>(batch);
+    const int nkeys = 16;
+    const std::uint64_t writes = 600;
+    auto write_round = [&](std::uint64_t seed) {
+        for (std::uint64_t i = 0; i < writes; ++i) {
+            NOVA_CHECK(put(s, static_cast<long>(i % nkeys), pattern(20000, seed + i)));
+        }
+    };
+    // Passes until the backlog is empty; checks that each pass that could free
+    // a full batch did, and returns how many passes it took.
+    auto reclaim_all = [&]() {
+        std::uint64_t n = 0, last = s.backlog();
+        bool steady = true;
+        while (s.backlog() != 0 && n < 100000) {
+            s.reclaim_pass();
+            ++n;
+            const std::uint64_t now = s.backlog();
+            // At most two passes only advance the epoch; from then on every
+            // pass frees a full batch, or whatever is left.
+            if (n > 2 && last - now != (last < b ? last : b)) steady = false;
+            if (now > last) steady = false;
+            last = now;
+        }
+        NOVA_CHECK(steady);
+        return n;
+    };
+
+    write_round(1);
+    NOVA_CHECK(s.backlog() == writes);                      // nothing reclaims itself: no pass has run
+    NOVA_CHECK(reclaim_all() <= writes / b + 3);            // (1) bounded number of passes
+    const nova::VersionedStats idle = s.stats();
+    NOVA_CHECK(idle.versions_reclaimed == idle.versions_retired && idle.versions_retained == 0);
+    const std::uint64_t idle_bytes = s.memory_held_bytes();
+    const std::uint64_t idle_chunks = idle.arena.chunks_live;
+    NOVA_CHECK(idle_chunks <= static_cast<std::uint64_t>(nkeys) + 2);  // just the current values
+
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        // (2) A pinned participant: nothing retired from now on can be reclaimed.
+        VersionedStore::Pin pin = s.acquire_pin();
+        const nova::VersionedStats at_pin = s.stats();
+        write_round(1000 * static_cast<std::uint64_t>(cycle + 2));
+        passes(s, 3000);
+        const nova::VersionedStats stalled = s.stats();
+        NOVA_CHECK(s.backlog() == writes);                                    // all of them wait
+        NOVA_CHECK(stalled.versions_reclaimed == at_pin.versions_reclaimed);
+        NOVA_CHECK(stalled.arena.chunks_freed == at_pin.arena.chunks_freed);
+        NOVA_CHECK(stalled.epoch.epoch <= at_pin.epoch.epoch + 1);            // one advance at most
+        NOVA_CHECK(stalled.epoch.advance_blocked >= at_pin.epoch.advance_blocked + 2990);  // the passes did try
+        NOVA_CHECK(stalled.epoch.oldest_active_epoch == pin.slot->state.load());
+        const std::uint64_t stalled_bytes = s.memory_held_bytes();
+        NOVA_CHECK(stalled_bytes >= idle_bytes + writes * 20000);             // the retained values are really held
+        NOVA_CHECK(stalled.arena.chunks_live >= idle_chunks + writes / 4);
+        for (long k = 0; k < nkeys; ++k) {                                    // and the pinned view is intact
+            Bytes buf(20000);
+            NOVA_CHECK(s.get_pinned(pin, k, buf.data(), buf.size()));
+        }
+
+        // (3) Release: progress resumes immediately and completes.
+        s.release_pin(pin);
+        const std::uint64_t needed = reclaim_all();
+        NOVA_CHECK(needed <= writes / b + 3);
+        const nova::VersionedStats after = s.stats();
+        NOVA_CHECK(s.backlog() == 0);
+        NOVA_CHECK(after.versions_reclaimed == after.versions_retired);       // eventually: everything
+        NOVA_CHECK(after.versions_reclaimed == stalled.versions_reclaimed + writes);
+        NOVA_CHECK(after.arena.chunks_live <= idle_chunks + 1);               // memory is back
+        NOVA_CHECK(s.memory_held_bytes() <= idle_bytes + 2 * 65536);
+        NOVA_CHECK(after.epoch.slots_active == 0);
+        check_valid(s);
+        if (cycle == 0) {
+            std::printf("  progress, batch %-4d stalled: backlog %llu, %llu chunks, %llu MiB held; "
+                        "after release: %llu passes, backlog 0, %llu chunks, %llu KiB held\n",
+                        batch, static_cast<unsigned long long>(writes),
+                        static_cast<unsigned long long>(stalled.arena.chunks_live),
+                        static_cast<unsigned long long>(stalled_bytes >> 20),
+                        static_cast<unsigned long long>(needed),
+                        static_cast<unsigned long long>(after.arena.chunks_live),
+                        static_cast<unsigned long long>(s.memory_held_bytes() >> 10));
+        }
+    }
+}
+
+// The same with the store's own background cleaner: after a pin is released the
+// backlog reaches zero without anybody asking. "Eventually" is given a generous
+// bound in cleaner sleeps; what is asserted is the end state, not a speed.
+void test_background_cleaner_resumes_after_release() {
+    VersionedStore s;  // epoch-based, background cleaner
+    for (std::uint64_t i = 0; i < 16; ++i) NOVA_CHECK(put(s, static_cast<long>(i), pattern(20000, i)));
+    auto wait_for_empty_backlog = [&]() {
+        for (int i = 0; i < 200000 && s.backlog() != 0; ++i) std::this_thread::yield();
+        for (int i = 0; i < 20000 && s.backlog() != 0; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        return s.backlog() == 0;
+    };
+    NOVA_CHECK(wait_for_empty_backlog());
+    for (int cycle = 0; cycle < 3; ++cycle) {
+        VersionedStore::Pin pin = s.acquire_pin();
+        for (std::uint64_t i = 0; i < 400; ++i) NOVA_CHECK(put(s, static_cast<long>(i % 16), pattern(20000, 77 + i)));
+        // The cleaner has been running all along and has had its chances:
+        // 400 retirements are still waiting, because of the pin and nothing else.
+        for (int i = 0; i < 2000; ++i) std::this_thread::yield();
+        NOVA_CHECK(s.backlog() == 400);
+        s.release_pin(pin);
+        NOVA_CHECK(wait_for_empty_backlog());
+    }
+    s.stop_cleaner();
+    const nova::VersionedStats st = s.stats();
+    NOVA_CHECK(st.versions_reclaimed == st.versions_retired && st.versions_retained == 0);
+    NOVA_CHECK(st.arena.chunks_live <= 18);
+    check_valid(s);
+}
+
 }  // namespace
 
 int main() {
@@ -808,6 +936,8 @@ int main() {
     test_pin_protected_in_mode(nova::ReclaimMode::Epoch, "epoch");
     test_pin_protected_in_mode(nova::ReclaimMode::StopTheWorld, "stop-the-world");
     test_pin_protected_in_mode(nova::ReclaimMode::Disabled, "disabled");
+    for (int batch : {1, 8, 64, 1024}) test_reclamation_progress(batch);
+    test_background_cleaner_resumes_after_release();
 
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Version) == 0);
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Segment) == 0);

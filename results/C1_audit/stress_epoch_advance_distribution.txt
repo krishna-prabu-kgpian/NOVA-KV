@@ -1,0 +1,14 @@
+# reclamation_stress_test, release build, 25 runs x 4 sub-runs (batch 1/8/64/1024) each, serial, same machine session
+# 2026-10-12T16:10:16Z  governor=powersave  power=0  load=0.81 1.15 1.59
+
+part-b-audited (87d38aa), unmodified, test floor 100:
+  epoch_advances    samples=100 min=99 p10=150 median=228 max=2378
+  chunk_ids_reused  samples=100 min=598 p10=717 median=731 max=742
+  sub-runs with epoch_advances <= 100: 1
+  failed checks reported: 1
+
+C1 (a409d6b), test floor 10:
+  epoch_advances    samples=100 min=86 p10=155 median=232 max=2246
+  chunk_ids_reused  samples=100 min=708 p10=720 median=733 max=743
+  sub-runs with epoch_advances <= 100: 1
+  failed checks reported: 0

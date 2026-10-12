@@ -245,39 +245,71 @@ error. Seeing a transaction's writes together (B) requires one `Snapshot` used f
 
 ## 5. The isolation level, precisely
 
-What is implemented:
+### What is implemented
 
-1. **Commits are atomic and totally ordered.** Each successful `put`, `erase` and
-   `Transaction::commit` is one root swap; the writer mutex orders them. The store's history
-   is a sequence of versions V₀, V₁, V₂, …
-2. **A snapshot is one Vᵢ**, the latest at acquisition: it contains every commit before it,
-   completely, and nothing of any later one. This is the *read* guarantee of snapshot
-   isolation.
-3. **An ordinary `get` reads the latest version at one instant.**
+1. **Commits are serialized and each is published atomically.** Every successful `put`,
+   `erase` and `Transaction::commit` is one root swap, and the writer mutex orders them. The
+   store's history is a sequence of versions V₀, V₁, V₂, …, each differing from its
+   predecessor by exactly one commit.
+2. **A `Snapshot` gives consistent reads of one version of one store:** the Vᵢ that was
+   current at acquisition. It contains every earlier commit completely and nothing of any
+   later one, for as long as the handle lives.
+3. **An ordinary `get` reads the latest version at one instant.** Independent ordinary gets
+   are independent instants and may observe different versions (§4).
 
-What the API does not have, and therefore what is not implemented:
+### What is not implemented
 
-- A `Transaction` has **no read operations**. It cannot read inside itself, there is no read
-  set, and commit performs **no conflict detection** of any kind: not serializable
-  validation, and not snapshot isolation's first-committer-wins on write–write conflicts
-  either.
+- **No read operations inside a `Transaction`.** The Appendix A class has `put` and `commit`
+  only. A transaction is a *write set*; whatever the client read in order to decide what to
+  write was read outside it, earlier, through `get` or a `Snapshot`.
+- **No read set and no validation.** The store does not know what a client read, and
+  `commit()` checks nothing: not that the values read are still current (serializable
+  validation), and not even that the keys being written were left alone since the client
+  looked (snapshot isolation's first-committer-wins).
+- **No crash durability** (§6).
 
-Consequences, stated without stretching:
+### What follows, and what does not
 
-- **Under the assignment's single-writer assumption** (one thread decides and issues all
-  writes), every execution is serializable: there is one writing client, its commits are a
-  serial order, and read-only work under a snapshot is equivalent to running at the snapshot's
-  position in that order. Nothing can be concurrent with a write except reads.
-- **With several clients that read and then write** (which the writer mutex makes safe but
-  not isolated), the store provides *snapshot reads plus atomic write batches*. That is
-  **weaker than textbook snapshot isolation** whenever a client's write depends on what it
-  read: without first-committer-wins, two clients can both read *x* = 5, both commit
-  *x* = 6, and one increment is lost. Snapshot isolation would abort one of them; this store
-  does not notice. It is, of course, also not serializable.
-- So the accurate name is: **atomic, serialized commits with snapshot-consistent reads**. For
-  read-only multi-step operations (the join) it gives exactly what snapshot isolation gives a
-  reader. It is called "snapshot isolation" in the assignment text in that sense; it must not
-  be read as "serializable", and for read-then-write clients not even as full SI.
+**A sequence of client-side reads followed by a `commit()` is not one transaction.** It is
+some reads, then, later, an atomic write. Between the two, other commits may be published,
+and the store will neither notice nor refuse. The commit is atomic; the read-then-write
+sequence as a whole has no isolation guarantee at all.
+
+In particular **serializing the writers does not make client transactions serializable.**
+The writer mutex orders the *commits*. It does not extend back over the reads that led to
+them. Two clients (or one client with two pending decisions) can each read, each decide, and
+then have their commits serialized one after the other, the second one based on a state the
+first has already changed. Nor does a single writer thread change this in general: one
+thread that takes a `Snapshot`, computes for a while, and commits something derived from the
+snapshot after having committed something else in between has made a stale decision all by
+itself. The store offers no mechanism that would detect or prevent any of these; avoiding
+them is entirely up to how the application structures its reads and writes.
+
+So:
+
+| Property | Provided? |
+|---|---|
+| A transaction's writes become visible all at once | **Yes** |
+| A failed or abandoned transaction leaves no trace | **Yes** |
+| Commits take effect in one total order | **Yes** |
+| Reads through one `Snapshot` see one committed state of that store | **Yes** |
+| Nothing uncommitted is ever readable (no dirty reads) | **Yes** |
+| Two ordinary `get` calls see the same version | No |
+| A read followed by a commit behaves as one isolated transaction | **No** |
+| Lost updates prevented (snapshot isolation's write–write rule) | **No** |
+| Write skew prevented (serializability) | **No** |
+| A committed transaction survives a crash | **No** |
+
+**The accurate name is: atomic, serialized commits with snapshot-consistent reads.**
+
+How this relates to the assignment's sentence "It is snapshot isolation, not
+serializability": for a **read-only** multi-step operation (the join of Part C.2, pinned to
+one `Snapshot`) the store gives exactly what snapshot isolation gives a reader: one
+consistent, unchanging committed state. For clients that **read and then write**, it gives
+*less* than textbook snapshot isolation, because first-committer-wins is absent: two clients
+can both read *x* = 5 and both commit *x* = 6, and one increment is lost. Snapshot isolation
+would abort one of them. And like snapshot isolation, it does not prevent write skew. It is
+not serializable in any configuration that involves decisions based on earlier reads.
 
 ### Why multi-key atomicity is not serializability
 
@@ -307,15 +339,17 @@ serial order the second doctor would have seen the first one off duty and stayed
 serializable system must abort one of them (by tracking read sets, or by locking what was
 read).
 
-In this store the anomaly can occur exactly as drawn, as soon as two clients read and then
-write. It cannot occur under the single-writer assumption, where Alice's and Bob's decisions
-are made one after the other by the same thread. Preventing it in general would need read
-sets and validation at commit, which the Appendix A interface has no place for.
+In this store the anomaly can occur exactly as drawn. The two commits are serialized by the
+writer mutex and each is atomic; that changes nothing, because each decision was taken from a
+snapshot before either commit. It makes no difference whether Alice's and Bob's requests are
+issued by two threads or by one thread working from two snapshots it took earlier. Preventing
+it would need read sets and validation at commit (or locking what was read), which the
+Appendix A interface has no place for.
 
-Other anomalies to be aware of with multiple read-then-write clients: **lost update** (above;
-prevented by SI, not prevented here) and **stale decisions** in general. Not possible in any
-configuration: dirty reads (nothing uncommitted is reachable), non-repeatable reads *within a
-snapshot*, and partially visible transactions.
+Other anomalies possible for read-then-write sequences: **lost update** (above; prevented by
+snapshot isolation, not prevented here) and stale decisions in general. Not possible: dirty
+reads (nothing uncommitted is reachable), non-repeatable reads *within one snapshot*, and
+partially visible transactions.
 
 ## 6. Durability: none
 
@@ -341,11 +375,14 @@ two independent roots, so two snapshots are two instants, not one database-wide 
 PDF's wording for C.2 ("acquire exactly one Snapshot handle … pass that same handle to every
 keys(), index_get(), and get() call") against a two-table shape with two `KVStore` objects is
 an open question for the instructor (O-1). Nothing in C1 claims a cross-store snapshot, and
-C1 does not invent one.
+C1 does not invent one. The analysis, the interpretation C2 will use unless told otherwise
+(one snapshot per store, labelled as per-store consistency) and the question to put to the
+instructor are in `docs/decisions.md` D-059.
 
 ## 8. Limits
 
-- No conflict detection; isolation as stated in §5.
+- No read set, no validation, no conflict detection: a read followed by a commit is not an
+  isolated transaction; lost updates and write skew are possible (§5).
 - No durability (§6).
 - A long-lived snapshot stops reclamation of everything retired after it (§3.2).
 - `keys()` cannot report the total or continue (§3.6).

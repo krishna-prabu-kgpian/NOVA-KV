@@ -284,8 +284,11 @@ Part C rules (D-050…D-056, `docs/transactions.md`):
   `acquire_snapshot()`. `Transaction` exists on all four builds (baselines: one lock hold with
   undo).
 - Isolation is stated as "atomic, serialized commits with snapshot-consistent reads": no
-  conflict detection, not serializable, not full SI for read-then-write clients, no
-  durability. Do not strengthen these claims. Two stores are two snapshots (O-1 stays open).
+  read set, no validation; a client's read-then-commit is NOT a transaction; lost updates and
+  write skew are possible; no durability. Never write that single-writer serialization makes
+  client transactions serializable (D-057). Two stores are two snapshots (O-1 stays open).
+- Reclamation progress is asserted from backlog / reclaimed / chunks / bytes
+  (`reclamation_test::test_reclamation_progress`), never from an epoch-advance count.
 - Keep the three properties apart in tests: point-read linearizability (plain `get`),
   atomic publication and stable snapshots (both only through ONE `Snapshot`).
 - Run the test suite serially (`ctest` without `-j`): `reclamation_stress_test` has coverage
