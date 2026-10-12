@@ -1,0 +1,264 @@
+===== debug / reclamation_test
+$ build/verify/debug/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56760 checks, 0 failed
+exit status: 0
+===== debug / epoch_test
+$ build/verify/debug/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== debug / pinned_arena_test
+$ build/verify/debug/pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+===== debug / versioned_alloc_failure_test
+$ build/verify/debug/versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+===== debug / versioned_interleaving_test
+$ build/verify/debug/versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 128350/124446/128767, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+===== debug / reclamation_stress_test
+$ build/verify/debug/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=168444 published=39611 backlog_max=6702 passes=39689 epoch_advances=3104 (blocked 36526) chunk_ids_reused=631 registrations=6594
+  stress batch=8    writes=35602 erases=4398 reads=166689 published=39611 backlog_max=3001 passes=5036 epoch_advances=378 (blocked 4616) chunk_ids_reused=691 registrations=4857
+  stress batch=64   writes=35602 erases=4398 reads=171660 published=39611 backlog_max=3695 passes=698 epoch_advances=359 (blocked 336) chunk_ids_reused=684 registrations=6782
+  stress batch=1024 writes=35602 erases=4398 reads=157283 published=39611 backlog_max=1570 passes=187 epoch_advances=158 (blocked 28) chunk_ids_reused=728 registrations=6017
+  memory: 60000 writes, peak held 2.4 MiB, settled 77.4 KiB, backlog peak 524
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== debug / concurrent_lock_test_rcu
+$ build/verify/debug/concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=1923939 read_misses=475408 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== debug / kvstore_test_rcu
+$ build/verify/debug/kvstore_test_rcu
+  randomized seed=19088743 ops=150000: live=2058 chunks_live=35 freed=540 ids_reused=522 growths=133 rebuilds=1787
+  randomized seed=244837814094590 ops=150000: live=2066 chunks_live=42 freed=550 ids_reused=540 growths=134 rebuilds=1845
+  randomized seed=42 ops=150000: live=2091 chunks_live=40 freed=544 ids_reused=529 growths=132 rebuilds=1777
+kvstore_test: 22182 checks, 0 failed
+exit status: 0
+===== release / reclamation_test
+$ build/verify/release/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56760 checks, 0 failed
+exit status: 0
+===== release / epoch_test
+$ build/verify/release/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== release / pinned_arena_test
+$ build/verify/release/pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+===== release / versioned_alloc_failure_test
+$ build/verify/release/versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+===== release / versioned_interleaving_test
+$ build/verify/release/versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 278506/154897/317088, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+===== release / reclamation_stress_test
+$ build/verify/release/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=1115226 published=39611 backlog_max=2348 passes=39670 epoch_advances=2295 (blocked 37373) chunk_ids_reused=707 registrations=6490
+  stress batch=8    writes=35602 erases=4398 reads=1289167 published=39611 backlog_max=1308 passes=5043 epoch_advances=343 (blocked 4699) chunk_ids_reused=730 registrations=6892
+  stress batch=64   writes=35602 erases=4398 reads=748346 published=39611 backlog_max=4601 passes=635 epoch_advances=291 (blocked 343) chunk_ids_reused=668 registrations=3990
+  stress batch=1024 writes=35602 erases=4398 reads=1294175 published=39611 backlog_max=1446 passes=296 epoch_advances=246 (blocked 49) chunk_ids_reused=725 registrations=6728
+  memory: 60000 writes, peak held 2.0 MiB, settled 77.4 KiB, backlog peak 418
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== release / concurrent_lock_test_rcu
+$ build/verify/release/concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=4337914 read_misses=1065584 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== release / kvstore_test_rcu
+$ build/verify/release/kvstore_test_rcu
+  randomized seed=19088743 ops=150000: live=2058 chunks_live=35 freed=540 ids_reused=522 growths=133 rebuilds=1787
+  randomized seed=244837814094590 ops=150000: live=2066 chunks_live=42 freed=550 ids_reused=540 growths=134 rebuilds=1845
+  randomized seed=42 ops=150000: live=2091 chunks_live=40 freed=544 ids_reused=529 growths=132 rebuilds=1777
+kvstore_test: 22182 checks, 0 failed
+exit status: 0
+===== asan_ubsan / reclamation_test
+$ build/verify/asan_ubsan/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56760 checks, 0 failed
+exit status: 0
+===== asan_ubsan / epoch_test
+$ build/verify/asan_ubsan/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== asan_ubsan / pinned_arena_test
+$ build/verify/asan_ubsan/pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+===== asan_ubsan / versioned_alloc_failure_test
+$ build/verify/asan_ubsan/versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+===== asan_ubsan / versioned_interleaving_test
+$ build/verify/asan_ubsan/versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 169759/147996/180462, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+===== asan_ubsan / reclamation_stress_test
+$ build/verify/asan_ubsan/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=177825 published=39611 backlog_max=768 passes=39865 epoch_advances=1126 (blocked 38734) chunk_ids_reused=741 registrations=3047
+  stress batch=8    writes=35602 erases=4398 reads=157755 published=39611 backlog_max=745 passes=5261 epoch_advances=642 (blocked 4618) chunk_ids_reused=742 registrations=3075
+  stress batch=64   writes=35602 erases=4398 reads=266390 published=39611 backlog_max=335 passes=1447 epoch_advances=600 (blocked 842) chunk_ids_reused=744 registrations=3902
+  stress batch=1024 writes=35602 erases=4398 reads=198559 published=39611 backlog_max=423 passes=967 epoch_advances=642 (blocked 320) chunk_ids_reused=744 registrations=3266
+  memory: 60000 writes, peak held 1.6 MiB, settled 77.4 KiB, backlog peak 331
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== asan_ubsan / concurrent_lock_test_rcu
+$ build/verify/asan_ubsan/concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=2278996 read_misses=573107 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== asan_ubsan / kvstore_test_rcu
+$ build/verify/asan_ubsan/kvstore_test_rcu
+  randomized seed=19088743 ops=150000: live=2058 chunks_live=35 freed=540 ids_reused=522 growths=133 rebuilds=1787
+  randomized seed=244837814094590 ops=150000: live=2066 chunks_live=42 freed=550 ids_reused=540 growths=134 rebuilds=1845
+  randomized seed=42 ops=150000: live=2091 chunks_live=40 freed=544 ids_reused=529 growths=132 rebuilds=1777
+kvstore_test: 22182 checks, 0 failed
+exit status: 0
+===== tsan / reclamation_test
+$ build/verify/tsan/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56760 checks, 0 failed
+exit status: 0
+===== tsan / epoch_test
+$ build/verify/tsan/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== tsan / pinned_arena_test
+$ build/verify/tsan/pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+===== tsan / versioned_alloc_failure_test
+$ build/verify/tsan/versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+===== tsan / versioned_interleaving_test
+$ build/verify/tsan/versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 69532/71283/70583, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+===== tsan / reclamation_stress_test
+$ build/verify/tsan/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=231736 published=39611 backlog_max=145 passes=41271 epoch_advances=2517 (blocked 38716) chunk_ids_reused=750 registrations=8487
+  stress batch=8    writes=35602 erases=4398 reads=257947 published=39611 backlog_max=153 passes=9046 epoch_advances=3323 (blocked 5658) chunk_ids_reused=751 registrations=10756
+  stress batch=64   writes=35602 erases=4398 reads=287621 published=39611 backlog_max=62 passes=5402 epoch_advances=2696 (blocked 2675) chunk_ids_reused=751 registrations=9991
+  stress batch=1024 writes=35602 erases=4398 reads=208367 published=39611 backlog_max=120 passes=3496 epoch_advances=2078 (blocked 1411) chunk_ids_reused=751 registrations=7525
+  memory: 60000 writes, peak held 0.3 MiB, settled 77.4 KiB, backlog peak 32
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== tsan / concurrent_lock_test_rcu
+$ build/verify/tsan/concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=1445364 read_misses=353930 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== tsan / kvstore_test_rcu
+$ build/verify/tsan/kvstore_test_rcu
+  randomized seed=19088743 ops=150000: live=2058 chunks_live=35 freed=540 ids_reused=522 growths=133 rebuilds=1787
+  randomized seed=244837814094590 ops=150000: live=2066 chunks_live=42 freed=550 ids_reused=540 growths=134 rebuilds=1845
+  randomized seed=42 ops=150000: live=2091 chunks_live=40 freed=544 ids_reused=529 growths=132 rebuilds=1777
+kvstore_test: 22182 checks, 0 failed
+exit status: 0

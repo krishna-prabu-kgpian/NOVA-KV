@@ -1,0 +1,8 @@
+# clean clone of 81917be
+configure exit: 0
+build exit: 0  warnings: 0
+
+100% tests passed, 0 tests failed out of 47
+
+Total Test time (real) =  31.36 sec
+ctest exit: 0
