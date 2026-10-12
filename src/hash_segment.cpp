@@ -16,7 +16,8 @@ HashSegment::HashSegment(std::uint32_t initial_capacity, unsigned hash_shift,
       hash_shift_(hash_shift),
       hash_fn_(hash_fn),
       growths_(0),
-      rebuilds_(0) {}
+      rebuilds_(0),
+      bytes_built_(0) {}
 
 HashSegment::~HashSegment() { free_bytes(slots_); }
 
@@ -36,6 +37,7 @@ Entry* HashSegment::build_table(std::uint32_t new_capacity) const noexcept {
     Entry* table = static_cast<Entry*>(alloc_bytes(bytes, kCacheLine));
     if (table == nullptr) return nullptr;
     std::memset(table, 0, bytes);  // SlotState::Empty == 0
+    bytes_built_ += bytes;
     for (std::uint32_t i = 0; i < capacity_; ++i) {
         const Entry& e = slots_[i];
         if (e.state == SlotState::Occupied) {
@@ -54,6 +56,30 @@ void HashSegment::install(Entry* table, std::uint32_t capacity) noexcept {
     slots_ = table;
     capacity_ = capacity;
     tombstones_ = 0;
+}
+
+bool HashSegment::clone_from(const Entry* slots, std::uint32_t capacity, std::uint32_t live,
+                             std::uint32_t tombstones) noexcept {
+    if (capacity == 0) return true;
+    const std::size_t bytes = sizeof(Entry) * static_cast<std::size_t>(capacity);
+    Entry* table = static_cast<Entry*>(alloc_bytes(bytes, kCacheLine));
+    if (table == nullptr) return false;
+    std::memcpy(table, slots, bytes);
+    bytes_built_ += bytes;
+    slots_ = table;
+    capacity_ = capacity;
+    live_ = live;
+    tombstones_ = tombstones;
+    return true;
+}
+
+Entry* HashSegment::release_slots() noexcept {
+    Entry* table = slots_;
+    slots_ = nullptr;
+    capacity_ = 0;
+    live_ = 0;
+    tombstones_ = 0;
+    return table;
 }
 
 bool HashSegment::prepare_upsert(long key, std::uint64_t h, UpsertPlan& plan) const noexcept {

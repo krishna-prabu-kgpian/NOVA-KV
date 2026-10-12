@@ -13,7 +13,7 @@
 # mandatory gate blocks overall PASS exactly like FAIL does.
 #
 # Gates are added here as milestones land; expectations are never loosened to
-# hide a failure. Currently covered: A0, A1, A2.
+# hide a failure. Currently covered: A0, A1, A2, B1.
 set -u -o pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$NOVA_ROOT"
@@ -128,6 +128,14 @@ fi
 # (<= 5 pages, design note <= 3), both read from the committed files.
 run_gate part_a_artifacts yes scripts/check_part_a_artifacts.sh
 run_gate part_a_report_pages yes scripts/check_part_a_report.sh
+# The accepted Part A checkpoint: tag present, and its measurements, report and
+# compliance checklist byte-identical in this tree (Part B must not touch them).
+run_gate part_a_checkpoint_unchanged yes sh -c '
+    git rev-parse --verify --quiet part-a-final^{commit} >/dev/null || { echo "tag part-a-final missing"; exit 1; }
+    git diff --stat --exit-code part-a-final HEAD -- results/part_a reports/part_a_report.pdf \
+        reports/part_a_report.md reports/part_a_report.src.md docs/part_a_compliance.md \
+        reports/milestones/A0.md reports/milestones/A1.md reports/milestones/A2.md &&
+    echo "Part A results, report and milestone reports identical to part-a-final"'
 
 # ---- Informational (do not affect the verdict) ------------------------------
 # Whether profiling can be re-run on this machine (the committed Part A profiles
@@ -143,7 +151,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1, A2"
+    echo "- milestones covered: A0, A1, A2, B1"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"

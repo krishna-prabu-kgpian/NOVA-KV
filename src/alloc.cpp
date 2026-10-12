@@ -1,5 +1,8 @@
 #include "alloc.h"
 
+#include "test_points.h"
+
+#include <atomic>
 #include <cstdlib>
 
 namespace nova {
@@ -19,6 +22,28 @@ void fail_nth_allocation(long n) noexcept {
 }
 bool allocation_failure_fired() noexcept { return g_fired; }
 long allocations_since_armed() noexcept { return g_calls; }
+}  // namespace test_hooks
+#endif
+
+#ifdef NOVA_KV_TEST_HOOKS
+namespace test_hooks {
+namespace {
+std::atomic<PointFn> g_point_fn{nullptr};
+std::atomic<void*> g_point_context{nullptr};
+std::atomic<long> g_live[3] = {};
+}  // namespace
+void set_point_hook(PointFn fn, void* context) noexcept {
+    g_point_context.store(context);
+    g_point_fn.store(fn);
+}
+void at_point(TestPoint point) noexcept {
+    const PointFn fn = g_point_fn.load();
+    if (fn != nullptr) fn(point, g_point_context.load());
+}
+long live_objects(LiveObject kind) noexcept { return g_live[static_cast<int>(kind)].load(); }
+void count_object(LiveObject kind, long delta) noexcept {
+    g_live[static_cast<int>(kind)].fetch_add(delta);
+}
 }  // namespace test_hooks
 #endif
 

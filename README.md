@@ -10,18 +10,21 @@ A single-node, in-memory key-value store with RCU reads, built for
 | A0 | Build system, public API, reference workload import, verification scripts | **Done** (`reports/milestones/A0.md`) |
 | A1 | Baseline `KVStore` (own hash table + value arena) with single / global-lock / rwlock variants, tests, drivers | **Done** (`reports/milestones/A1.md`) |
 | A2 | Active-writer benchmark, lock profiling (perf stat, flame graphs, perf c2c), NSM/DSM/PAX microbenchmark, Part A report | **Done** (`reports/milestones/A2.md`) — Part A complete |
-| B1–B2 | RCU version roots, epoch-based reclamation | Not started |
+| B1 | Immutable versions, copy-on-write index, atomic root, lock-free reads; replaced versions retained (no reclamation) | **Done** (`reports/milestones/B1.md`) |
+| B2 | Epoch-based reclamation, cleaner, `set_reclaim_batch` | Not started |
 | C1–C2 | Transactions, snapshots, secondary index, join | Not started |
 | D | Benchmark campaign | Not started |
 | E | Write-ahead log (optional bonus) | Not started |
 
-**What works:** `put`, `get`, `erase` (Part A), under three synchronization policies.
+**What works:** `put`, `get`, `erase` under four synchronization policies: the three Part A
+lock policies and, since B1, `rcu` (Part B), where reads take no lock and every write
+publishes an immutable version with one atomic pointer swap.
 
-**What does not:** everything from Parts B and C. Those methods are declared in
-`include/kvstore.h` only so the supplied workload generator compiles unchanged; they are inert
-and never report success (`Transaction::commit` and `create_index` return `false`, `index_get`
-returns 0, snapshots pin nothing, `set_reclaim_batch` does nothing). There is no RCU, no
-reclamation protocol and no durability.
+**What does not yet:** the `rcu` store does not reclaim replaced versions: it keeps every one
+until the store is destroyed, so memory grows with each write (about 26 KiB per write at the
+workload's size). `set_reclaim_batch` does nothing. Epoch-based reclamation is milestone B2.
+Everything from Part C is still an inert declaration (`Transaction::commit` and `create_index`
+return `false`, `index_get` returns 0, snapshots pin nothing). There is no durability.
 
 ## Design of the Part A store
 
@@ -101,14 +104,16 @@ environment description and a source manifest to `results/verification/<git-sha>
 
 | Target | What it is |
 |---|---|
-| `nova_kv_single`, `nova_kv_global_lock`, `nova_kv_rwlock` | The store, compiled from the same sources once per synchronization policy |
+| `nova_kv_single`, `nova_kv_global_lock`, `nova_kv_rwlock` | The Part A store, compiled from the same sources once per lock policy |
+| `nova_kv_rcu` | The Part B store (same `KVStore` class and files, `rcu` policy) |
+| `nova_kv_rcu_testhooks` | Test-only build with allocation-failure injection and pause points |
 | `nova_kv_single_testhooks` | Test-only build with allocation-failure injection compiled in |
 | `nova_workload` | The instructor's `workload_gen.cpp`, compiled unmodified |
-| `single_thread`, `global_lock`, `rwlock` | Part A drivers: `<driver> [num_readers] [duration_sec]` (defaults 8 and 5; `single_thread` always uses 1 reader) |
-| `concurrent_bench_{single,global_lock,rwlock}` | Project benchmark with a writer active during the measured window (`benchmarks/concurrent_bench.cpp`) |
+| `single_thread`, `global_lock`, `rwlock`, `rcu` | Drivers for the supplied generator: `<driver> [num_readers] [duration_sec] [m] [n]` (defaults 8, 5, 1000, 100; `single_thread` always uses 1 reader) |
+| `concurrent_bench_{single,global_lock,rwlock,rcu}` | Project benchmark with a writer active during the measured window (`benchmarks/concurrent_bench.cpp`) |
 | `layout_bench` | NSM / DSM / PAX microbenchmark (`benchmarks/layout_bench.cpp`) |
 
-Tests (`ctest`, 27 per build mode):
+Tests (`ctest`, 41 per build mode):
 
 | Test | What it checks |
 |---|---|
@@ -121,12 +126,35 @@ Tests (`ctest`, 27 per build mode):
 | `smoke_test_<variant>` | Empty-store behaviour, handle lifecycles, variant wiring |
 | `reference_workload_link_test_<variant>` | Unmodified generator links and runs; every trade it loaded with plain puts is read back intact |
 | `driver_<name>` | Each driver runs end to end for 1 second |
+| `pinned_arena_test` | Part B arena: pins keep chunks alive and gate ID reuse, writable chunk never rewound, commit/rollback, lock-free directory reads concurrent with appends |
+| `cow_segment_test` | Immutable segments: the base is byte-for-byte untouched by a builder, exact pin sets, growth, empty result, abandoning a build |
+| `versioned_store_test` | One publication per logical write, one clone per touched segment, sharing of the rest, every retained version unchanged (logically and byte-for-byte), ownership counts, quiescent release against a reference model |
+| `versioned_alloc_failure_test` | Every allocation of each write fails in turn: nothing published, arena rolled back, content equals the model, counts consistent |
+| `versioned_interleaving_test` | Deterministic schedules with pause points: reader parked across 3051 publications, writer parked before/after the root swap, plus a bounded atomic-visibility stress |
+| `kvstore_test_rcu`, `concurrent_lock_test_rcu`, `smoke_test_rcu`, `reference_workload_link_test_rcu`, `driver_rcu` | The variant-generic tests against the `rcu` build |
+| `bench_validate_concurrent_rcu*` (3), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build; the retained-memory guard must invalidate a run |
 | `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
 | `bench_validate_*` (7), `bench_rejects_concurrent_single` | Each harness runs briefly and must pass its own validity checks; the harness must refuse to run the unsynchronized variant concurrently |
 
 The drivers and the reference workload print throughput figures. With the supplied generator
 those are **preload-only** (no writer runs while readers are measured) and the ctest runs last
 one second in whatever build mode is being tested; they are functional checks, not results.
+
+## Part B store (milestone B1)
+
+Design note: `docs/versioning.md`. In short: `current` is an atomic pointer to an immutable
+`Version` holding 256 segment pointers; a write clones only the segments it touches, shares
+the rest, and swaps the pointer once; segments pin the value chunks they reference, so a chunk
+outlives every version that can reach it.
+
+```bash
+build/release/rcu 8 5 100 100                 # supplied generator, 10,000 trades (preload-only)
+build/release/concurrent_bench_rcu --readers 8 --duration 1 \
+    --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --writer-rate 10000
+scripts/run_b1_observation.sh                 # the small B1 measurement set -> results/b1/
+```
+
+The `rcu` driver with the generator's default 100,000 trades retains several GiB in B1.
 
 ## Part A results and how to reproduce them
 
@@ -161,13 +189,13 @@ the committed files are the ones the report was written from.
 
 ```text
 include/kvstore.h      public API (assignment Appendix A.1)
-src/                   store implementation
+src/                   store implementation (Part A engine + Part B versioned engine)
 supplied/              instructor workload generator (see supplied/PROVENANCE.md)
 tests/                 tests
 drivers/               single_thread / global_lock / rwlock drivers (rcu from Part B)
 benchmarks/            benchmark harnesses: concurrent_bench, layout_bench
 scripts/               verification and environment scripts
-docs/                  assignment_contract.md, decisions.md
+docs/                  assignment_contract.md, decisions.md, versioning.md, part_a_compliance.md
 reports/milestones/    one report per milestone
 results/               evidence (verification logs, raw benchmark data, figures)
 NOVA_KV_*.md           project specification documents (authoritative, unmodified)

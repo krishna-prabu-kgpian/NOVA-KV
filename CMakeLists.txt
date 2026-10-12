@@ -56,11 +56,22 @@ set(NOVA_STORE_SOURCES
     src/arena.cpp
     src/alloc.cpp
     src/inspect.cpp)
-set(NOVA_VARIANTS single global_lock rwlock)
+# Part B engine: compiled into the rcu variant only, so the Part A libraries
+# stay exactly the Part A code.
+set(NOVA_RCU_SOURCES
+    src/versioned_store.cpp
+    src/cow_segment.cpp
+    src/pinned_arena.cpp)
+set(NOVA_LOCK_VARIANTS single global_lock rwlock)
+set(NOVA_VARIANTS ${NOVA_LOCK_VARIANTS} rcu)
 
 foreach(variant IN LISTS NOVA_VARIANTS)
     string(TOUPPER ${variant} variant_upper)
-    add_library(nova_kv_${variant} STATIC ${NOVA_STORE_SOURCES})
+    set(variant_sources ${NOVA_STORE_SOURCES})
+    if(variant STREQUAL "rcu")
+        list(APPEND variant_sources ${NOVA_RCU_SOURCES})
+    endif()
+    add_library(nova_kv_${variant} STATIC ${variant_sources})
     target_include_directories(nova_kv_${variant} PUBLIC include PRIVATE src)
     target_compile_definitions(nova_kv_${variant}
         PRIVATE NOVA_KV_SYNC_MODE=NOVA_KV_SYNC_${variant_upper})
@@ -76,18 +87,28 @@ target_compile_definitions(nova_kv_single_testhooks
     PUBLIC NOVA_KV_TEST_HOOKS)
 target_link_libraries(nova_kv_single_testhooks PUBLIC nova_build_flags PRIVATE nova_warnings)
 
+# The same for the Part B store: allocation-failure injection plus the pause
+# points used by the deterministic interleaving tests (src/test_points.h).
+add_library(nova_kv_rcu_testhooks STATIC ${NOVA_STORE_SOURCES} ${NOVA_RCU_SOURCES})
+target_include_directories(nova_kv_rcu_testhooks PUBLIC include PRIVATE src)
+target_compile_definitions(nova_kv_rcu_testhooks
+    PRIVATE NOVA_KV_SYNC_MODE=NOVA_KV_SYNC_RCU
+    PUBLIC NOVA_KV_TEST_HOOKS)
+target_link_libraries(nova_kv_rcu_testhooks PUBLIC nova_build_flags PRIVATE nova_warnings)
+
 # ---- Supplied reference workload (compiled unmodified, no -Werror) ----------
 # It depends only on kvstore.h, so one object library serves every variant.
 add_library(nova_workload OBJECT supplied/workload_gen.cpp)
 target_include_directories(nova_workload PUBLIC supplied include)
 target_link_libraries(nova_workload PUBLIC nova_build_flags)
 
-# ---- Part A drivers ----------------------------------------------------------
+# ---- Drivers (Part A: three lock policies; Part B: rcu) -----------------------
 # driver source name -> store variant it is linked with
 set(NOVA_DRIVER_single_thread single)
 set(NOVA_DRIVER_global_lock global_lock)
 set(NOVA_DRIVER_rwlock rwlock)
-set(NOVA_DRIVERS single_thread global_lock rwlock)
+set(NOVA_DRIVER_rcu rcu)
+set(NOVA_DRIVERS single_thread global_lock rwlock rcu)
 foreach(driver IN LISTS NOVA_DRIVERS)
     add_executable(${driver} drivers/${driver}.cpp $<TARGET_OBJECTS:nova_workload>)
     target_include_directories(${driver} PRIVATE supplied src)
@@ -140,6 +161,17 @@ target_include_directories(alloc_failure_test PRIVATE src)
 target_link_libraries(alloc_failure_test PRIVATE nova_kv_single_testhooks nova_warnings)
 nova_add_test(alloc_failure_test)
 
+# ---- Part B engine tests (hook-enabled build of the engine sources) -----------
+set(NOVA_RCU_ENGINE_SOURCES ${NOVA_RCU_SOURCES} src/hash_segment.cpp src/alloc.cpp)
+foreach(test pinned_arena_test cow_segment_test versioned_store_test
+             versioned_alloc_failure_test versioned_interleaving_test)
+    add_executable(${test} tests/${test}.cpp ${NOVA_RCU_ENGINE_SOURCES})
+    target_include_directories(${test} PRIVATE src)
+    target_compile_definitions(${test} PRIVATE NOVA_KV_TEST_HOOKS)
+    target_link_libraries(${test} PRIVATE nova_build_flags nova_warnings)
+    nova_add_test(${test})
+endforeach()
+
 foreach(variant IN LISTS NOVA_VARIANTS)
     # The Part A sanity test, against every variant.
     add_executable(kvstore_test_${variant} tests/kvstore_test.cpp)
@@ -175,7 +207,12 @@ endforeach()
 # single_thread pins itself to 1 reader). These are functional checks of the
 # drivers, not measurements.
 foreach(driver IN LISTS NOVA_DRIVERS)
-    add_test(NAME driver_${driver} COMMAND ${driver} 2 1)
+    set(driver_args 2 1)
+    if(driver STREQUAL "rcu")
+        # B1 retains every replaced version: load 10,000 trades, not 100,000.
+        set(driver_args 2 1 100 100)
+    endif()
+    add_test(NAME driver_${driver} COMMAND ${driver} ${driver_args})
     set_tests_properties(driver_${driver} PROPERTIES
         ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600
         PASS_REGULAR_EXPRESSION "ops=[1-9]")
@@ -205,6 +242,27 @@ add_test(NAME bench_validate_concurrent_single_readonly
 add_test(NAME bench_validate_concurrent_single_inline_writer
     COMMAND concurrent_bench_single --readers 1 --duration 0.3 --warmup 0.1 --pin off
             --writer inline:10)
+# Part B store: lock-free readers with an active writer (versions are retained,
+# so the windows are short), and the single-thread mode with immediate release.
+add_test(NAME bench_validate_concurrent_rcu
+    COMMAND concurrent_bench_rcu --readers 3 --duration 0.4 --warmup 0.1 --pin off
+            --m 100 --n 100)
+add_test(NAME bench_validate_concurrent_rcu_paced
+    COMMAND concurrent_bench_rcu --readers 2 --duration 0.4 --warmup 0.1 --pin off
+            --m 100 --n 100 --writer-rate 5000)
+add_test(NAME bench_validate_concurrent_rcu_inline_writer
+    COMMAND concurrent_bench_rcu --readers 1 --duration 0.3 --warmup 0.1 --pin off
+            --m 100 --n 100 --writer inline:10)
+# The memory guard must stop the writer and invalidate the run.
+add_test(NAME bench_rcu_retain_limit_invalidates_run
+    COMMAND concurrent_bench_rcu --readers 1 --duration 0.5 --warmup 0.1 --pin off
+            --m 100 --n 100 --retain-limit-mb 8)
+set_tests_properties(bench_rcu_retain_limit_invalidates_run PROPERTIES WILL_FAIL TRUE TIMEOUT 120)
+set_tests_properties(
+    bench_validate_concurrent_rcu bench_validate_concurrent_rcu_paced
+    bench_validate_concurrent_rcu_inline_writer
+    PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
+
 add_test(NAME bench_validate_layout
     COMMAND layout_bench --records 20000 --ops 200000 --reps 2)
 set_tests_properties(

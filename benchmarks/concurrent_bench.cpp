@@ -15,9 +15,19 @@
 //     recorded in a fixed-memory histogram together with the exact maximum.
 //
 // The store's synchronization policy is whatever library the binary is linked
-// with (concurrent_bench_single / _global_lock / _rwlock). The unsynchronized
-// `single` variant is only run as ONE thread: either reads only, or with
-// --writer inline:N, where the same thread performs one update per N reads.
+// with (concurrent_bench_single / _global_lock / _rwlock / _rcu). The
+// unsynchronized `single` variant is only run as ONE thread: either reads only,
+// or with --writer inline:N, where the same thread performs one update per N
+// reads.
+//
+// Part B (rcu), milestone B1: the store does not reclaim replaced versions yet,
+// so a run with a writer thread holds every version it publishes. The writer
+// therefore stops, and the run is reported INVALID, if the memory held by the
+// store exceeds --retain-limit-mb. Versions retained by the load phase are
+// released before the threads start (no reader exists yet), and with
+// --writer inline:N, where one thread is reader and writer, replaced versions
+// are released at once. Copy-on-write cost counters are printed and, with
+// --cow-csv, appended to a separate file; the main CSV schema is unchanged.
 //
 // The run fails (nonzero exit) if a read returns a record that does not belong
 // to its key, if the writer was requested but completed no successful update
@@ -52,6 +62,7 @@ struct Config {
     bool pin = true;
     std::vector<int> reader_cpus;
     int writer_cpu = -1;
+    std::uint64_t retain_limit_bytes = 0;  // rcu only; 0 = no limit
 };
 
 struct alignas(64) ReaderResult {
@@ -65,6 +76,7 @@ struct WriterResult {
     std::uint64_t ok = 0, failed = 0;
     std::uint64_t ok_total = 0;  // including warm-up
     bool pinned = true;
+    bool stopped_at_retain_limit = false;
 };
 
 Trade make_trade(long id, int i, int j, std::uint64_t version) {
@@ -157,6 +169,12 @@ __attribute__((noinline)) void writer_main(KVStore& store, const Config& cfg, co
             }
             next_due += interval_ns;
         }
+        // Part B without reclamation: never let retained versions exhaust memory.
+        if (cfg.retain_limit_bytes != 0 && (version & 0xFF) == 0 &&
+            NovaKvInspector::memory_held_bytes(store) > cfg.retain_limit_bytes) {
+            out.stopped_at_retain_limit = true;
+            return;
+        }
         const std::uint64_t r = rng.next();
         const int i = static_cast<int>((r >> 8) % m), j = static_cast<int>((r >> 40) % n);
         const Trade nt = make_trade(key_of(i, j), i, j, version++);  // overwrite an existing trade
@@ -206,6 +224,9 @@ int main(int argc, char** argv) {
     const std::string scenario = args.get("--scenario", "adhoc");
     const std::string csv_path = args.get("--csv", "");
     const std::string hist_path = args.get("--hist", "");
+    const std::string cow_csv_path = args.get("--cow-csv", "");
+    cfg.retain_limit_bytes =
+        static_cast<std::uint64_t>(args.get_long("--retain-limit-mb", 6000)) * 1024 * 1024;
     const bool csv_header_only = args.has_flag("--csv-header");
     if (!args.first_unused().empty()) {
         std::fprintf(stderr, "unknown argument: %s\n", args.first_unused().c_str());
@@ -279,6 +300,19 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Part B: versions replaced during the load are not needed by anyone (no
+    // reader thread exists yet); release them so the run starts from a store
+    // that holds only its current state. In single-thread inline-writer mode
+    // the one thread is reader and writer, so nothing ever needs retaining.
+    const bool versioned = NovaKvInspector::is_versioned();
+    if (!versioned) cfg.retain_limit_bytes = 0;
+    if (versioned) {
+        NovaKvInspector::release_retained_quiescent(store);
+        if (cfg.inline_every > 0) NovaKvInspector::set_quiescent_reclaim(store, true);
+    }
+    const NovaKvStats stats_after_load = NovaKvInspector::stats(store);
+    const std::uint64_t memory_after_load = NovaKvInspector::memory_held_bytes(store);
+
     // ---- Threads start on a barrier, warm up, then are measured together.
     std::atomic<int> phase{kWait};
     std::vector<ReaderResult> results(static_cast<std::size_t>(cfg.readers));
@@ -329,7 +363,12 @@ int main(int argc, char** argv) {
     const std::uint64_t write_failed = wres.failed;
     const double read_rps = static_cast<double>(ops) / seconds;
     const double write_rps = static_cast<double>(write_ok) / seconds;
+    // Statistics first (they describe what the run retained), then, for Part B,
+    // release the retained versions (all threads have stopped) so that the
+    // structural validation below does not have to walk every one of them.
     const NovaKvStats st = NovaKvInspector::stats(store);
+    const std::uint64_t memory_at_end = NovaKvInspector::memory_held_bytes(store);
+    if (versioned) NovaKvInspector::release_retained_quiescent(store);
     const char* invariant_error = NovaKvInspector::validate(store);
     const std::size_t pinned_readers =
         cfg.pin ? std::min(cfg.reader_cpus.size(), static_cast<std::size_t>(cfg.readers)) : 0;
@@ -360,6 +399,69 @@ int main(int argc, char** argv) {
                 static_cast<unsigned long long>(wres.hist.percentile(0.50)),
                 static_cast<unsigned long long>(wres.hist.percentile(0.99)),
                 static_cast<unsigned long long>(wres.hist.max()));
+
+    // ---- Part B: copy-on-write cost of the writes made since the load.
+    const std::uint64_t writes_all = cfg.writer_thread ? wres.ok_total : inline_writes;
+    if (versioned) {
+        const std::uint64_t published = st.versions_published - stats_after_load.versions_published;
+        const double per = published == 0 ? 0.0 : 1.0 / static_cast<double>(published);
+        const std::uint64_t index_copied = st.index_bytes_copied - stats_after_load.index_bytes_copied;
+        const std::uint64_t dir_copied = st.directory_bytes_copied - stats_after_load.directory_bytes_copied;
+        const std::uint64_t owner_refs = st.owner_refs_taken - stats_after_load.owner_refs_taken;
+        const std::uint64_t pins = st.chunk_pins_taken - stats_after_load.chunk_pins_taken;
+        const std::uint64_t built = st.segments_built - stats_after_load.segments_built;
+        const std::uint64_t value_bytes = st.value_bytes_appended - stats_after_load.value_bytes_appended;
+        std::printf("  rcu   : publications=%llu (writes incl. warm-up=%llu) retained_at_end=%llu "
+                    "commits_failed=%llu\n",
+                    static_cast<unsigned long long>(published),
+                    static_cast<unsigned long long>(writes_all),
+                    static_cast<unsigned long long>(st.versions_retained),
+                    static_cast<unsigned long long>(st.commits_failed));
+        std::printf("  rcu per publication: segments_cloned=%.2f index_bytes_copied=%.0f "
+                    "directory_bytes_copied=%.0f owner_refs=%.1f chunk_pins=%.1f value_bytes=%.1f\n",
+                    static_cast<double>(built) * per, static_cast<double>(index_copied) * per,
+                    static_cast<double>(dir_copied) * per, static_cast<double>(owner_refs) * per,
+                    static_cast<double>(pins) * per, static_cast<double>(value_bytes) * per);
+        std::printf("  rcu memory held: after_load=%.1f MiB at_end=%.1f MiB (versions + segments + chunks; "
+                    "nothing is reclaimed in B1)\n",
+                    static_cast<double>(memory_after_load) / 1048576.0,
+                    static_cast<double>(memory_at_end) / 1048576.0);
+        if (!cow_csv_path.empty()) {
+            std::FILE* probe = std::fopen(cow_csv_path.c_str(), "r");
+            const bool exists = probe != nullptr;
+            if (probe != nullptr) std::fclose(probe);
+            std::FILE* f = std::fopen(cow_csv_path.c_str(), "a");
+            if (f == nullptr) {
+                std::fprintf(stderr, "cannot open %s\n", cow_csv_path.c_str());
+                return 1;
+            }
+            if (!exists) {
+                std::fputs("run_id,git_sha,variant,scenario,readers,writer_mode,seconds_actual,"
+                           "writes_incl_warmup,publications,versions_retained_at_end,commits_failed,"
+                           "segments_cloned,index_bytes_copied,directory_bytes_copied,owner_refs_taken,"
+                           "chunk_pins_taken,value_bytes_appended,memory_after_load_bytes,"
+                           "memory_at_end_bytes,segments_shared_with_previous,stopped_at_retain_limit\n",
+                           f);
+            }
+            std::fprintf(f, "%s,%s,%s,%s,%d,%s,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%d\n",
+                         run_id.c_str(), git_sha.c_str(), variant.c_str(), scenario.c_str(), cfg.readers,
+                         writer_mode.c_str(), seconds, static_cast<unsigned long long>(writes_all),
+                         static_cast<unsigned long long>(published),
+                         static_cast<unsigned long long>(st.versions_retained),
+                         static_cast<unsigned long long>(st.commits_failed),
+                         static_cast<unsigned long long>(built),
+                         static_cast<unsigned long long>(index_copied),
+                         static_cast<unsigned long long>(dir_copied),
+                         static_cast<unsigned long long>(owner_refs),
+                         static_cast<unsigned long long>(pins),
+                         static_cast<unsigned long long>(value_bytes),
+                         static_cast<unsigned long long>(memory_after_load),
+                         static_cast<unsigned long long>(memory_at_end),
+                         static_cast<unsigned long long>(st.segments_shared_with_previous),
+                         wres.stopped_at_retain_limit ? 1 : 0);
+            std::fclose(f);
+        }
+    }
 
     if (!csv_path.empty()) {
         std::FILE* probe = std::fopen(csv_path.c_str(), "r");
@@ -449,6 +551,18 @@ int main(int argc, char** argv) {
     }
     if (cfg.pin && !pinned) {
         std::fprintf(stderr, "INVALID: a thread could not be pinned to its CPU\n");
+        rc = 1;
+    }
+    if (wres.stopped_at_retain_limit) {
+        std::fprintf(stderr,
+                     "INVALID: the writer stopped before the end of the window because retained "
+                     "versions exceeded --retain-limit-mb (Part B does not reclaim yet); use a "
+                     "shorter --duration or a paced writer\n");
+        rc = 1;
+    }
+    if (versioned && st.commits_failed != 0) {
+        std::fprintf(stderr, "INVALID: %llu commits failed\n",
+                     static_cast<unsigned long long>(st.commits_failed));
         rc = 1;
     }
     return rc;

@@ -439,6 +439,12 @@ void test_independent_stores() {
 }  // namespace
 
 int main() {
+    // This whole test is single-threaded. For the Part B (rcu) variant that
+    // lets replaced versions be released at once instead of being retained, so
+    // the ownership graph (segment references, chunk pins, chunk reuse) is
+    // exercised on every write. No effect on the lock-based variants.
+    NovaKvInspector::set_default_quiescent_reclaim(true);
+
     test_insert_lookup_overwrite_erase();
     test_put_copies_value();
     test_key_range();

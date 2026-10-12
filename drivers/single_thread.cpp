@@ -6,4 +6,4 @@
 // not be a valid single-threaded baseline, so the reader count is fixed at 1.
 #include "driver_common.h"
 
-int main(int argc, char** argv) { return run_part_a_driver("single", 1, argc, argv); }
+int main(int argc, char** argv) { return run_driver("single", 1, argc, argv); }

@@ -13,6 +13,9 @@ constexpr unsigned kPartitionBits = 8;
 constexpr std::uint32_t kPartitionCount = 1u << kPartitionBits;
 constexpr std::uint32_t kInitialSegmentCapacity = 1024;  // slots, power of two
 constexpr std::uint32_t kMaxSegmentCapacity = 1u << 30;
+// Part B (copy-on-write) segments start small: every write copies the whole
+// segment it touches, so a segment should be no larger than its contents need.
+constexpr std::uint32_t kCowInitialSegmentCapacity = 16;
 
 // Occupied slots (live + tombstones) may fill at most 7/10 of a segment.
 constexpr std::uint64_t kMaxLoadNum = 7;

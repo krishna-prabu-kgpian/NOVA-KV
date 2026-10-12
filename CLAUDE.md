@@ -183,9 +183,9 @@ gates to it as the milestone lands.
 - **Engine allocations go through `nova::alloc_bytes`** (`src/alloc.h`), which returns
   `nullptr` on failure; every fallible step of a write must precede its first mutation, and
   `tests/alloc_failure_test.cpp` must keep covering each allocation site.
-- **One data structure, several sync policies.** `src/kvstore.cpp` is compiled once per policy
-  (`nova_kv_single`, `nova_kv_global_lock`, `nova_kv_rwlock`; `rcu` is added in Part B) with
-  `NOVA_KV_SYNC_MODE` as the only difference. The public header is identical for all of them.
+- **One `KVStore`, several sync policies.** `src/kvstore.cpp` is compiled once per policy
+  (`nova_kv_single`, `nova_kv_global_lock`, `nova_kv_rwlock`, and since B1 `nova_kv_rcu`) with
+  `NOVA_KV_SYNC_MODE` selecting the policy. The public header is identical for all of them.
 - **No third-party containers or concurrent hash maps**, and no `std::unordered_map`/`std::map`
   in store code (`include/`, `src/`, `drivers/`, `benchmarks/`). `std::unordered_map` is
   allowed in `tests/` only, as an oracle. Enforced by `scripts/check_no_external_deps.sh`.
@@ -214,23 +214,38 @@ gates to it as the milestone lands.
 
 ## Current status
 
-- **A0 (bootstrap): complete** — `reports/milestones/A0.md`, tag `a0-bootstrap`.
-- **A1 (baseline store): complete** — `reports/milestones/A1.md`, tag `part-a-core`.
-- **A2 (Part A benchmarks, profiling, layout note, report): complete** —
-  `reports/milestones/A2.md`, tag `part-a-final`. Report `reports/part_a_report.pdf`,
-  checklist `docs/part_a_compliance.md`, raw data `results/part_a/`.
-- **Part A is complete. Next: B1** (immutable version roots and COW directory, reclamation
-  disabled). Requires user approval. Parts B and C are still inert declarations.
+- **A0, A1, A2: complete** — tags `a0-bootstrap`, `part-a-core`, `part-a-final`. Part A is the
+  accepted baseline; its results, report and tags must not be modified.
+- **B1 (immutable versions, COW index, atomic root; reclamation deliberately absent):
+  complete** — `reports/milestones/B1.md`, tag `part-b-publication`, branch `part-b/rcu`.
+  Design note `docs/versioning.md`.
+- **Next: B2** (EBR with gated epoch advancement, cleaner, `set_reclaim_batch`, safe chunk-ID
+  reuse with concurrent readers). Requires user approval and the EBR proof gate above. Part C
+  is still inert declarations.
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021; `perf_event_paranoid = 1` is
-accepted and not to be changed D-022; do not merge into `main`, keep all milestone tags D-014;
-cross-store snapshot ambiguity stays open D-015; **the A1 chunk-lifetime scheme must be
-redesigned in Part B to protect every retained version and snapshot D-023**.
+accepted and not to be changed D-022; do not merge into `main`, keep all milestone tags, no
+history rewrite or force-push D-014/D-030; cross-store snapshot ambiguity stays open D-015; no
+final submission ZIP until told.
+
+Part B rules established in B1 (D-031…D-037, `docs/versioning.md`):
+
+- `rcu` is a fourth build of the same `KVStore`; the three Part A lock variants must stay
+  behaviourally identical to `part-a-final`.
+- Published Versions, Segments and value bytes are never modified. Every fallible step of a
+  commit precedes any ownership change; the root is written exactly once per logical write.
+- Ownership is structural: versions own segments (`owners`), segments pin distinct chunks
+  (`pins`). Never free or reuse a chunk by counting entries or by age.
+- **B1 retains every replaced version.** The quiescent-release hatches
+  (`release_retained_quiescent`, `set_quiescent_reclaim`) are legal only when no other thread
+  reads the store; B2 must remove or strictly gate them.
+- `VersionedStore::validate()` recomputes all ownership counts; keep it passing and keep
+  `versioned_alloc_failure_test` covering every allocation site of the write path.
+- Benchmarks of the `rcu` store in B1 are bounded by retained memory (harness guard).
 
 Measurement rules established in A2 (D-024…D-026, D-029): never label supplied-generator runs
 as concurrent (they are preload-only); active-writer numbers come from
-`benchmarks/concurrent_bench.cpp` via `scripts/run_part_a.sh`; every reported number must trace
-to a file under `results/`; check `conditions.log` and rerun a campaign whose power source or
-governor changed part-way; the machine has 4 fast + 4 slower cores and CPU pinning is part of
-the method.
+`benchmarks/concurrent_bench.cpp`; every reported number must trace to a file under
+`results/`; check `conditions.log` and rerun a campaign whose power source or governor changed
+part-way; the machine has 4 fast + 4 slower cores and CPU pinning is part of the method.

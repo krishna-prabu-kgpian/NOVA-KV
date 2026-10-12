@@ -330,6 +330,100 @@ unpublished and the whole campaign was rerun under one condition (AC, `performan
 at every stage boundary, recorded in `results/part_a/conditions.log`). The governor and power
 source were changed by the user, not by the agent. Only the rerun is in the repository.
 
+## D-030 — Part A preserved; Part B on its own branch (ACCEPTED, 2026-10-12, user decision)
+
+Part A is accepted as the baseline. Tags `a0-bootstrap`, `part-a-core`, `part-a-final` are
+preserved (local and on GitHub); no history rewrite, no force-push, no tag deletion. Part B
+development is on branch `part-b/rcu`, created from `part-a-final`. The Part A benchmarks,
+results and report are not modified. No submission ZIP is built yet. Nothing is merged into
+`main`.
+
+## D-031 — RCU is a fourth build of the same `KVStore`; the Part A variants are unchanged (ACCEPTED, B1 — please confirm)
+
+The assignment says the Part B change "must live inside the KVStore class itself: don't fork
+the store into a second implementation", and Part D compares `single_thread`, `global_lock`,
+`rwlock` and the RCU store.
+
+Chosen: `KVStore` stays one class in one `kvstore.cpp`/`kvstore.h`; a fourth synchronization
+policy `rcu` (`NOVA_KV_SYNC_RCU`) selects the Part B engine (`src/versioned_store.*`). The
+three lock-based policies keep the Part A in-place engine byte-for-byte in behaviour, so the
+Part A baselines and the future Part D comparison are built from one tree. The RCU engine
+reuses the hash, slot format, probing and load rules, the allocation layer and, as its private
+builder, the Part A `HashSegment` class; it differs in that published state is immutable and
+ownership is structural.
+
+- Alternative A (rejected for now): make all four policies run on the copy-on-write engine,
+  with the lock policies merely adding a lock. That would be "one data structure" in the
+  strictest sense but would change the Part A baselines (every locked write would also pay the
+  copy), making them no longer the Part A code that was measured.
+- Alternative B (rejected): replace the lock variants entirely. Part D could then only be run
+  by checking out `part-a-final`.
+
+This is an interpretation of the assignment's wording, so it is flagged for the user rather
+than assumed settled.
+
+## D-032 — B1 lifetime strategy: retain every replaced version (ACCEPTED, B1)
+
+Per blueprint §8.5 and the user's instruction ("if B1 intentionally defers reclamation, retain
+the old versions safely rather than implementing an incomplete reclamation protocol"): no EBR
+and no cleaner in B1. Each replaced version is pushed on a writer-owned retained list (node
+pre-allocated before publication) and released only when the store is destroyed. Memory grows
+with every write.
+
+Two internal hatches release retained versions under the **caller's promise that no other
+thread is reading**: `release_retained_quiescent()` and `set_quiescent_reclaim(true)`. They
+are reachable only through `NovaKvInspector` / `VersionedStore`, never through the public API,
+are used by single-threaded tests (to exercise the full ownership graph on every write) and by
+the benchmark harness after its single-threaded load, and must be removed or strictly gated in
+B2. They are not a reclamation protocol and are not claimed as one.
+
+## D-033 — Ownership model for Part B (ACCEPTED, B1; replaces D-017 for the RCU store)
+
+Implements D-023. Versions own segment references (`Segment::owners`); each segment holds one
+arena pin per distinct chunk it references (`Segment::pins`, sorted, with per-chunk entry
+counts); the writer owns the writable chunk. A chunk is freed and its ID recycled only with no
+pin, not writable, and not referenced by the commit in progress. The Part A behaviours of
+freeing by entry count and rewinding the writable chunk are not used. All ownership is
+acquired after the last fallible step of a commit, so a failed commit has no ownership to
+undo. Details and invariants O1–O6: `docs/versioning.md` §5.
+
+## D-034 — Representation choices in B1 (ACCEPTED, B1)
+
+- A `Version` embeds its 256-entry directory instead of pointing at a separate `Directory`
+  object (one allocation and one indirection fewer; still one directory per version).
+- **COW segments start at 16 slots**, not the 1024 the blueprint lists as the initial default.
+  Every write copies the whole segment it touches, so a segment should be as small as its
+  contents allow; a mostly empty 1024-slot segment would cost 24 KiB per write. Segments still
+  double under the same 0.70 load rule, so at the workload's ~391 keys per partition they are
+  1024 slots anyway. The Part A variants keep 1024. This is a deviation from a default the
+  blueprint marks as provisional and tunable.
+- A partition whose last key is erased becomes a null directory entry (no segment, no
+  tombstones to keep).
+- All atomics use `memory_order_seq_cst` (blueprint §0; nothing is relaxed in B1).
+
+## D-035 — `erase` and allocation failure in the RCU store (ACCEPTED, B1)
+
+An erase publishes a new version and therefore allocates. If that allocation fails, `erase`
+returns `false` and the key is still present; the API cannot distinguish this from "key was
+absent". An absent key is detected first and costs no allocation or publication. Inside a
+replacement segment, the tombstone-removal rebuild remains best-effort as in Part A.
+
+## D-036 — Internal multi-key commit; `Transaction` stays Part C (ACCEPTED, B1)
+
+Blueprint §8.5 asks B1 to test "transaction-like multi-key update through internal staging
+(public Transaction added later)". `VersionedStore::commit(ops, n)` is that staging: grouped by
+partition, one clone per touched segment, one publication. It is reachable only internally
+(`NovaKvInspector::commit_batch`). `Transaction::put/commit` remain inert until C1.
+
+## D-037 — B1 observation, not a benchmark campaign (ACCEPTED, B1)
+
+`scripts/run_b1_observation.sh` records read throughput/latency, writer throughput and the
+copy cost per publication for the RCU store with the Part A harness, dataset, read mix, pinning
+and flags: 3 repetitions, 1/2/4/8 readers, paced writer (10,000/s, 3 s window) and unthrottled
+writer (1 s window, because B1 retains about 2–3 GiB per second of unthrottled writing), plus
+one-thread runs. The harness stops the writer and invalidates the run if retained memory
+exceeds a limit. No perf profiling, no reclamation-batch study: those are B2 and Part D.
+
 ---
 
 ## Open items carried forward
@@ -340,6 +434,7 @@ source were changed by the user, not by the agent. Only the rerun is in the repo
 | O-2 | RESOLVED for user-space profiling: `perf_event_paranoid = 1` (set by the user, D-022). Remaining: `kptr_restrict = 1` hides kernel symbols (D-025) | User, if kernel symbol names are wanted (`sudo sysctl kernel.kptr_restrict=0`) | Nothing mandatory |
 | O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
-| O-7 | Part B must replace the A1 chunk lifetime scheme (D-023) | Part B design | B1/B2 |
+| O-7 | RESOLVED in B1 for ownership (D-033). Reclamation itself (EBR, cleaner) is B2 | — | B2 |
+| O-8 | D-031: is a fourth `rcu` build next to unchanged Part A variants an acceptable reading of "don't fork the store"? | User | Nothing; affects how the A→B diff is presented |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

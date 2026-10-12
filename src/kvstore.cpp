@@ -1,14 +1,22 @@
 // kvstore.cpp -- NOVA-KV store implementation.
 //
-// MILESTONE A1 STATE: Part A baseline. put / get / erase are implemented on a
-// segmented linear-probing hash index (hash_segment.h) whose entries reference
-// value bytes in a chunked arena (arena.h). Segments are mutated in place under
-// the build's synchronization policy (sync_policy.h); that policy is the only
-// difference between the single / global_lock / rwlock libraries.
+// One KVStore class, compiled once per synchronization policy (sync_mode.h):
 //
-// Parts B and C are declared in kvstore.h for source compatibility with the
-// supplied workload generator but are NOT implemented: their bodies below are
-// inert and never report success.
+//   single / global_lock / rwlock   Part A baseline: a segmented linear-probing
+//       hash index (hash_segment.h) over a chunked value arena (arena.h),
+//       mutated in place under the policy's lock (sync_policy.h).
+//   rcu                             Part B: the same hash, slot format, probing
+//       rules and chunked values, but every write builds new state privately
+//       and publishes an immutable version with one atomic pointer swap; reads
+//       take no lock (versioned_store.h).
+//
+// MILESTONE B1 STATE (rcu): publication and ownership are implemented;
+// reclamation of replaced versions is NOT (they are retained until the store is
+// destroyed) and set_reclaim_batch() is still inert. Both arrive in B2.
+//
+// Part C (Transaction, Snapshot, secondary index) is declared in kvstore.h for
+// source compatibility with the supplied workload generator but is NOT
+// implemented: those bodies are inert and never report success.
 #include "kvstore.h"
 
 #include "build_info.h"
@@ -18,19 +26,51 @@
 
 #include <cstdint>
 #include <cstring>
+#include <new>
+
+const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
+
+#if NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
+
+// ---- Part B: RCU ------------------------------------------------------------------
+
+KVStore::KVStore() : impl_(new Impl()) {
+    if (!impl_->store.ok()) {  // the initial empty version could not be allocated
+        delete impl_;
+        throw std::bad_alloc();
+    }
+}
+
+KVStore::~KVStore() { delete impl_; }
+
+// Single writer (the assignment's assumption): put and erase must not be called
+// from two threads at once. Each successful call publishes exactly one version.
+bool KVStore::put(long key, const void* value, size_t value_len) {
+    return impl_->store.put(key, value, value_len);
+}
+
+// Any number of threads, concurrently with the writer: one atomic load of the
+// current version, no lock, no waiting, bytes copied out before returning.
+bool KVStore::get(long key, void* value_out, size_t value_out_len) const {
+    return impl_->store.get(key, value_out, value_out_len);
+}
+
+// Returns false if the key is absent. It also returns false, with the store
+// unchanged, if memory for the replacement version cannot be allocated.
+bool KVStore::erase(long key) { return impl_->store.erase(key); }
+
+#else
+
+// ---- Part A: lock-based baseline ---------------------------------------------------
 
 using nova::HashSegment;
 using nova::ReadGuard;
 using nova::ValueRef;
 using nova::WriteGuard;
 
-const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
-
 KVStore::KVStore() : impl_(new Impl()) {}
 
 KVStore::~KVStore() { delete impl_; }
-
-// ---- Part A -------------------------------------------------------------------
 
 bool KVStore::put(long key, const void* value, size_t value_len) {
     if (value_len > nova::kMaxValueBytes) return false;
@@ -91,6 +131,8 @@ bool KVStore::erase(long key) {
     impl.arena.release(old_ref);
     return true;
 }
+
+#endif  // NOVA_KV_SYNC_MODE
 
 // ---- Part B (not implemented until B2) ----------------------------------------
 

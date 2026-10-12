@@ -83,6 +83,16 @@ public:
     // allocate it is simply retried by a later operation.
     bool erase(long key, std::uint64_t h, ValueRef* old_ref) noexcept;
 
+    // ---- Private-copy support for the copy-on-write engine (Part B) ----
+    // Makes this (empty) segment a private copy of an existing slot array.
+    // Returns false on allocation failure, leaving the segment empty.
+    bool clone_from(const Entry* slots, std::uint32_t capacity, std::uint32_t live,
+                    std::uint32_t tombstones) noexcept;
+    // Hands the slot array to the caller and leaves this segment empty.
+    Entry* release_slots() noexcept;
+    // Bytes of slot arrays this object has allocated and filled so far.
+    std::uint64_t bytes_built() const noexcept { return bytes_built_; }
+
     // ---- Introspection (tests, statistics, validation) ----
     std::uint32_t capacity() const noexcept { return capacity_; }
     std::uint32_t live() const noexcept { return live_; }
@@ -111,6 +121,7 @@ private:
     HashFn hash_fn_;
     std::uint64_t growths_;     // installs with a larger capacity
     std::uint64_t rebuilds_;    // installs at the same capacity (tombstone removal)
+    mutable std::uint64_t bytes_built_;  // slot bytes allocated + filled (copy amplification)
 };
 
 }  // namespace nova
