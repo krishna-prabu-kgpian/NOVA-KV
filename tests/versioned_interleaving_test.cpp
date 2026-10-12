@@ -49,6 +49,15 @@ namespace {
 
 using Bytes = std::vector<unsigned char>;
 
+// Epoch-based reclamation in both cases; what differs is who runs the passes.
+// Manual: nobody until the test calls reclaim_pass()/drain(), so every retired
+// version stays (and unprotected version pointers stay valid) until then.
+// Inline: the writer runs passes after each commit, so with no reader pinned
+// each replaced version is reclaimed before the write returns.
+const nova::StoreOptions kManual{nova::ReclaimMode::Epoch, nova::CleanerMode::Manual};
+const nova::StoreOptions kInline{nova::ReclaimMode::Epoch, nova::CleanerMode::Inline};
+
+
 Bytes pattern(std::size_t len, std::uint64_t seed) {
     Bytes v(len);
     for (std::size_t i = 0; i < len; ++i) v[i] = static_cast<unsigned char>(seed * 37 + i * 11 + 5);
@@ -102,7 +111,7 @@ private:
 
 bool holds(const VersionedStore& s, const Version* v, long key, const Bytes& expect) {
     Bytes buf(expect.size() + 8, 0xCD);
-    if (!s.get_at(v, key, buf.data(), expect.size())) return false;
+    if (!s.get_at_unprotected(v, key, buf.data(), expect.size())) return false;
     return std::memcmp(buf.data(), expect.data(), expect.size()) == 0 && buf[expect.size()] == 0xCD;
 }
 
@@ -121,12 +130,12 @@ std::vector<long> keys_in_distinct_partitions(std::size_t n) {
 
 // ---- S1 / S2: a parked reader against thousands of publications ----------------
 void reader_parked(TestPoint where, const char* name) {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const long key = 4242;
     const Bytes original = pattern(3000, 1);
     NOVA_CHECK(s.put(key, original.data(), original.size()));
     for (long k = 0; k < 50; ++k) NOVA_CHECK(s.put(k, &k, sizeof(k)));
-    const Version* v_at_park = s.current_version();
+    const Version* v_at_park = s.current_version_unprotected();
 
     Gate gate(where);
     Bytes reader_buf(3000, 0);
@@ -152,7 +161,7 @@ void reader_parked(TestPoint where, const char* name) {
     for (long k = 0; k < 50; ++k) writes_ok = writes_ok && s.erase(k);
     writes_ok = writes_ok && s.erase(key);
     NOVA_CHECK(writes_ok);
-    NOVA_CHECK(s.current_version()->sequence == v_at_park->sequence + 3051);
+    NOVA_CHECK(s.current_version_unprotected()->sequence == v_at_park->sequence + 3051);
     unsigned char probe[8];
     NOVA_CHECK(!s.get(key, probe, 0) && !s.get(key, nullptr, 0));  // gone for new readers
 
@@ -167,18 +176,18 @@ void reader_parked(TestPoint where, const char* name) {
     NOVA_CHECK(holds(s, v_at_park, key, original));
     for (long k = 0; k < 50; ++k) {
         long out = -1;
-        NOVA_CHECK(s.get_at(v_at_park, k, &out, sizeof(out)) && out == k);
+        NOVA_CHECK(s.get_at_unprotected(v_at_park, k, &out, sizeof(out)) && out == k);
     }
     NOVA_CHECK(s.stats().versions_retained == s.stats().versions_published);
     NOVA_CHECK(s.validate() == nullptr);
     std::printf("  %s: reader held version %llu across %llu newer publications\n", name,
                 static_cast<unsigned long long>(v_at_park->sequence),
-                static_cast<unsigned long long>(s.current_version()->sequence - v_at_park->sequence));
+                static_cast<unsigned long long>(s.current_version_unprotected()->sequence - v_at_park->sequence));
 }
 
 // ---- S3 / S4: readers around the instant of publication -------------------------
 void writer_parked(TestPoint where, bool expect_new_state, const char* name) {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto keys = keys_in_distinct_partitions(8);
     const long extra = 900001, doomed = 900002;
     for (std::size_t i = 0; i < keys.size(); ++i) {
@@ -187,7 +196,7 @@ void writer_parked(TestPoint where, bool expect_new_state, const char* name) {
     }
     const Bytes doomed_value = pattern(32, 77);
     NOVA_CHECK(s.put(doomed, doomed_value.data(), doomed_value.size()));
-    const Version* v_old = s.current_version();
+    const Version* v_old = s.current_version_unprotected();
     const std::uint64_t published_before = s.stats().versions_published;
     const std::uint64_t retained_before = s.stats().versions_retained;
 
@@ -239,20 +248,20 @@ void writer_parked(TestPoint where, bool expect_new_state, const char* name) {
     if (expect_new_state) {
         // The root has been swapped: every reader sees the whole new state ...
         NOVA_CHECK(saw_new.load() == 800 && saw_old.load() == 0);
-        NOVA_CHECK(s.current_version() != v_old);
+        NOVA_CHECK(s.current_version_unprotected() != v_old);
         // ... and the replaced version, not yet on the retained list, is intact.
         for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(holds(s, v_old, keys[i], pattern(64, 10 + i)));
         NOVA_CHECK(holds(s, v_old, doomed, doomed_value));
     } else {
         // Fully built but unpublished: nothing of it is visible.
         NOVA_CHECK(saw_old.load() == 800 && saw_new.load() == 0);
-        NOVA_CHECK(s.current_version() == v_old);
+        NOVA_CHECK(s.current_version_unprotected() == v_old);
     }
 
     gate.release();
     writer.join();
     NOVA_CHECK(commit_ok && gate.was_parked());
-    const Version* v_new = s.current_version();
+    const Version* v_new = s.current_version_unprotected();
     NOVA_CHECK(v_new != v_old && v_new->sequence == v_old->sequence + 1);
     NOVA_CHECK(s.stats().versions_published == published_before + 1);  // exactly one publication
     NOVA_CHECK(s.stats().versions_retained == retained_before + 1);    // old version handed over, not lost
@@ -261,21 +270,20 @@ void writer_parked(TestPoint where, bool expect_new_state, const char* name) {
         NOVA_CHECK(holds(s, v_old, keys[i], pattern(64, 10 + i)));
     }
     unsigned char small[40];
-    NOVA_CHECK(holds(s, v_new, extra, extra_value) && !s.get_at(v_new, doomed, small, sizeof(small)));
-    NOVA_CHECK(holds(s, v_old, doomed, doomed_value) && !s.get_at(v_old, extra, small, sizeof(small)));
+    NOVA_CHECK(holds(s, v_new, extra, extra_value) && !s.get_at_unprotected(v_new, doomed, small, sizeof(small)));
+    NOVA_CHECK(holds(s, v_old, doomed, doomed_value) && !s.get_at_unprotected(v_old, extra, small, sizeof(small)));
     NOVA_CHECK(s.validate() == nullptr);
     std::printf("  %s: 800 multi-key observations, old=%d new=%d mixed=%d\n", name, saw_old.load(),
                 saw_new.load(), saw_mixed.load());
 }
 
 // ---- S6: older versions released while a new version is being prepared ----------
-// Pre-B2 audit demonstration. The release is done with the B1 quiescent hatch:
-// legal here because the only other thread is the writer, parked at a pause
-// point (the gate's mutex orders its writes before this thread's reads), and
-// there are no readers. It stands in for a cleaner that has established, by
-// whatever means, that the OLD versions are unreachable.
+// The audit's question: can a segment or chunk the new version shares be
+// destroyed when every older version is reclaimed in the middle of a commit?
+// This thread plays the cleaner and runs real reclamation passes while the
+// writer is parked (the gate's mutex orders the writer's writes before them).
 void release_old_versions_while_writer_prepares() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto keys = keys_in_distinct_partitions(40);
     const std::size_t big = 30000;  // two per 64 KiB chunk: values of different keys share chunks
     // Build history: every key written three times, so each partition's segment
@@ -286,7 +294,7 @@ void release_old_versions_while_writer_prepares() {
             NOVA_CHECK(s.put(keys[i], v.data(), v.size()));
         }
     }
-    const Version* v_current = s.current_version();
+    const Version* v_current = s.current_version_unprotected();
     const std::uint64_t retained_before = s.stats().versions_retained;
     NOVA_CHECK(retained_before == 120);
 
@@ -310,13 +318,13 @@ void release_old_versions_while_writer_prepares() {
     gate.wait_until_parked();  // new version built, pins and owner references taken
 
     // "Cleaner": every one of the 120 older versions goes away now.
-    s.release_retained_quiescent();
+    NOVA_CHECK(s.drain());
     NOVA_CHECK(s.stats().versions_retained == 0);
-    NOVA_CHECK(s.stats().versions_released == 120);
+    NOVA_CHECK(s.stats().versions_reclaimed == 120);
     NOVA_CHECK(s.stats().segments_released > 0 && s.stats().arena.chunks_freed > 0);  // it really freed things
 
     // The CURRENT version (still published; readers may be using it) is whole.
-    NOVA_CHECK(s.current_version() == v_current);
+    NOVA_CHECK(s.current_version_unprotected() == v_current);
     for (std::size_t i = 0; i < keys.size(); ++i) {
         NOVA_CHECK(holds(s, v_current, keys[i], pattern(big, 2000 + i)));
     }
@@ -339,11 +347,11 @@ void release_old_versions_while_writer_prepares() {
     NOVA_CHECK(commit_ok && gate.was_parked());
 
     // The prepared version, published after the release, is whole as well.
-    const Version* v_new = s.current_version();
+    const Version* v_new = s.current_version_unprotected();
     NOVA_CHECK(v_new != v_current);
     for (std::size_t i = 0; i < 3; ++i) NOVA_CHECK(holds(s, v_new, keys[i], new_values[i]));
     unsigned char probe[8];
-    NOVA_CHECK(!s.get_at(v_new, keys[3], probe, 0) && !s.get_at(v_new, keys[3], nullptr, 0));
+    NOVA_CHECK(!s.get_at_unprotected(v_new, keys[3], probe, 0) && !s.get_at_unprotected(v_new, keys[3], nullptr, 0));
     for (std::size_t i = 4; i < keys.size(); ++i) {
         NOVA_CHECK(holds(s, v_new, keys[i], pattern(big, 2000 + i)));  // through shared segments
     }
@@ -384,7 +392,7 @@ bool record_ok(const Record& r, long key) {
 }
 
 void atomic_visibility_stress() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto keys = keys_in_distinct_partitions(6);
     constexpr std::uint64_t kGenerations = 15000;
     constexpr int kReaders = 3;
@@ -416,11 +424,11 @@ void atomic_visibility_stress() {
             while (!go.load()) std::this_thread::yield();
             while (!writer_done.load() || n < kMinRounds) {
                 // (a) Several keys through ONE version: all from the same commit.
-                const Version* v = s.current_version();
+                const Version* v = s.current_version_unprotected();
                 std::uint64_t g = 0;
                 for (std::size_t i = 0; i < 6; ++i) {
                     Record r;
-                    if (!s.get_at(v, keys[i], &r, sizeof(r))) {
+                    if (!s.get_at_unprotected(v, keys[i], &r, sizeof(r))) {
                         ++l_missing;
                         continue;
                     }

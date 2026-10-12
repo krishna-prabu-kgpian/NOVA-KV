@@ -13,7 +13,7 @@
 # mandatory gate blocks overall PASS exactly like FAIL does.
 #
 # Gates are added here as milestones land; expectations are never loosened to
-# hide a failure. Currently covered: A0, A1, A2, B1.
+# hide a failure. Currently covered: A0, A1, A2, B1, B2.
 set -u -o pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$NOVA_ROOT"
@@ -137,6 +137,19 @@ run_gate part_a_checkpoint_unchanged yes sh -c '
         reports/milestones/A0.md reports/milestones/A1.md reports/milestones/A2.md &&
     echo "Part A results, report and milestone reports identical to part-a-final"'
 
+# ---- Part B deliverables (milestone B2) ----------------------------------------
+run_gate part_b_artifacts yes sh -c '
+    status=0
+    for f in include/kvstore.h src/kvstore.cpp src/versioned_store.cpp src/epoch.cpp src/pinned_arena.cpp \
+             src/cow_segment.cpp tests/concurrent_lock_test.cpp tests/reclamation_test.cpp \
+             tests/reclamation_stress_test.cpp reports/part_b_readme.md docs/reclamation.md \
+             docs/part_b_compliance.md results/diffs/part_a_to_part_b.diff; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    grep -q "void set_reclaim_batch(int n);" include/kvstore.h || { echo "MISSING  set_reclaim_batch declaration"; status=1; }
+    git rev-parse --verify --quiet part-b-publication^{commit} >/dev/null || { echo "MISSING  tag part-b-publication"; status=1; }
+    exit $status'
+
 # ---- Informational (do not affect the verdict) ------------------------------
 # Whether profiling can be re-run on this machine (the committed Part A profiles
 # do not depend on it).
@@ -151,7 +164,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1, A2, B1"
+    echo "- milestones covered: A0, A1, A2, B1, B2"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"

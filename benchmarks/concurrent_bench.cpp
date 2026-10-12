@@ -20,14 +20,13 @@
 // or with --writer inline:N, where the same thread performs one update per N
 // reads.
 //
-// Part B (rcu), milestone B1: the store does not reclaim replaced versions yet,
-// so a run with a writer thread holds every version it publishes. The writer
-// therefore stops, and the run is reported INVALID, if the memory held by the
-// store exceeds --retain-limit-mb. Versions retained by the load phase are
-// released before the threads start (no reader exists yet), and with
-// --writer inline:N, where one thread is reader and writer, replaced versions
-// are released at once. Copy-on-write cost counters are printed and, with
-// --cow-csv, appended to a separate file; the main CSV schema is unchanged.
+// Part B (rcu): replaced versions are reclaimed by the store's background
+// cleaner (epoch-based). --reclaim-batch N sets KVStore::set_reclaim_batch;
+// --reclaim disabled|stw selects the two comparator modes. If reclamation does
+// not keep up (or is disabled) memory grows; the writer stops, and the run is
+// reported INVALID, if the store holds more than --retain-limit-mb.
+// Copy-on-write and reclamation counters are printed and, with --cow-csv,
+// appended to a separate file; the main CSV schema is unchanged.
 //
 // The run fails (nonzero exit) if a read returns a record that does not belong
 // to its key, if the writer was requested but completed no successful update
@@ -227,6 +226,9 @@ int main(int argc, char** argv) {
     const std::string cow_csv_path = args.get("--cow-csv", "");
     cfg.retain_limit_bytes =
         static_cast<std::uint64_t>(args.get_long("--retain-limit-mb", 6000)) * 1024 * 1024;
+    const long reclaim_batch = args.get_long("--reclaim-batch", 0);  // 0 = store default
+    const std::string reclaim = args.get("--reclaim", "epoch");
+    const long work_per_version = args.get_long("--reclaim-work-per-version", 0);
     const bool csv_header_only = args.has_flag("--csv-header");
     if (!args.first_unused().empty()) {
         std::fprintf(stderr, "unknown argument: %s\n", args.first_unused().c_str());
@@ -285,8 +287,21 @@ int main(int argc, char** argv) {
         return 2;
     }
 
+    if (reclaim != "epoch" && reclaim != "disabled" && reclaim != "stw") {
+        std::fprintf(stderr, "--reclaim must be epoch, disabled or stw\n");
+        return 2;
+    }
+    // Part B options are fixed when the store is constructed. A one-thread run
+    // with an inline writer also lets that thread run the reclamation passes.
+    NovaKvInspector::set_default_rcu_options(reclaim == "disabled" ? 1 : (reclaim == "stw" ? 2 : 0),
+                                             cfg.inline_every > 0 ? 2 : 0);
+
     // ---- Load (not measured): same keys and hot set as the supplied generator.
     KVStore store;
+    if (reclaim_batch > 0) store.set_reclaim_batch(static_cast<int>(reclaim_batch));
+    if (work_per_version > 0) {
+        NovaKvInspector::set_reclaim_work_per_version(store, static_cast<unsigned>(work_per_version));
+    }
     std::vector<long> hot_ids;
     long count = 0;
     for (int i = 0; i < cfg.m; i++) {
@@ -300,16 +315,12 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Part B: versions replaced during the load are not needed by anyone (no
-    // reader thread exists yet); release them so the run starts from a store
-    // that holds only its current state. In single-thread inline-writer mode
-    // the one thread is reader and writer, so nothing ever needs retaining.
+    // Part B: let reclamation catch up with the load before measuring, so the
+    // run starts from a store that holds only its current state (no reader
+    // thread exists yet, so nothing holds the epoch back).
     const bool versioned = NovaKvInspector::is_versioned();
     if (!versioned) cfg.retain_limit_bytes = 0;
-    if (versioned) {
-        NovaKvInspector::release_retained_quiescent(store);
-        if (cfg.inline_every > 0) NovaKvInspector::set_quiescent_reclaim(store, true);
-    }
+    if (versioned && reclaim == "epoch") NovaKvInspector::settle(store);
     const NovaKvStats stats_after_load = NovaKvInspector::stats(store);
     const std::uint64_t memory_after_load = NovaKvInspector::memory_held_bytes(store);
 
@@ -363,12 +374,18 @@ int main(int argc, char** argv) {
     const std::uint64_t write_failed = wres.failed;
     const double read_rps = static_cast<double>(ops) / seconds;
     const double write_rps = static_cast<double>(write_ok) / seconds;
-    // Statistics first (they describe what the run retained), then, for Part B,
-    // release the retained versions (all threads have stopped) so that the
-    // structural validation below does not have to walk every one of them.
+    // Statistics first (they describe the state the run ended in), then, for
+    // Part B, let reclamation finish (all reader threads have exited, so the
+    // epoch can advance) and validate the settled store.
     const NovaKvStats st = NovaKvInspector::stats(store);
     const std::uint64_t memory_at_end = NovaKvInspector::memory_held_bytes(store);
-    if (versioned) NovaKvInspector::release_retained_quiescent(store);
+    const std::uint64_t backlog_at_end = NovaKvInspector::backlog(store);
+    // settle() stops the background cleaner, which records its CPU time, runs
+    // the remaining passes on this thread, and restarts it.
+    if (versioned && reclaim != "disabled") NovaKvInspector::settle(store);
+    const std::uint64_t memory_settled = NovaKvInspector::memory_held_bytes(store);
+    const std::uint64_t cleaner_cpu_ns =
+        NovaKvInspector::stats(store).cleaner_cpu_ns - stats_after_load.cleaner_cpu_ns;
     const char* invariant_error = NovaKvInspector::validate(store);
     const std::size_t pinned_readers =
         cfg.pin ? std::min(cfg.reader_cpus.size(), static_cast<std::size_t>(cfg.readers)) : 0;
@@ -408,24 +425,45 @@ int main(int argc, char** argv) {
         const std::uint64_t index_copied = st.index_bytes_copied - stats_after_load.index_bytes_copied;
         const std::uint64_t dir_copied = st.directory_bytes_copied - stats_after_load.directory_bytes_copied;
         const std::uint64_t owner_refs = st.owner_refs_taken - stats_after_load.owner_refs_taken;
-        const std::uint64_t pins = st.chunk_pins_taken - stats_after_load.chunk_pins_taken;
+        const std::uint64_t pins = st.chunk_refs_taken - stats_after_load.chunk_refs_taken;
         const std::uint64_t built = st.segments_built - stats_after_load.segments_built;
         const std::uint64_t value_bytes = st.value_bytes_appended - stats_after_load.value_bytes_appended;
-        std::printf("  rcu   : publications=%llu (writes incl. warm-up=%llu) retained_at_end=%llu "
-                    "commits_failed=%llu\n",
+        const std::uint64_t reclaimed = st.versions_reclaimed - stats_after_load.versions_reclaimed;
+        const std::uint64_t advances = st.epoch_advances - stats_after_load.epoch_advances;
+        const std::uint64_t attempts = st.epoch_advance_attempts - stats_after_load.epoch_advance_attempts;
+        const std::uint64_t blocked = st.epoch_advances_blocked - stats_after_load.epoch_advances_blocked;
+        const std::uint64_t passes = st.reclaim_passes - stats_after_load.reclaim_passes;
+        const std::uint64_t ids_reused = st.chunk_ids_reused - stats_after_load.chunk_ids_reused;
+        std::printf("  rcu   : publications=%llu (writes incl. warm-up=%llu) commits_failed=%llu reclaim=%s batch=%d\n",
                     static_cast<unsigned long long>(published),
                     static_cast<unsigned long long>(writes_all),
-                    static_cast<unsigned long long>(st.versions_retained),
-                    static_cast<unsigned long long>(st.commits_failed));
+                    static_cast<unsigned long long>(st.commits_failed), reclaim.c_str(), st.reclaim_batch);
         std::printf("  rcu per publication: segments_cloned=%.2f index_bytes_copied=%.0f "
-                    "directory_bytes_copied=%.0f owner_refs=%.1f chunk_pins=%.1f value_bytes=%.1f\n",
+                    "directory_bytes_copied=%.0f owner_refs=%.1f chunk_refs=%.1f value_bytes=%.1f\n",
                     static_cast<double>(built) * per, static_cast<double>(index_copied) * per,
                     static_cast<double>(dir_copied) * per, static_cast<double>(owner_refs) * per,
                     static_cast<double>(pins) * per, static_cast<double>(value_bytes) * per);
-        std::printf("  rcu memory held: after_load=%.1f MiB at_end=%.1f MiB (versions + segments + chunks; "
-                    "nothing is reclaimed in B1)\n",
+        std::printf("  rcu reclamation: reclaimed=%llu backlog_at_end=%llu backlog_max=%llu passes=%llu "
+                    "epoch_advances=%llu/%llu attempts (%llu blocked by a reader) max_versions_in_pass=%llu "
+                    "interrupted=%llu chunk_ids_reused=%llu reader_slots=%llu validation_retries=%llu "
+                    "cleaner_cpu=%.3fs (%.1f%% of one CPU over warm-up + window)\n",
+                    static_cast<unsigned long long>(reclaimed),
+                    static_cast<unsigned long long>(backlog_at_end),
+                    static_cast<unsigned long long>(st.backlog_max),
+                    static_cast<unsigned long long>(passes), static_cast<unsigned long long>(advances),
+                    static_cast<unsigned long long>(attempts), static_cast<unsigned long long>(blocked),
+                    static_cast<unsigned long long>(st.reclaim_max_versions_in_pass),
+                    static_cast<unsigned long long>(st.reclaim_interrupted_versions),
+                    static_cast<unsigned long long>(ids_reused),
+                    static_cast<unsigned long long>(st.reader_slots_owned),
+                    static_cast<unsigned long long>(st.reader_validation_retries),
+                    static_cast<double>(cleaner_cpu_ns) / 1e9,
+                    100.0 * static_cast<double>(cleaner_cpu_ns) / 1e9 / (seconds + cfg.warmup_s));
+        std::printf("  rcu memory held: after_load=%.1f MiB at_end=%.1f MiB settled=%.1f MiB "
+                    "(versions + segments + chunks)\n",
                     static_cast<double>(memory_after_load) / 1048576.0,
-                    static_cast<double>(memory_at_end) / 1048576.0);
+                    static_cast<double>(memory_at_end) / 1048576.0,
+                    static_cast<double>(memory_settled) / 1048576.0);
         if (!cow_csv_path.empty()) {
             std::FILE* probe = std::fopen(cow_csv_path.c_str(), "r");
             const bool exists = probe != nullptr;
@@ -436,18 +474,23 @@ int main(int argc, char** argv) {
                 return 1;
             }
             if (!exists) {
-                std::fputs("run_id,git_sha,variant,scenario,readers,writer_mode,seconds_actual,"
-                           "writes_incl_warmup,publications,versions_retained_at_end,commits_failed,"
+                std::fputs("run_id,git_sha,variant,scenario,readers,writer_mode,reclaim_mode,reclaim_batch,"
+                           "seconds_actual,writes_incl_warmup,publications,commits_failed,"
                            "segments_cloned,index_bytes_copied,directory_bytes_copied,owner_refs_taken,"
-                           "chunk_pins_taken,value_bytes_appended,memory_after_load_bytes,"
-                           "memory_at_end_bytes,segments_shared_with_previous,stopped_at_retain_limit\n",
+                           "chunk_refs_taken,value_bytes_appended,versions_reclaimed,backlog_at_end,"
+                           "backlog_max,reclaim_passes,epoch_advances,epoch_advance_attempts,"
+                           "epoch_advances_blocked,reclaim_max_versions_in_pass,"
+                           "reclaim_interrupted_versions,chunk_ids_reused,reader_slots_owned,"
+                           "reader_validation_retries,stw_pauses,memory_after_load_bytes,"
+                           "memory_at_end_bytes,memory_settled_bytes,stopped_at_retain_limit,cleaner_cpu_ns\n",
                            f);
             }
-            std::fprintf(f, "%s,%s,%s,%s,%d,%s,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%d\n",
+            std::fprintf(f, "%s,%s,%s,%s,%d,%s,%s,%d,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
+                            "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%d,%llu\n",
                          run_id.c_str(), git_sha.c_str(), variant.c_str(), scenario.c_str(), cfg.readers,
-                         writer_mode.c_str(), seconds, static_cast<unsigned long long>(writes_all),
+                         writer_mode.c_str(), reclaim.c_str(), st.reclaim_batch, seconds,
+                         static_cast<unsigned long long>(writes_all),
                          static_cast<unsigned long long>(published),
-                         static_cast<unsigned long long>(st.versions_retained),
                          static_cast<unsigned long long>(st.commits_failed),
                          static_cast<unsigned long long>(built),
                          static_cast<unsigned long long>(index_copied),
@@ -455,10 +498,24 @@ int main(int argc, char** argv) {
                          static_cast<unsigned long long>(owner_refs),
                          static_cast<unsigned long long>(pins),
                          static_cast<unsigned long long>(value_bytes),
+                         static_cast<unsigned long long>(reclaimed),
+                         static_cast<unsigned long long>(backlog_at_end),
+                         static_cast<unsigned long long>(st.backlog_max),
+                         static_cast<unsigned long long>(passes),
+                         static_cast<unsigned long long>(advances),
+                         static_cast<unsigned long long>(attempts),
+                         static_cast<unsigned long long>(blocked),
+                         static_cast<unsigned long long>(st.reclaim_max_versions_in_pass),
+                         static_cast<unsigned long long>(st.reclaim_interrupted_versions),
+                         static_cast<unsigned long long>(ids_reused),
+                         static_cast<unsigned long long>(st.reader_slots_owned),
+                         static_cast<unsigned long long>(st.reader_validation_retries),
+                         static_cast<unsigned long long>(st.stw_pauses),
                          static_cast<unsigned long long>(memory_after_load),
                          static_cast<unsigned long long>(memory_at_end),
-                         static_cast<unsigned long long>(st.segments_shared_with_previous),
-                         wres.stopped_at_retain_limit ? 1 : 0);
+                         static_cast<unsigned long long>(memory_settled),
+                         wres.stopped_at_retain_limit ? 1 : 0,
+                         static_cast<unsigned long long>(cleaner_cpu_ns));
             std::fclose(f);
         }
     }
@@ -555,9 +612,8 @@ int main(int argc, char** argv) {
     }
     if (wres.stopped_at_retain_limit) {
         std::fprintf(stderr,
-                     "INVALID: the writer stopped before the end of the window because retained "
-                     "versions exceeded --retain-limit-mb (Part B does not reclaim yet); use a "
-                     "shorter --duration or a paced writer\n");
+                     "INVALID: the writer stopped before the end of the window because the store "
+                     "held more than --retain-limit-mb (reclamation disabled or not keeping up)\n");
         rc = 1;
     }
     if (versioned && st.commits_failed != 0) {

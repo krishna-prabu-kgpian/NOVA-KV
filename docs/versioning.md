@@ -1,12 +1,15 @@
-# Part B design note — versions, publication and ownership (milestone B1)
+# Part B design note — versions, publication and ownership
 
-Status: **B1**. Publication and ownership are implemented. **Reclamation is not**: there is no
-epoch protocol and no cleaner. Replaced versions are kept until the store is destroyed. This
-note describes what exists, why it is safe as it stands, and what B2 has to add. It is not the
-Part B README the assignment asks for; that is written when reclamation exists.
+Status: written at **B1**, updated at **B2**. Sections 1–5 describe publication and ownership
+and still hold, with one change of vocabulary: what B1 called a chunk's *pins* is now a single
+reference count, `PinnedChunk::refs`, which also counts the writer's and an open commit's
+references (`src/pinned_arena.h`, decision D-041). **Sections 6 and 7 are historical:** B1
+kept every replaced version and had no cleaner; B2 reclaims them by epoch-based reclamation,
+described and argued in `docs/reclamation.md`. The "quiescent" release functions of §6 no
+longer exist.
 
 Code: `src/versioned_store.{h,cpp}`, `src/cow_segment.{h,cpp}`, `src/pinned_arena.{h,cpp}`,
-reached through the `rcu` build of `KVStore` (`src/kvstore.cpp`).
+`src/epoch.{h,cpp}`, reached through the `rcu` build of `KVStore` (`src/kvstore.cpp`).
 
 ## 1. Objects
 
@@ -131,7 +134,7 @@ slot reassigned (O4 and the freeing rule). So the argument reduces to: **the ver
 loaded still exists.** In B1 that is true trivially, see §6. In B2 it becomes the EBR
 guarantee.
 
-## 6. Temporary lifetime strategy (B1 only)
+## 6. Temporary lifetime strategy (B1 only; superseded in B2)
 
 **Every replaced version is retained until the store is destroyed.** Nothing a reader can reach
 is freed while the store is in use, so readers need no protection of their own. The cost is
@@ -156,7 +159,7 @@ They are not reachable through the public API.
 At destruction all versions are released through the same ownership graph; hook builds count
 live Versions, Segments and Chunks and the tests assert all three return to zero.
 
-## 7. What B2 must add
+## 7. What B2 had to add (done; see docs/reclamation.md)
 
 1. Per-reader epoch slots; announce + validate **before** the root load (the marked line in
    `VersionedStore::get`).

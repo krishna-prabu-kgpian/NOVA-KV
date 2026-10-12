@@ -11,20 +11,19 @@ A single-node, in-memory key-value store with RCU reads, built for
 | A1 | Baseline `KVStore` (own hash table + value arena) with single / global-lock / rwlock variants, tests, drivers | **Done** (`reports/milestones/A1.md`) |
 | A2 | Active-writer benchmark, lock profiling (perf stat, flame graphs, perf c2c), NSM/DSM/PAX microbenchmark, Part A report | **Done** (`reports/milestones/A2.md`) — Part A complete |
 | B1 | Immutable versions, copy-on-write index, atomic root, lock-free reads; replaced versions retained (no reclamation) | **Done** (`reports/milestones/B1.md`) |
-| B2 | Epoch-based reclamation, cleaner, `set_reclaim_batch` | Not started |
+| B2 | Epoch-based reclamation, background cleaner, `set_reclaim_batch`; Part B README, compliance checklist, A→B diff | **Done** (`reports/milestones/B2.md`) — Part B complete |
 | C1–C2 | Transactions, snapshots, secondary index, join | Not started |
 | D | Benchmark campaign | Not started |
 | E | Write-ahead log (optional bonus) | Not started |
 
-**What works:** `put`, `get`, `erase` under four synchronization policies: the three Part A
-lock policies and, since B1, `rcu` (Part B), where reads take no lock and every write
-publishes an immutable version with one atomic pointer swap.
+**What works:** `put`, `get`, `erase` and `set_reclaim_batch` under four synchronization
+policies: the three Part A lock policies and `rcu` (Part B), where reads take no lock, every
+write publishes an immutable version with one atomic pointer swap, and replaced versions are
+freed by epoch-based reclamation on a background thread.
 
-**What does not yet:** the `rcu` store does not reclaim replaced versions: it keeps every one
-until the store is destroyed, so memory grows with each write (about 26 KiB per write at the
-workload's size). `set_reclaim_batch` does nothing. Epoch-based reclamation is milestone B2.
-Everything from Part C is still an inert declaration (`Transaction::commit` and `create_index`
-return `false`, `index_get` returns 0, snapshots pin nothing). There is no durability.
+**What does not yet:** everything from Part C is an inert declaration (`Transaction::commit`
+and `create_index` return `false`, `index_get` returns 0, snapshots pin nothing). There is no
+durability. Part D's benchmark campaign has not been run.
 
 ## Design of the Part A store
 
@@ -113,7 +112,7 @@ environment description and a source manifest to `results/verification/<git-sha>
 | `concurrent_bench_{single,global_lock,rwlock,rcu}` | Project benchmark with a writer active during the measured window (`benchmarks/concurrent_bench.cpp`) |
 | `layout_bench` | NSM / DSM / PAX microbenchmark (`benchmarks/layout_bench.cpp`) |
 
-Tests (`ctest`, 41 per build mode):
+Tests (`ctest`, 47 per build mode):
 
 | Test | What it checks |
 |---|---|
@@ -126,13 +125,16 @@ Tests (`ctest`, 41 per build mode):
 | `smoke_test_<variant>` | Empty-store behaviour, handle lifecycles, variant wiring |
 | `reference_workload_link_test_<variant>` | Unmodified generator links and runs; every trade it loaded with plain puts is read back intact |
 | `driver_<name>` | Each driver runs end to end for 1 second |
-| `pinned_arena_test` | Part B arena: pins keep chunks alive and gate ID reuse, writable chunk never rewound, commit/rollback, lock-free directory reads concurrent with appends |
+| `pinned_arena_test` | Part B arena: one reference count per chunk, last reference frees and gates ID reuse, the commit reference that closes audit finding F2, rollback, lock-free ID pool and directory under a concurrent releasing thread |
+| `epoch_test` | Gated epoch advance, reader slots without a fixed limit, slot reuse after thread exit, a thread outliving its store, registration racing with scans |
+| `reclamation_test` | Deterministic schedules for reclamation: reader parked at each step of its entry, writer parked around retirement, cleaner parked mid-scan while a reader registers, both audited chunk schedules, batch limits 1–1024, resumable destruction, a long-lived pin moved between threads, comparator modes |
+| `reclamation_stress_test` | Background cleaner at batch 1/8/64/1024 with readers, a writer, pins and thread churn: no torn or stale read; memory stops growing; 200 construct/destroy cycles |
 | `cow_segment_test` | Immutable segments: the base is byte-for-byte untouched by a builder, exact pin sets, growth, empty result, abandoning a build |
-| `versioned_store_test` | One publication per logical write, one clone per touched segment, sharing of the rest, every retained version unchanged (logically and byte-for-byte), ownership counts, quiescent release against a reference model |
+| `versioned_store_test` | One publication per logical write, one clone per touched segment, sharing of the rest, every retained version unchanged (logically and byte-for-byte), ownership counts, reclamation after every write against a reference model |
 | `versioned_alloc_failure_test` | Every allocation of each write fails in turn: nothing published, arena rolled back, content equals the model, counts consistent |
 | `versioned_interleaving_test` | Deterministic schedules with pause points: reader parked across 3051 publications, writer parked before/after the root swap, plus a bounded atomic-visibility stress |
 | `kvstore_test_rcu`, `concurrent_lock_test_rcu`, `smoke_test_rcu`, `reference_workload_link_test_rcu`, `driver_rcu` | The variant-generic tests against the `rcu` build |
-| `bench_validate_concurrent_rcu*` (3), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build; the retained-memory guard must invalidate a run |
+| `bench_validate_concurrent_rcu*` (6), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build: default, paced, batch 8, single-thread, reclamation disabled, stop-the-world; the memory guard must invalidate a run |
 | `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
 | `bench_validate_*` (7), `bench_rejects_concurrent_single` | Each harness runs briefly and must pass its own validity checks; the harness must refuse to run the unsynchronized variant concurrently |
 
@@ -140,30 +142,36 @@ The drivers and the reference workload print throughput figures. With the suppli
 those are **preload-only** (no writer runs while readers are measured) and the ctest runs last
 one second in whatever build mode is being tested; they are functional checks, not results.
 
-## Part B store (milestone B1)
+## Part B store
 
-Design note: `docs/versioning.md`. In short: `current` is an atomic pointer to an immutable
-`Version` holding 256 segment pointers; a write clones only the segments it touches, shares
-the rest, and swaps the pointer once; segments pin the value chunks they reference, so a chunk
-outlives every version that can reach it.
+- **Part B README (assignment deliverable):** `reports/part_b_readme.md`
+- **Compliance checklist:** `docs/part_b_compliance.md`
+- **Design and safety argument:** `docs/reclamation.md` (reclamation), `docs/versioning.md`
+  (publication, ownership)
+- **Part A → Part B source diff:** `results/diffs/part_a_to_part_b.diff`, or
+  `git diff part-a-final part-b-final -- src include`
+- **Measurements:** `results/b2/` (`scripts/run_b2_observation.sh`); earlier B1 set in
+  `results/b1/`
+
+In short: `current` is an atomic pointer to an immutable `Version` holding 256 segment
+pointers; a write clones only the segments it touches, shares the rest, and swaps the pointer
+once. A reader announces an epoch in its own slot, loads the pointer once, reads, and clears
+the slot. A cleaner thread frees a replaced version only after the epoch has advanced twice
+past its retirement tag, at most `set_reclaim_batch(n)` versions per pass.
 
 ```bash
-build/release/rcu 8 5 100 100                 # supplied generator, 10,000 trades (preload-only)
-build/release/concurrent_bench_rcu --readers 8 --duration 1 \
-    --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --writer-rate 10000
-scripts/run_b1_observation.sh                 # the small B1 measurement set -> results/b1/
+build/release/rcu 8 5                         # supplied generator against the RCU store
+build/release/concurrent_bench_rcu --readers 8 --duration 3 \
+    --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --reclaim-batch 64
+scripts/run_b2_observation.sh                 # the B2 measurement set -> results/b2/
 ```
-
-The `rcu` driver with the generator's default 100,000 trades retains several GiB in B1.
 
 **Reading Part A against RCU numbers.** The `rcu` build differs from the Part A variants in
 storage and update strategy, not only in synchronization: a Part A write changes one slot in
 place, an RCU write copies the segment it touches and the directory. A difference between,
 for example, `rwlock` and `rcu` compares two whole designs and is not the cost of the lock
-alone (`docs/decisions.md` D-038).
-
-Pre-B2 audit of ownership, publication and readiness for reclamation:
-`docs/b1_audit_and_b2_readiness.md`.
+alone (`docs/decisions.md` D-038). Machine conditions also differed between milestones; only
+numbers taken in one session are comparable (D-046).
 
 ## Part A results and how to reproduce them
 
@@ -204,7 +212,7 @@ tests/                 tests
 drivers/               single_thread / global_lock / rwlock drivers (rcu from Part B)
 benchmarks/            benchmark harnesses: concurrent_bench, layout_bench
 scripts/               verification and environment scripts
-docs/                  assignment_contract.md, decisions.md, versioning.md, part_a_compliance.md
+docs/                  assignment_contract.md, decisions.md, versioning.md, reclamation.md, part_a_compliance.md, part_b_compliance.md
 reports/milestones/    one report per milestone
 results/               evidence (verification logs, raw benchmark data, figures)
 NOVA_KV_*.md           project specification documents (authoritative, unmodified)

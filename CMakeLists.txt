@@ -61,7 +61,8 @@ set(NOVA_STORE_SOURCES
 set(NOVA_RCU_SOURCES
     src/versioned_store.cpp
     src/cow_segment.cpp
-    src/pinned_arena.cpp)
+    src/pinned_arena.cpp
+    src/epoch.cpp)
 set(NOVA_LOCK_VARIANTS single global_lock rwlock)
 set(NOVA_VARIANTS ${NOVA_LOCK_VARIANTS} rcu)
 
@@ -163,8 +164,9 @@ nova_add_test(alloc_failure_test)
 
 # ---- Part B engine tests (hook-enabled build of the engine sources) -----------
 set(NOVA_RCU_ENGINE_SOURCES ${NOVA_RCU_SOURCES} src/hash_segment.cpp src/alloc.cpp)
-foreach(test pinned_arena_test cow_segment_test versioned_store_test
-             versioned_alloc_failure_test versioned_interleaving_test)
+foreach(test pinned_arena_test cow_segment_test epoch_test versioned_store_test
+             versioned_alloc_failure_test versioned_interleaving_test
+             reclamation_test reclamation_stress_test)
     add_executable(${test} tests/${test}.cpp ${NOVA_RCU_ENGINE_SOURCES})
     target_include_directories(${test} PRIVATE src)
     target_compile_definitions(${test} PRIVATE NOVA_KV_TEST_HOOKS)
@@ -208,10 +210,6 @@ endforeach()
 # drivers, not measurements.
 foreach(driver IN LISTS NOVA_DRIVERS)
     set(driver_args 2 1)
-    if(driver STREQUAL "rcu")
-        # B1 retains every replaced version: load 10,000 trades, not 100,000.
-        set(driver_args 2 1 100 100)
-    endif()
     add_test(NAME driver_${driver} COMMAND ${driver} ${driver_args})
     set_tests_properties(driver_${driver} PROPERTIES
         ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600
@@ -242,25 +240,36 @@ add_test(NAME bench_validate_concurrent_single_readonly
 add_test(NAME bench_validate_concurrent_single_inline_writer
     COMMAND concurrent_bench_single --readers 1 --duration 0.3 --warmup 0.1 --pin off
             --writer inline:10)
-# Part B store: lock-free readers with an active writer (versions are retained,
-# so the windows are short), and the single-thread mode with immediate release.
+# Part B store: lock-free readers with an active writer and the background
+# cleaner reclaiming; a small batch; the single-thread mode; the two comparator
+# modes (reclamation disabled, stop-the-world).
 add_test(NAME bench_validate_concurrent_rcu
-    COMMAND concurrent_bench_rcu --readers 3 --duration 0.4 --warmup 0.1 --pin off
-            --m 100 --n 100)
+    COMMAND concurrent_bench_rcu --readers 3 --duration 0.4 --warmup 0.1 --pin off)
 add_test(NAME bench_validate_concurrent_rcu_paced
     COMMAND concurrent_bench_rcu --readers 2 --duration 0.4 --warmup 0.1 --pin off
-            --m 100 --n 100 --writer-rate 5000)
+            --writer-rate 5000)
+add_test(NAME bench_validate_concurrent_rcu_batch8
+    COMMAND concurrent_bench_rcu --readers 3 --duration 0.4 --warmup 0.1 --pin off
+            --reclaim-batch 8)
 add_test(NAME bench_validate_concurrent_rcu_inline_writer
     COMMAND concurrent_bench_rcu --readers 1 --duration 0.3 --warmup 0.1 --pin off
-            --m 100 --n 100 --writer inline:10)
-# The memory guard must stop the writer and invalidate the run.
+            --writer inline:10)
+add_test(NAME bench_validate_concurrent_rcu_no_reclaim
+    COMMAND concurrent_bench_rcu --readers 2 --duration 0.3 --warmup 0.1 --pin off
+            --m 100 --n 100 --reclaim disabled --writer-rate 5000)
+add_test(NAME bench_validate_concurrent_rcu_stw
+    COMMAND concurrent_bench_rcu --readers 2 --duration 0.4 --warmup 0.1 --pin off
+            --m 100 --n 100 --reclaim stw)
+# With reclamation disabled the memory guard must stop the writer and
+# invalidate the run.
 add_test(NAME bench_rcu_retain_limit_invalidates_run
     COMMAND concurrent_bench_rcu --readers 1 --duration 0.5 --warmup 0.1 --pin off
-            --m 100 --n 100 --retain-limit-mb 8)
+            --m 100 --n 100 --reclaim disabled --retain-limit-mb 8)
 set_tests_properties(bench_rcu_retain_limit_invalidates_run PROPERTIES WILL_FAIL TRUE TIMEOUT 120)
 set_tests_properties(
     bench_validate_concurrent_rcu bench_validate_concurrent_rcu_paced
-    bench_validate_concurrent_rcu_inline_writer
+    bench_validate_concurrent_rcu_batch8 bench_validate_concurrent_rcu_inline_writer
+    bench_validate_concurrent_rcu_no_reclaim bench_validate_concurrent_rcu_stw
     PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
 
 add_test(NAME bench_validate_layout

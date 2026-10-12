@@ -216,42 +216,47 @@ gates to it as the milestone lands.
 
 - **A0, A1, A2: complete** — tags `a0-bootstrap`, `part-a-core`, `part-a-final`. Part A is the
   accepted baseline; its results, report and tags must not be modified.
-- **B1 (immutable versions, COW index, atomic root; reclamation deliberately absent):
-  complete** — `reports/milestones/B1.md`, tag `part-b-publication`, branch `part-b/rcu`.
-  Design note `docs/versioning.md`.
-- **Pre-B2 audit: done** — `docs/b1_audit_and_b2_readiness.md`,
-  `reports/milestones/B1_audit.md`. No B1 defect; changes R1–R7 are REQUIRED before a cleaner
-  thread may run (D-039), R1 first: writer / open-commit chunk ownership must become real
-  pins (reproduced hazard in `results/B1/audit/`).
-- **Next: B2** (EBR with gated epoch advancement, cleaner, `set_reclaim_batch`, safe chunk-ID
-  reuse with concurrent readers). Requires user approval, the user's answers to the open B2
-  decisions O-9…O-13, and the EBR proof gate above. Part C is still inert declarations.
+- **B1: complete** — tag `part-b-publication`. **Pre-B2 audit: done.**
+- **B2 (EBR, cleaner, `set_reclaim_batch`; Part B deliverables): complete** —
+  `reports/milestones/B2.md`, tag `part-b-final`, branch `part-b/rcu`. Part B README
+  `reports/part_b_readme.md`; design and proof `docs/reclamation.md`; checklist
+  `docs/part_b_compliance.md`; diff `results/diffs/part_a_to_part_b.diff`.
+- **Next: C1** (Transaction, public Snapshot on the existing `VersionedStore::Pin`). Requires
+  user approval. Part C is still inert declarations.
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
-kernel-setting changes without explicit permission D-013/D-021; `perf_event_paranoid = 1` is
-accepted and not to be changed D-022; do not merge into `main`, keep all milestone tags, no
-history rewrite or force-push D-014/D-030; cross-store snapshot ambiguity stays open D-015; no
-final submission ZIP until told.
+kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
+`main`, keep all milestone tags, no history rewrite or force-push D-014/D-030; cross-store
+snapshot ambiguity stays open D-015; no final submission ZIP until told; push only when asked.
 
-Part B rules established in B1 (D-031…D-037, `docs/versioning.md`):
+Part B rules (D-031…D-046, `docs/versioning.md`, `docs/reclamation.md`):
 
 - `rcu` is a fourth build of the same `KVStore`; the three Part A lock variants must stay
-  behaviourally identical to `part-a-final`.
-  Accepted by the user (D-038). Any Part A vs RCU comparison must say that the designs differ
-  in storage/update strategy, not only in synchronization.
+  behaviourally identical to `part-a-final`. Any Part A vs RCU comparison must say the designs
+  differ in storage/update strategy, and compare only same-session measurements (D-038, D-046).
 - Published Versions, Segments and value bytes are never modified. Every fallible step of a
   commit precedes any ownership change; the root is written exactly once per logical write.
-- Ownership is structural: versions own segments (`owners`), segments pin distinct chunks
-  (`pins`). Never free or reuse a chunk by counting entries or by age.
-- **B1 retains every replaced version.** The quiescent-release hatches
-  (`release_retained_quiescent`, `set_quiescent_reclaim`) are legal only when no other thread
-  reads the store; B2 must remove or strictly gate them.
-- `VersionedStore::validate()` recomputes all ownership counts; keep it passing and keep
-  `versioned_alloc_failure_test` covering every allocation site of the write path.
-- Benchmarks of the `rcu` store in B1 are bounded by retained memory (harness guard).
+- **Reclamation is eligibility by epoch only**: a version is destroyed when the epoch is at
+  least two gated advances past its retirement tag, never by age or queue length. Protocol
+  operations are `seq_cst` and carry labels (`[P1]`…`[W3]`, `[C1]`…`[C6]`) that
+  `docs/reclamation.md` refers to: keep code and document in step, and re-argue §5 before
+  changing any of them or weakening an ordering.
+- Readers: no lock, no allocation after a thread's first read, no shared write except their
+  own slot. Never make `get` return `false` for lack of a resource.
+- Chunks: one count (`refs`), one freeing rule (the decrement to zero). Never add a
+  check-then-free. Segments: `owners`; no increment from zero.
+- The writer never waits for the cleaner or a grace period; the cleaner never waits for a
+  reader; there is no backlog limit.
+- Tests that need determinism use `CleanerMode::Manual`/`Inline` (the real protocol), never an
+  unsafe shortcut. `*_unprotected` accessors and `validate()` need a quiet store.
+- Keep `versioned_alloc_failure_test`, the deterministic schedules in `reclamation_test` and
+  the mutation checks (`results/B1/mutation_check.md`, `results/B2/mutation_check.md`) in
+  mind when changing the engine: a change that makes a schedule vacuous is a regression.
 
-Measurement rules established in A2 (D-024…D-026, D-029): never label supplied-generator runs
-as concurrent (they are preload-only); active-writer numbers come from
+Measurement rules (D-024…D-026, D-029, D-046): never label supplied-generator runs as
+concurrent (they are preload-only); active-writer numbers come from
 `benchmarks/concurrent_bench.cpp`; every reported number must trace to a file under
-`results/`; check `conditions.log` and rerun a campaign whose power source or governor changed
-part-way; the machine has 4 fast + 4 slower cores and CPU pinning is part of the method.
+`results/`; record power source and governor with every run (they have changed between
+milestones) and compare only within one session; the machine has 4 fast + 4 slower cores and
+CPU pinning is part of the method. `perf_event_paranoid` reverts to 4 on reboot (needs the
+user to set it).

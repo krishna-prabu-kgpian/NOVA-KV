@@ -10,9 +10,9 @@
 //       and publishes an immutable version with one atomic pointer swap; reads
 //       take no lock (versioned_store.h).
 //
-// MILESTONE B1 STATE (rcu): publication and ownership are implemented;
-// reclamation of replaced versions is NOT (they are retained until the store is
-// destroyed) and set_reclaim_batch() is still inert. Both arrive in B2.
+// Part B (rcu) is complete as of milestone B2: replaced versions are reclaimed
+// by epoch-based reclamation on a background cleaner thread, in passes bounded
+// by set_reclaim_batch() (docs/reclamation.md).
 //
 // Part C (Transaction, Snapshot, secondary index) is declared in kvstore.h for
 // source compatibility with the supplied workload generator but is NOT
@@ -35,7 +35,7 @@ const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
 // ---- Part B: RCU ------------------------------------------------------------------
 
 KVStore::KVStore() : impl_(new Impl()) {
-    if (!impl_->store.ok()) {  // the initial empty version could not be allocated
+    if (!impl_->store.ok()) {  // initial version, queue or cleaner thread could not be created
         delete impl_;
         throw std::bad_alloc();
     }
@@ -49,8 +49,11 @@ bool KVStore::put(long key, const void* value, size_t value_len) {
     return impl_->store.put(key, value, value_len);
 }
 
-// Any number of threads, concurrently with the writer: one atomic load of the
-// current version, no lock, no waiting, bytes copied out before returning.
+// Any number of threads, concurrently with the writer: announce an epoch, one
+// atomic load of the current version, no lock, no waiting, bytes copied out
+// before returning. Resource exhaustion is never reported as "not found": the
+// only allocation a read can need is its thread's reader slot, on that thread's
+// first read of this store, and if that fails std::bad_alloc is thrown.
 bool KVStore::get(long key, void* value_out, size_t value_out_len) const {
     return impl_->store.get(key, value_out, value_out_len);
 }
@@ -58,6 +61,12 @@ bool KVStore::get(long key, void* value_out, size_t value_out_len) const {
 // Returns false if the key is absent. It also returns false, with the store
 // unchanged, if memory for the replacement version cannot be allocated.
 bool KVStore::erase(long key) { return impl_->store.erase(key); }
+
+// How many retired versions one reclamation pass may completely free. A pass
+// is one attempt to advance the reclamation epoch followed by the destruction
+// of versions whose grace period has passed. n <= 0 is treated as 1. Takes
+// effect from the next pass; never blocks a reader or the writer.
+void KVStore::set_reclaim_batch(int n) { impl_->store.set_reclaim_batch(n); }
 
 #else
 
@@ -132,11 +141,10 @@ bool KVStore::erase(long key) {
     return true;
 }
 
-#endif  // NOVA_KV_SYNC_MODE
-
-// ---- Part B (not implemented until B2) ----------------------------------------
-
+// The lock-based stores keep no retired versions: there is nothing to reclaim.
 void KVStore::set_reclaim_batch(int n) { (void)n; }
+
+#endif  // NOVA_KV_SYNC_MODE
 
 // ---- Part C (not implemented until C1/C2) ----------------------------------
 

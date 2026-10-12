@@ -26,6 +26,15 @@ namespace {
 using Bytes = std::vector<unsigned char>;
 using Model = std::unordered_map<long, Bytes>;
 
+// Epoch-based reclamation in both cases; what differs is who runs the passes.
+// Manual: nobody until the test calls reclaim_pass()/drain(), so every retired
+// version stays (and unprotected version pointers stay valid) until then.
+// Inline: the writer runs passes after each commit, so with no reader pinned
+// each replaced version is reclaimed before the write returns.
+const nova::StoreOptions kManual{nova::ReclaimMode::Epoch, nova::CleanerMode::Manual};
+const nova::StoreOptions kInline{nova::ReclaimMode::Epoch, nova::CleanerMode::Inline};
+
+
 Bytes pattern(std::size_t len, std::uint64_t seed) {
     Bytes v(len);
     std::uint64_t x = seed * 0x9E3779B97F4A7C15ULL + 1;
@@ -42,7 +51,7 @@ bool put(VersionedStore& s, long key, const Bytes& v) { return s.put(key, v.data
 
 bool holds_at(const VersionedStore& s, const Version* v, long key, const Bytes& expect) {
     Bytes buf(expect.size() + 8, 0xCD);
-    if (!s.get_at(v, key, buf.data(), expect.size())) return false;
+    if (!s.get_at_unprotected(v, key, buf.data(), expect.size())) return false;
     for (std::size_t i = expect.size(); i < buf.size(); ++i) {
         if (buf[i] != 0xCD) return false;
     }
@@ -50,12 +59,12 @@ bool holds_at(const VersionedStore& s, const Version* v, long key, const Bytes& 
 }
 
 bool holds(const VersionedStore& s, long key, const Bytes& expect) {
-    return holds_at(s, s.current_version(), key, expect);
+    return holds_at(s, s.current_version_unprotected(), key, expect);
 }
 
 bool missing_at(const VersionedStore& s, const Version* v, long key) {
     unsigned char probe[8];
-    return !s.get_at(v, key, probe, sizeof(probe)) && !s.get_at(v, key, nullptr, 0);
+    return !s.get_at_unprotected(v, key, probe, sizeof(probe)) && !s.get_at_unprotected(v, key, nullptr, 0);
 }
 
 // The version equals the model exactly, over a known universe of keys.
@@ -68,7 +77,7 @@ bool version_equals(const VersionedStore& s, const Version* v, const Model& mode
     return true;
 }
 
-void check_valid(const VersionedStore& s) {
+void check_valid(VersionedStore& s) {
     const char* err = s.validate();
     if (err != nullptr) std::fprintf(stderr, "invariant violated: %s\n", err);
     NOVA_CHECK(err == nullptr);
@@ -103,27 +112,27 @@ BatchOp op_erase(long key) { return BatchOp{BatchOp::Kind::Erase, key, nullptr, 
 
 // ---- Basics and the exact number of publications -------------------------------
 void test_basic_and_publication_count() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     NOVA_CHECK(s.ok());
-    const Version* v0 = s.current_version();
+    const Version* v0 = s.current_version_unprotected();
     NOVA_CHECK(v0 != nullptr && v0->sequence == 0);  // readers never see a null root
     NOVA_CHECK(missing_at(s, v0, 1));
 
     const Bytes a = pattern(32, 1), b = pattern(48, 2);
     NOVA_CHECK(put(s, 1, a));
-    NOVA_CHECK(s.stats().versions_published == 1 && s.current_version()->sequence == 1);
+    NOVA_CHECK(s.stats().versions_published == 1 && s.current_version_unprotected()->sequence == 1);
     NOVA_CHECK(holds(s, 1, a));
     NOVA_CHECK(put(s, 1, b));  // overwrite
     NOVA_CHECK(s.stats().versions_published == 2);
     NOVA_CHECK(holds(s, 1, b));
 
     // Erasing an absent key publishes nothing and allocates no version.
-    const Version* before = s.current_version();
+    const Version* before = s.current_version_unprotected();
     NOVA_CHECK(!s.erase(999));
-    NOVA_CHECK(s.current_version() == before && s.stats().versions_published == 2);
+    NOVA_CHECK(s.current_version_unprotected() == before && s.stats().versions_published == 2);
 
     NOVA_CHECK(s.erase(1));
-    NOVA_CHECK(s.stats().versions_published == 3 && missing_at(s, s.current_version(), 1));
+    NOVA_CHECK(s.stats().versions_published == 3 && missing_at(s, s.current_version_unprotected(), 1));
     NOVA_CHECK(!s.erase(1));
     NOVA_CHECK(s.stats().versions_published == 3);
 
@@ -137,21 +146,21 @@ void test_basic_and_publication_count() {
     NOVA_CHECK(s.put(3, nullptr, 0));
     NOVA_CHECK(s.get(3, nullptr, 0) && !s.get(4, nullptr, 0));
     NOVA_CHECK(s.stats().versions_published == 4);
-    // Every replaced version is retained (B1: no reclamation).
-    NOVA_CHECK(s.stats().versions_retained == 4 && s.stats().versions_released == 0);
+    // Every replaced version is still retained: no reclamation pass has run.
+    NOVA_CHECK(s.stats().versions_retained == 4 && s.stats().versions_reclaimed == 0);
     check_valid(s);
 }
 
 // ---- Copy-on-write: one segment cloned, 255 shared -------------------------------
 void test_sharing_of_unchanged_segments() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto keys = keys_in_distinct_partitions(40);
     for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(put(s, keys[i], pattern(16, i)));
-    const Version* v1 = s.current_version();
+    const Version* v1 = s.current_version_unprotected();
     const std::uint64_t built = s.stats().segments_built;
 
     NOVA_CHECK(put(s, keys[7], pattern(16, 700)));  // touches exactly one partition
-    const Version* v2 = s.current_version();
+    const Version* v2 = s.current_version_unprotected();
     NOVA_CHECK(v2 != v1 && v2->sequence == v1->sequence + 1);
     NOVA_CHECK(s.stats().segments_built == built + 1);
 
@@ -187,7 +196,7 @@ void test_sharing_of_unchanged_segments() {
 
 // ---- Multi-key writes: one publication, one clone per touched segment ---------
 void test_batch_groups_by_segment() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto spread = keys_in_distinct_partitions(6);
     const auto same = keys_in_partition(part(spread[0]), 5);  // 5 keys in spread[0]'s partition
     const Bytes v = pattern(24, 9);
@@ -196,9 +205,9 @@ void test_batch_groups_by_segment() {
     std::vector<BatchOp> ops;
     for (long k : spread) ops.push_back(op_put(k, v));
     for (std::size_t i = 1; i < same.size(); ++i) ops.push_back(op_put(same[i], v));
-    const Version* before = s.current_version();
+    const Version* before = s.current_version_unprotected();
     NOVA_CHECK(s.commit(ops.data(), ops.size()));
-    const Version* after = s.current_version();
+    const Version* after = s.current_version_unprotected();
     NOVA_CHECK(s.stats().versions_published == 1);  // ONE publication for 10 keys
     NOVA_CHECK(after->sequence == before->sequence + 1);
     NOVA_CHECK(s.stats().segments_built == 6);      // one clone per touched partition, not per key
@@ -225,29 +234,29 @@ void test_batch_groups_by_segment() {
     NOVA_CHECK(s.stats().versions_published == published + 1);
     NOVA_CHECK(applied[0] && applied[1] && applied[2] && applied[3] && applied[4] && applied[5]);
     NOVA_CHECK(!applied[6] && !applied[7]);
-    NOVA_CHECK(holds(s, k1, w2) && holds(s, k2, w1) && missing_at(s, s.current_version(), k3));
+    NOVA_CHECK(holds(s, k1, w2) && holds(s, k2, w1) && missing_at(s, s.current_version_unprotected(), k3));
     // k1, k2, k3: three partitions rebuilt (k3's partition became empty -> dropped,
     // counted separately); the absent key's partition was left shared.
     NOVA_CHECK(s.stats().segments_built - built == 2);
     NOVA_CHECK(s.stats().segments_dropped == 1);
-    NOVA_CHECK(s.current_version()->segments[part(k3)] == nullptr);
+    NOVA_CHECK(s.current_version_unprotected()->segments[part(k3)] == nullptr);
     check_valid(s);
 
     // A batch with no effect publishes nothing; an invalid batch changes nothing.
-    const Version* cur = s.current_version();
+    const Version* cur = s.current_version_unprotected();
     const BatchOp noop[] = {op_erase(absent), op_erase(absent + 1)};
     NOVA_CHECK(s.commit(noop, 2));
-    NOVA_CHECK(s.current_version() == cur && s.stats().commits_without_change == 1);
+    NOVA_CHECK(s.current_version_unprotected() == cur && s.stats().commits_without_change == 1);
     const BatchOp invalid[] = {op_put(k1, w1), BatchOp{BatchOp::Kind::Put, k2, nullptr, 4}};
     NOVA_CHECK(!s.commit(invalid, 2));
-    NOVA_CHECK(s.current_version() == cur && holds(s, k1, w2));
-    NOVA_CHECK(s.commit(nullptr, 0) && s.current_version() == cur);  // empty batch
+    NOVA_CHECK(s.current_version_unprotected() == cur && holds(s, k1, w2));
+    NOVA_CHECK(s.commit(nullptr, 0) && s.current_version_unprotected() == cur);  // empty batch
     check_valid(s);
 }
 
 // ---- Every retained version keeps exactly the state it was published with ------
 void test_old_versions_never_change(std::uint64_t seed) {
-    VersionedStore s;
+    VersionedStore s(kManual);
     Model model;
     std::uint64_t x = seed;
     auto next = [&x]() {
@@ -268,7 +277,7 @@ void test_old_versions_never_change(std::uint64_t seed) {
     };
     std::vector<Checkpoint> checkpoints;
     auto take_checkpoint = [&]() {
-        Checkpoint c{s.current_version(), model, {}};
+        Checkpoint c{s.current_version_unprotected(), model, {}};
         for (const Segment* seg : c.version->segments) {
             std::vector<unsigned char> raw;
             if (seg != nullptr) {
@@ -333,33 +342,33 @@ void test_old_versions_never_change(std::uint64_t seed) {
     }
     NOVA_CHECK(logical_mismatches == 0);
     NOVA_CHECK(byte_mismatches == 0);
-    NOVA_CHECK(version_equals(s, s.current_version(), model, universe));  // the latest state too
+    NOVA_CHECK(version_equals(s, s.current_version_unprotected(), model, universe));  // the latest state too
 
-    // B1: nothing was reclaimed. One retained version per publication, no
+    // No reclamation pass has run: one retained version per publication, no
     // segment released, and no chunk that any version references was freed.
-    const nova::VersionedStats& st = s.stats();
+    const nova::VersionedStats st = s.stats();
     NOVA_CHECK(st.versions_retained == st.versions_published);
-    NOVA_CHECK(st.versions_released == 0 && st.segments_released == 0);
-    NOVA_CHECK(st.arena.pins_dropped == 0);
+    NOVA_CHECK(st.versions_reclaimed == 0 && st.segments_released == 0);
+    NOVA_CHECK(st.arena.refs_dropped == 0);
     check_valid(s);
 
-    // Releasing the retained versions (allowed here: single thread) frees the
-    // memory only they held; the current state is unaffected.
+    // Running the reclamation passes (no reader is pinned, so the epoch
+    // advances) frees the memory only old versions held; the current state is
+    // unaffected.
     const std::uint64_t held_before = st.index_bytes_held;
     const std::uint64_t chunks_before = st.arena.chunks_live;
-    s.release_retained_quiescent();
+    NOVA_CHECK(s.drain());
     NOVA_CHECK(s.stats().versions_retained == 0);
-    NOVA_CHECK(s.stats().versions_released == st.versions_published);
+    NOVA_CHECK(s.stats().versions_reclaimed == st.versions_published);
     NOVA_CHECK(s.stats().index_bytes_held < held_before);
     NOVA_CHECK(s.stats().arena.chunks_live < chunks_before && s.stats().arena.chunks_freed > 0);
-    NOVA_CHECK(version_equals(s, s.current_version(), model, universe));
+    NOVA_CHECK(version_equals(s, s.current_version_unprotected(), model, universe));
     check_valid(s);
 }
 
-// ---- Quiescent reclamation: the ownership graph under constant release ------
+// ---- Reclamation after every write: the ownership graph under constant release ---
 void test_quiescent_reclaim_against_model(std::uint64_t seed) {
-    VersionedStore s;
-    s.set_quiescent_reclaim(true);
+    VersionedStore s(kInline);
     Model model;
     std::uint64_t x = seed;
     auto next = [&x]() {
@@ -400,25 +409,25 @@ void test_quiescent_reclaim_against_model(std::uint64_t seed) {
             if (!s.commit(ops.data(), ops.size())) ++errors;
         }
         if (op % 5000 == 4999) {
-            if (!version_equals(s, s.current_version(), model, universe)) ++errors;
+            if (!version_equals(s, s.current_version_unprotected(), model, universe)) ++errors;
             if (s.validate() != nullptr) ++errors;
         }
     }
     NOVA_CHECK(errors == 0);
-    NOVA_CHECK(version_equals(s, s.current_version(), model, universe));
-    const nova::VersionedStats& st = s.stats();
+    NOVA_CHECK(version_equals(s, s.current_version_unprotected(), model, universe));
+    const nova::VersionedStats st = s.stats();
     NOVA_CHECK(st.versions_retained == 0);
-    NOVA_CHECK(st.versions_released == st.versions_published);
+    NOVA_CHECK(st.versions_reclaimed == st.versions_published);
     NOVA_CHECK(st.arena.chunks_freed > 0 && st.arena.ids_reused > 0);  // chunk IDs really recycled
     NOVA_CHECK(st.segments_released > 0);
     // Every pin ever taken was dropped again, except those of live segments.
     std::uint64_t live_pins = 0;
-    for (const Segment* seg : s.current_version()->segments) {
+    for (const Segment* seg : s.current_version_unprotected()->segments) {
         if (seg != nullptr) live_pins += seg->pin_count;
     }
-    NOVA_CHECK(st.arena.pins_taken - st.arena.pins_dropped == live_pins);
+    NOVA_CHECK(st.arena.refs_taken - st.arena.refs_dropped == live_pins);
     check_valid(s);
-    std::printf("  quiescent seed=%llu: published=%llu segments_built=%llu chunks_freed=%llu ids_reused=%llu\n",
+    std::printf("  inline-reclaim seed=%llu: published=%llu segments_built=%llu chunks_freed=%llu ids_reused=%llu\n",
                 static_cast<unsigned long long>(seed),
                 static_cast<unsigned long long>(st.versions_published),
                 static_cast<unsigned long long>(st.segments_built),
@@ -429,11 +438,11 @@ void test_quiescent_reclaim_against_model(std::uint64_t seed) {
 // A retained version keeps its chunks alive and their IDs unavailable, even
 // after every one of its values has been overwritten in the current state.
 void test_retained_version_blocks_chunk_reuse() {
-    VersionedStore s;
+    VersionedStore s(kManual);
     const auto keys = keys_in_distinct_partitions(30);
     const std::size_t big = 40000;  // two values do not fit one 64 KiB chunk
     for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(put(s, keys[i], pattern(big, i)));
-    const Version* old_version = s.current_version();
+    const Version* old_version = s.current_version_unprotected();
     const std::uint64_t chunks_old = s.stats().arena.chunks_live;
     NOVA_CHECK(chunks_old == keys.size());
 
@@ -449,8 +458,9 @@ void test_retained_version_blocks_chunk_reuse() {
     }
     check_valid(s);
 
-    // Once the old versions are gone, their chunks are freed and their IDs reused.
-    s.release_retained_quiescent();
+    // Once the old versions have been reclaimed, their chunks are freed and
+    // their IDs reused.
+    NOVA_CHECK(s.drain());
     NOVA_CHECK(s.stats().arena.chunks_live == keys.size());
     NOVA_CHECK(s.stats().arena.chunks_freed == 3 * keys.size());
     for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(put(s, keys[i], pattern(big, 900 + i)));
@@ -461,11 +471,10 @@ void test_retained_version_blocks_chunk_reuse() {
 
 // Independent growth of one segment; chunk lookups across directory blocks.
 void test_growth_and_many_chunks() {
-    VersionedStore s;
-    s.set_quiescent_reclaim(true);
+    VersionedStore s(kInline);
     const auto keys = keys_in_partition(42, 3000);
     for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(s.put(keys[i], &i, sizeof(i)));
-    const Version* v = s.current_version();
+    const Version* v = s.current_version_unprotected();
     std::uint32_t populated = 0;
     for (const Segment* seg : v->segments) populated += seg != nullptr ? 1u : 0u;
     NOVA_CHECK(populated == 1);                       // the other 255 partitions untouched
@@ -480,8 +489,7 @@ void test_growth_and_many_chunks() {
     check_valid(s);
 
     // 1100 values of 60 KB: one chunk each, more than one directory block.
-    VersionedStore t;
-    t.set_quiescent_reclaim(true);
+    VersionedStore t(kInline);
     for (long k = 0; k < 1100; ++k) NOVA_CHECK(put(t, k, pattern(60000, static_cast<std::uint64_t>(k))));
     NOVA_CHECK(t.stats().arena.chunk_ids_issued > nova::kChunkDirBlockSlots);
     ok = true;

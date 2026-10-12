@@ -9,10 +9,23 @@
 namespace nova {
 
 enum class TestPoint : int {
-    ReaderAfterRootLoad = 1,     // get(): the one load of `current` is done
-    ReaderBeforeCopyOut = 2,     // get(): entry found, bytes not yet copied
-    WriterBeforePublish = 3,     // commit: new version fully built, not yet visible
-    WriterAfterPublish = 4,      // commit: root swapped, old version not yet retired
+    // ---- reader (get / pin) ----
+    ReaderBeforeAnnounce = 1,    // epoch read, slot not yet written
+    ReaderAfterAnnounce = 2,     // slot written, epoch not yet re-read
+    ReaderAfterValidate = 3,     // announcement validated, root not yet loaded
+    ReaderAfterRootLoad = 4,     // the one load of `current` is done
+    ReaderBeforeCopyOut = 5,     // entry found, bytes not yet copied
+    // ---- writer (commit) ----
+    WriterAfterAppends = 10,           // values appended, no ownership taken yet
+    WriterEndCommitBeforeRelease = 11, // new segments own their chunks; commit references not yet dropped
+    WriterBeforePublish = 12,          // new version fully built, not yet visible
+    WriterAfterPublish = 13,           // root swapped, old version not yet tagged or queued
+    WriterAfterRetireTag = 14,         // retirement epoch sampled, record not yet queued
+    // ---- cleaner (reclamation pass) ----
+    CleanerBeforeScan = 20,      // epoch read, no slot examined yet
+    CleanerMidScan = 21,         // after examining each slot
+    CleanerBeforeAdvance = 22,   // scan passed, epoch not yet advanced
+    CleanerMidVersion = 23,      // between two directory entries of a version being released
 };
 
 // Kinds of engine objects whose creation and destruction are counted in hook

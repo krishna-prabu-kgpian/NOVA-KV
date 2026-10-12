@@ -1,10 +1,8 @@
 // rcu.cpp -- Part B driver: the supplied workload generator against the RCU
-// store (store variant nova_kv_rcu): readers take no lock and load the current
-// version once per get.
+// store (store variant nova_kv_rcu). Readers take no lock: each get announces
+// an epoch, loads the current version once and copies the value out. Replaced
+// versions are reclaimed in the background by epoch-based reclamation.
 //
-// MILESTONE B1: replaced versions are not reclaimed yet, so loading the default
-// 100,000 trades retains every intermediate version (several GiB) until the
-// store is destroyed. Pass smaller m / n to bound it:
 //   rcu [num_readers] [duration_sec] [m] [n]
 #include "driver_common.h"
 

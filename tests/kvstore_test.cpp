@@ -51,7 +51,7 @@ bool missing(const KVStore& s, long key) {
     return !s.get(key, probe, sizeof(probe)) && !s.get(key, nullptr, 0);
 }
 
-void check_valid(const KVStore& s) {
+void check_valid(KVStore& s) {
     const char* err = NovaKvInspector::validate(s);
     if (err != nullptr) std::fprintf(stderr, "invariant violated: %s\n", err);
     NOVA_CHECK(err == nullptr);
@@ -439,11 +439,12 @@ void test_independent_stores() {
 }  // namespace
 
 int main() {
-    // This whole test is single-threaded. For the Part B (rcu) variant that
-    // lets replaced versions be released at once instead of being retained, so
-    // the ownership graph (segment references, chunk pins, chunk reuse) is
-    // exercised on every write. No effect on the lock-based variants.
-    NovaKvInspector::set_default_quiescent_reclaim(true);
+    // This whole test is single-threaded. For the Part B (rcu) variant, let
+    // the writer run the reclamation passes itself after each write instead
+    // of a background thread, so that what has been reclaimed at each check
+    // is deterministic. It is the same epoch-based protocol. No effect on the
+    // lock-based variants.
+    NovaKvInspector::set_default_rcu_options(0, 2);
 
     test_insert_lookup_overwrite_erase();
     test_put_copies_value();

@@ -465,6 +465,93 @@ The B1 implementation was not modified by the audit. One test schedule was added
 (`versioned_interleaving_test` S6: all older versions released while the writer holds a
 prepared version).
 
+## D-040 — B2 authorized; user decisions for reclamation (ACCEPTED, 2026-10-12, user decision)
+
+- Fix the audited chunk-lifetime bug before any cleaner exists; deterministic tests for both
+  audited schedules, passing under ASan and TSan.
+- Classical gated three-epoch reclamation, per-reader announcements, `seq_cst` atomics. Age
+  never establishes eligibility. Readers never wait for cleaner or writer; the cleaner never
+  waits for a reader; the writer never waits for a grace period.
+- Reader slots: **no fixed limit** (dynamically expandable, stable); `get()` must **not**
+  return `false` because registration capacity is exhausted; registration may lock on its slow
+  path, ordinary reads may not; thread-local registration must not touch a destroyed store.
+- Internal foundation for explicit Snapshots now; the public Snapshot stays Part C.
+- A reclamation pass = one epoch-advance attempt followed by eligible cleanup; at most `n`
+  versions completely reclaimed per pass; version destruction resumable; dequeuing does not
+  count as freeing.
+- **No fixed retirement-backlog limit.** Allocation failure returns `false` with the published
+  state unchanged.
+- Dedicated background cleaner thread; polling when idle is acceptable.
+- No `sudo`, no kernel-setting change; profile only if permissions allow.
+- No Part C/D/E work, no submission ZIP.
+
+## D-041 — Chunk ownership is one reference count with one freeing rule (ACCEPTED, B2; closes audit F2/F3, R1/R2)
+
+`PinnedChunk::refs` counts segment references, the writer's reference on the writable chunk,
+and an open commit's references on chunks it created or moved on from. The only way a chunk is
+destroyed is the `fetch_sub` that takes `refs` from 1 to 0, on whichever thread performs it.
+Nothing reads the count and then decides. Destruction order: clear the directory slot, free
+the memory, then return the ID. The chunk-ID pool is a lock-free stack threaded through the
+directory blocks (pushers: writer and cleaner; single popper: the writer, which makes it
+ABA-free). Arena statistics shared by both threads are atomic.
+
+## D-042 — Epoch protocol and reader slots (ACCEPTED, B2)
+
+Protocol exactly as in the formal-safety supplement §3, all `seq_cst`; labelled operations and
+proof in `docs/reclamation.md`. Slots: blocks of 32 cache-line-aligned slots in an append-only
+list, never moved or freed while the store lives; one slot per (thread, store), found by a
+thread-local comparison after the first read; dedicated slots for long-lived pins.
+
+- **Exhaustion:** the only resource a read can lack is a new slot block on a thread's first
+  read; then `get` throws `std::bad_alloc`. It never returns `false` for that reason and never
+  proceeds unprotected. (Options considered: abort; mutex-guarded shared slot; return false.)
+- **Thread exit / store destruction:** stores have never-reused IDs; a process-wide table of
+  live IDs, taken under a mutex only at store construction/destruction and thread exit,
+  decides whether an exiting thread may return a slot.
+- Registration scans the slot list for a free slot (linear in the number of slots).
+- No per-read instrumentation; only validation retries are counted, in the reader's own slot.
+
+## D-043 — Retirement queue, passes and budgets (ACCEPTED, B2)
+
+FIFO linked queue with a dummy node; node allocated before publication; one store hands the
+record over. A pass = one gated advance attempt (only if something is retired) + destruction
+of eligible versions, oldest first, until `batch` versions are completely destroyed or
+`batch × work_per_version` work units are spent (unit = one directory entry visited or one
+chunk reference dropped; `work_per_version` = 1024, internal). A version that does not fit is
+left half-released and resumed by the next pass; it counts as reclaimed only when finished.
+`set_reclaim_batch(n ≤ 0)` means 1; default 64. The background cleaner runs passes back to
+back while they make progress and sleeps 200 µs otherwise; the writer never signals it.
+
+## D-044 — Cleaner and comparator modes; quiescent hatches removed (ACCEPTED, B2; closes R6)
+
+`CleanerMode`: Background (default), Manual (tests run passes), Inline (the writer runs passes
+after each commit). All three run the same epoch protocol and are safe with concurrent
+readers; Manual and Inline exist to make tests deterministic. The B1 functions
+`set_quiescent_reclaim` and `release_retained_quiescent`, which freed versions on the caller's
+promise, are **deleted**. `ReclaimMode`: Epoch (default), Disabled and StopTheWorld (Part D.2
+comparators; StopTheWorld makes readers take a shared lock and is selected only explicitly).
+Test-only accessors that return an unprotected version pointer are renamed `*_unprotected`
+and documented as requiring a store in which nothing can be reclaimed. Modes are chosen through
+internal options (`NovaKvInspector::set_default_rcu_options`), not the public API.
+
+## D-045 — One sentence of the formal-safety supplement is too strong (RECORDED, B2)
+
+Supplement §4, second bullet, argues that if the collector's scan misses a reader, its epoch
+advance cannot succeed after the reader validated. It can: the scan may read the slot before
+the reader announces and the advance may follow the reader's validation. The property that
+actually holds, and suffices, is *bounded overtaking* (`docs/reclamation.md` Lemma B): a
+participant that validated epoch *e* and is still pinned is never overtaken by a second
+advance. The protocol is implemented exactly as specified; only the proof text differs.
+
+## D-046 — B2 measurements are compared within one session only (ACCEPTED, B2)
+
+Governor and power source have differed between milestones (`performance`/AC for Part A,
+`performance`/battery for B1, `powersave`/battery at B2). `scripts/run_b2_observation.sh`
+therefore re-measures, in the same session, the B1 checkpoint (built from tag
+`part-b-publication`) and the Part A lock variants, and only same-session numbers are compared.
+Earlier results are not altered and not used for ratios. perf was unavailable
+(`perf_event_paranoid = 4`), so no profile was taken.
+
 ---
 
 ## Open items carried forward
@@ -477,11 +564,12 @@ prepared version).
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
 | O-7 | RESOLVED in B1 for ownership (D-033). Reclamation itself (EBR, cleaner) is B2 | — | B2 |
 | O-8 | RESOLVED: the fourth `rcu` build is accepted (D-038) | — | — |
-| O-9 | B2 decision D-a: reader-slot lifetime across thread exit and store destruction | User (proposal in the audit §5.3) | B2 |
-| O-10 | B2 decision D-b: what `get` does when no reader slot is free (recommendation: generous fixed capacity, abort on exhaustion) | User | B2 |
-| O-11 | B2 decision D-c: cleaner wake-up (recommendation: polling, no signal on the write path) | User | B2 |
-| O-12 | B2 decision D-d: definition of one reclamation pass for `set_reclaim_batch` | User | B2, D.2 |
-| O-13 | B2 decision D-e: behaviour at a backlog/memory limit | User | B2 |
+| O-9 | RESOLVED (D-042) | — | — |
+| O-10 | RESOLVED by user decision: no fixed limit, never return false; `std::bad_alloc` if a slot block cannot be allocated (D-040, D-042) | — | — |
+| O-11 | RESOLVED: polling (D-040, D-043) | — | — |
+| O-12 | RESOLVED (D-040, D-043) | — | — |
+| O-13 | RESOLVED: no backlog limit; allocation failure fails the write cleanly (D-040) | — | — |
+| O-15 | Part B note 1: the reclaim-batch member lives in the private implementation object, not literally in `kvstore.h` (`docs/part_b_compliance.md`) | User, if the grader's wording must be met literally | Nothing |
 | O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

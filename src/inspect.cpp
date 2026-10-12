@@ -15,36 +15,21 @@ using nova::Version;
 
 NovaKvStats NovaKvInspector::stats(const KVStore& store) {
     const nova::VersionedStore& vs = store.impl_->store;
-    const nova::VersionedStats& v = vs.stats();
+    const nova::VersionedStats v = vs.stats();
     NovaKvStats s;
-    // Index figures describe the CURRENT version.
-    const Version* cur = vs.current_version();
+    // Index figures describe the CURRENT version. Reading it unprotected is
+    // fine here: only the writer can retire it, and the caller guarantees the
+    // writer is not running.
+    const Version* cur = vs.current_version_unprotected();
     for (const Segment* seg : cur->segments) {
         if (seg == nullptr) continue;
         s.live_keys += seg->live;
         s.tombstones += seg->tombstones;
         s.slot_capacity += seg->capacity;
         s.segments_allocated += 1;
+        if (seg->owners.load() > 1) ++s.segments_shared;
         for (std::uint32_t i = 0; i < seg->capacity; ++i) {
             if (seg->slots[i].state == SlotState::Occupied) s.value_bytes_live += seg->slots[i].value.length;
-        }
-    }
-    // Newest retained version, if any: how much of the directory is shared.
-    struct Ctx {
-        const Version* current;
-        const Version* previous;
-    } ctx{cur, nullptr};
-    vs.for_each_version(
-        [](const Version* x, void* c) {
-            Ctx* k = static_cast<Ctx*>(c);
-            if (x != k->current && k->previous == nullptr) k->previous = x;
-        },
-        &ctx);
-    if (ctx.previous != nullptr) {
-        for (std::uint32_t p = 0; p < nova::kPartitionCount; ++p) {
-            if (cur->segments[p] != nullptr && cur->segments[p] == ctx.previous->segments[p]) {
-                ++s.segments_shared_with_previous;
-            }
         }
     }
     s.segment_growths = v.segment_growths;
@@ -55,17 +40,36 @@ NovaKvStats NovaKvInspector::stats(const KVStore& store) {
     s.chunk_ids_reused = v.arena.ids_reused;
     s.chunk_bytes_reserved = v.arena.bytes_reserved;
     s.versions_published = v.versions_published;
+    s.versions_retired = v.versions_retired;
+    s.versions_reclaimed = v.versions_reclaimed;
     s.versions_retained = v.versions_retained;
-    s.versions_released = v.versions_released;
+    s.backlog_max = v.backlog_max;
     s.commits_failed = v.commits_failed;
     s.segments_built = v.segments_built;
     s.segments_released = v.segments_released;
     s.index_bytes_copied = v.index_bytes_copied;
     s.directory_bytes_copied = v.directory_bytes_copied;
     s.owner_refs_taken = v.owner_refs_taken;
-    s.chunk_pins_taken = v.arena.pins_taken;
+    s.chunk_refs_taken = v.arena.refs_taken;
+    s.chunk_refs_dropped = v.arena.refs_dropped;
     s.value_bytes_appended = v.arena.bytes_appended;
     s.index_bytes_held = v.index_bytes_held;
+    s.epoch = v.epoch.epoch;
+    s.epoch_advance_attempts = v.epoch.advance_attempts;
+    s.epoch_advances = v.epoch.advance_successes;
+    s.epoch_advances_blocked = v.epoch.advance_blocked;
+    s.reader_slots = v.epoch.slots_total;
+    s.reader_slots_owned = v.epoch.slots_owned;
+    s.reader_registrations = v.epoch.registrations;
+    s.reader_validation_retries = v.epoch.validation_retries;
+    s.reclaim_passes = v.reclaim_passes;
+    s.reclaim_passes_with_work = v.reclaim_passes_with_work;
+    s.reclaim_max_versions_in_pass = v.reclaim_max_versions_in_pass;
+    s.reclaim_max_units_in_pass = v.reclaim_max_units_in_pass;
+    s.reclaim_interrupted_versions = v.reclaim_interrupted_versions;
+    s.stw_pauses = v.stw_pauses;
+    s.cleaner_cpu_ns = v.cleaner_cpu_ns;
+    s.reclaim_batch = vs.reclaim_batch();
     return s;
 }
 
@@ -75,24 +79,28 @@ const void* NovaKvInspector::lock_address(const KVStore& store) {
 
 std::size_t NovaKvInspector::lock_size() { return sizeof(std::atomic<Version*>); }
 
-const char* NovaKvInspector::validate(const KVStore& store) {
-    const nova::VersionedStore& vs = store.impl_->store;
+const char* NovaKvInspector::validate(KVStore& store) {
+    nova::VersionedStore& vs = store.impl_->store;
+    vs.stop_cleaner();
     const char* err = vs.validate();
-    if (err != nullptr) return err;
-    // Each key of the current version lives in its own partition.
-    const Version* cur = vs.current_version();
-    for (std::uint32_t p = 0; p < nova::kPartitionCount; ++p) {
-        const Segment* seg = cur->segments[p];
-        if (seg == nullptr) continue;
-        for (std::uint32_t i = 0; i < seg->capacity; ++i) {
-            const Entry& e = seg->slots[i];
-            if (e.state == SlotState::Occupied &&
-                nova::partition_of(nova::hash_key(e.key)) != p) {
-                return "key stored in the wrong partition";
+    if (err == nullptr) {
+        // Each key of the current version lives in its own partition.
+        const Version* cur = vs.current_version_unprotected();
+        for (std::uint32_t p = 0; p < nova::kPartitionCount && err == nullptr; ++p) {
+            const Segment* seg = cur->segments[p];
+            if (seg == nullptr) continue;
+            for (std::uint32_t i = 0; i < seg->capacity; ++i) {
+                const Entry& e = seg->slots[i];
+                if (e.state == SlotState::Occupied &&
+                    nova::partition_of(nova::hash_key(e.key)) != p) {
+                    err = "key stored in the wrong partition";
+                    break;
+                }
             }
         }
     }
-    return nullptr;
+    if (!vs.start_cleaner() && err == nullptr) err = "could not restart the cleaner thread";
+    return err;
 }
 
 bool NovaKvInspector::is_versioned() { return true; }
@@ -106,38 +114,31 @@ bool NovaKvInspector::commit_batch(KVStore& store, const NovaBatchOp* ops, std::
     return store.impl_->store.commit(batch.data(), n);
 }
 
-const void* NovaKvInspector::current_version(const KVStore& store) {
-    return store.impl_->store.current_version();
+void NovaKvInspector::set_default_rcu_options(int reclaim, int cleaner) {
+    nova::StoreOptions o;
+    o.reclaim = reclaim == 1 ? nova::ReclaimMode::Disabled
+                             : (reclaim == 2 ? nova::ReclaimMode::StopTheWorld : nova::ReclaimMode::Epoch);
+    o.cleaner = cleaner == 1 ? nova::CleanerMode::Manual
+                             : (cleaner == 2 ? nova::CleanerMode::Inline : nova::CleanerMode::Background);
+    nova::set_default_store_options(o);
 }
 
-std::uint64_t NovaKvInspector::version_sequence(const void* version) {
-    return static_cast<const Version*>(version)->sequence;
-}
-
-const void* NovaKvInspector::version_segment(const void* version, unsigned partition) {
-    return static_cast<const Version*>(version)->segments[partition];
-}
-
-bool NovaKvInspector::get_at(const KVStore& store, const void* version, long key, void* value_out,
-                             std::size_t value_out_len) {
-    return store.impl_->store.get_at(static_cast<const Version*>(version), key, value_out,
-                                     value_out_len);
-}
-
-void NovaKvInspector::set_quiescent_reclaim(KVStore& store, bool enabled) {
-    store.impl_->store.set_quiescent_reclaim(enabled);
-}
-
-void NovaKvInspector::set_default_quiescent_reclaim(bool enabled) {
-    nova::set_default_quiescent_reclaim(enabled);
-}
-
-void NovaKvInspector::release_retained_quiescent(KVStore& store) {
-    store.impl_->store.release_retained_quiescent();
+bool NovaKvInspector::settle(KVStore& store) {
+    nova::VersionedStore& vs = store.impl_->store;
+    vs.stop_cleaner();
+    const bool empty = vs.drain();
+    vs.start_cleaner();
+    return empty;
 }
 
 std::uint64_t NovaKvInspector::memory_held_bytes(const KVStore& store) {
     return store.impl_->store.memory_held_bytes();
+}
+
+std::uint64_t NovaKvInspector::backlog(const KVStore& store) { return store.impl_->store.backlog(); }
+
+void NovaKvInspector::set_reclaim_work_per_version(KVStore& store, unsigned units) {
+    store.impl_->store.set_reclaim_work_per_version(units);
 }
 
 #else
@@ -176,7 +177,7 @@ const void* NovaKvInspector::lock_address(const KVStore& store) {
 
 std::size_t NovaKvInspector::lock_size() { return sizeof(nova::StoreLock); }
 
-const char* NovaKvInspector::validate(const KVStore& store) {
+const char* NovaKvInspector::validate(KVStore& store) {
     const KVStore::Impl& impl = *store.impl_;
     const nova::Arena& arena = impl.arena;
     const std::uint64_t ids = arena.stats().chunk_ids_issued;
@@ -253,13 +254,10 @@ const char* NovaKvInspector::validate(const KVStore& store) {
 
 bool NovaKvInspector::is_versioned() { return false; }
 bool NovaKvInspector::commit_batch(KVStore&, const NovaBatchOp*, std::size_t) { return false; }
-const void* NovaKvInspector::current_version(const KVStore&) { return nullptr; }
-std::uint64_t NovaKvInspector::version_sequence(const void*) { return 0; }
-const void* NovaKvInspector::version_segment(const void*, unsigned) { return nullptr; }
-bool NovaKvInspector::get_at(const KVStore&, const void*, long, void*, std::size_t) { return false; }
-void NovaKvInspector::set_quiescent_reclaim(KVStore&, bool) {}
-void NovaKvInspector::set_default_quiescent_reclaim(bool) {}
-void NovaKvInspector::release_retained_quiescent(KVStore&) {}
+void NovaKvInspector::set_default_rcu_options(int, int) {}
+bool NovaKvInspector::settle(KVStore&) { return true; }
 std::uint64_t NovaKvInspector::memory_held_bytes(const KVStore&) { return 0; }
+std::uint64_t NovaKvInspector::backlog(const KVStore&) { return 0; }
+void NovaKvInspector::set_reclaim_work_per_version(KVStore&, unsigned) {}
 
 #endif  // NOVA_KV_SYNC_MODE

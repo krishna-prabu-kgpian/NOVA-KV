@@ -10,8 +10,10 @@
 //   * the arena holds the same chunks and the same committed bytes as before
 //     (the failed commit's appends were rolled back);
 //   * all ownership counts are consistent (validate());
-// and the retry without injection must succeed. Run once retaining replaced
-// versions (the B1 default) and once with quiescent release.
+// and the retry without injection must succeed. Run once with no reclamation
+// pass (every replaced version stays queued) and once with the writer running
+// reclamation passes after every commit, so failed commits are interleaved
+// with real epoch advances, version destruction and chunk-ID reuse.
 #include "versioned_store.h"
 
 #include "alloc.h"
@@ -35,6 +37,15 @@ namespace {
 
 using Bytes = std::vector<unsigned char>;
 
+// Epoch-based reclamation in both cases; what differs is who runs the passes.
+// Manual: nobody until the test calls reclaim_pass()/drain(), so every retired
+// version stays (and unprotected version pointers stay valid) until then.
+// Inline: the writer runs passes after each commit, so with no reader pinned
+// each replaced version is reclaimed before the write returns.
+const nova::StoreOptions kManual{nova::ReclaimMode::Epoch, nova::CleanerMode::Manual};
+const nova::StoreOptions kInline{nova::ReclaimMode::Epoch, nova::CleanerMode::Inline};
+
+
 Bytes pattern(std::size_t len, std::uint64_t seed) {
     Bytes v(len);
     for (std::size_t i = 0; i < len; ++i) v[i] = static_cast<unsigned char>(seed * 29 + i * 5 + 1);
@@ -42,6 +53,7 @@ Bytes pattern(std::size_t len, std::uint64_t seed) {
 }
 
 struct Harness {
+    explicit Harness(const nova::StoreOptions& options) : store(options) {}
     VersionedStore store;
     std::unordered_map<long, Bytes> model;
     Bytes buf = Bytes(200000);
@@ -58,15 +70,15 @@ struct Harness {
     }
 
     void verify_content() {
-        const Version* v = store.current_version();
+        const Version* v = store.current_version_unprotected();
         for (const auto& kv : model) {
             const Bytes& want = kv.second;
-            if (!store.get_at(v, kv.first, buf.data(), buf.size())) {
+            if (!store.get_at_unprotected(v, kv.first, buf.data(), buf.size())) {
                 expect(false, "model key missing from the store");
             } else if (!want.empty() && std::memcmp(buf.data(), want.data(), want.size()) != 0) {
                 expect(false, "value differs from the model");
             }
-            if (!want.empty() && store.get_at(v, kv.first, buf.data(), want.size() - 1)) {
+            if (!want.empty() && store.get_at_unprotected(v, kv.first, buf.data(), want.size() - 1)) {
                 expect(false, "value longer in the model than in the store");
             }
         }
@@ -81,7 +93,7 @@ struct Harness {
     // Runs one logical write to completion through every possible failure.
     void run(const std::vector<BatchOp>& ops, const std::vector<bool>& expect_applied) {
         for (long k = 0;; ++k) {
-            const Version* root_before = store.current_version();
+            const Version* root_before = store.current_version_unprotected();
             const nova::VersionedStats before = store.stats();
             const nova::PinnedChunk* writable_before = store.arena().current();
             const std::uint32_t used_before = writable_before != nullptr ? writable_before->used : 0;
@@ -121,13 +133,13 @@ struct Harness {
             ++injected_failures;
             const nova::VersionedStats after = store.stats();
             expect(!ok, "commit must report failure when an allocation failed");
-            expect(store.current_version() == root_before, "root pointer changed by a failed commit");
+            expect(store.current_version_unprotected() == root_before, "root pointer changed by a failed commit");
             expect(after.versions_published == before.versions_published, "a failed commit published");
             expect(after.versions_retained == before.versions_retained, "retained list changed");
             expect(after.commits_failed == before.commits_failed + 1, "failure not counted");
             expect(after.segments_built == before.segments_built, "segment published by a failed commit");
             expect(after.owner_refs_taken == before.owner_refs_taken, "owner count touched by a failed commit");
-            expect(after.arena.pins_taken == before.arena.pins_taken, "chunk pinned by a failed commit");
+            expect(after.arena.refs_taken == before.arena.refs_taken, "segment chunk reference taken by a failed commit");
             expect(after.arena.chunks_live == before.arena.chunks_live, "chunk leaked or lost by a failed commit");
             expect(after.arena.bytes_reserved == before.arena.bytes_reserved, "arena reservation changed");
             expect(after.arena.bytes_appended == before.arena.bytes_appended, "bytes committed by a failed commit");
@@ -152,8 +164,7 @@ struct Harness {
 };
 
 void scenario(bool quiescent) {
-    Harness h;
-    h.store.set_quiescent_reclaim(quiescent);
+    Harness h(quiescent ? kInline : kManual);
 
     std::vector<long> part3, spread;
     bool used[nova::kPartitionCount] = {};
@@ -230,7 +241,7 @@ void scenario(bool quiescent) {
     }
     std::printf("  %s: %ld writes completed, %ld injected failures all rolled back "
                 "(%llu arena rollbacks), %ld tolerated in erase, first put failed at %ld sites\n",
-                quiescent ? "quiescent release" : "retain (B1 default)", h.successes,
+                quiescent ? "reclaim after every write" : "no reclamation pass run", h.successes,
                 h.injected_failures, static_cast<unsigned long long>(st.arena.rollbacks),
                 h.tolerated_failures, first);
 }
@@ -245,7 +256,7 @@ int main() {
     // reports it instead of presenting a null root.
     hooks::fail_nth_allocation(0);
     {
-        VersionedStore broken;
+        VersionedStore broken(kManual);
         NOVA_CHECK(hooks::allocation_failure_fired());
         NOVA_CHECK(!broken.ok());
     }
