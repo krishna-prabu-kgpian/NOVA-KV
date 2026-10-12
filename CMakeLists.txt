@@ -94,6 +94,17 @@ foreach(driver IN LISTS NOVA_DRIVERS)
     target_link_libraries(${driver} PRIVATE nova_kv_${NOVA_DRIVER_${driver}} nova_warnings)
 endforeach()
 
+# ---- Benchmark harnesses (project-owned; the supplied generator is untouched) --
+foreach(variant IN LISTS NOVA_VARIANTS)
+    add_executable(concurrent_bench_${variant} benchmarks/concurrent_bench.cpp)
+    target_include_directories(concurrent_bench_${variant} PRIVATE src benchmarks)
+    target_link_libraries(concurrent_bench_${variant} PRIVATE nova_kv_${variant} nova_warnings)
+endforeach()
+
+add_executable(layout_bench benchmarks/layout_bench.cpp)
+target_include_directories(layout_bench PRIVATE benchmarks)
+target_link_libraries(layout_bench PRIVATE nova_build_flags nova_warnings)
+
 # ---- Tests ------------------------------------------------------------------
 enable_testing()
 
@@ -169,3 +180,41 @@ foreach(driver IN LISTS NOVA_DRIVERS)
         ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600
         PASS_REGULAR_EXPRESSION "ops=[1-9]")
 endforeach()
+
+# Benchmark validation: each harness runs briefly and must pass its own validity
+# checks (writer made successful updates inside the measured window, no read
+# returned a foreign record, every expected key was found, the three layouts
+# read identical data). Functional checks only; the numbers are not results.
+add_executable(bench_histogram_test tests/bench_histogram_test.cpp)
+target_include_directories(bench_histogram_test PRIVATE benchmarks)
+target_link_libraries(bench_histogram_test PRIVATE nova_build_flags nova_warnings)
+nova_add_test(bench_histogram_test)
+
+add_test(NAME bench_validate_concurrent_global_lock
+    COMMAND concurrent_bench_global_lock --readers 3 --duration 0.4 --warmup 0.1 --pin off)
+add_test(NAME bench_validate_concurrent_rwlock
+    COMMAND concurrent_bench_rwlock --readers 3 --duration 0.4 --warmup 0.1 --pin off)
+add_test(NAME bench_validate_concurrent_rwlock_paced
+    COMMAND concurrent_bench_rwlock --readers 2 --duration 0.4 --warmup 0.1 --pin off
+            --writer-rate 5000)
+add_test(NAME bench_validate_concurrent_reference_keys
+    COMMAND concurrent_bench_global_lock --readers 2 --duration 0.3 --warmup 0.1 --pin off
+            --keys reference)
+add_test(NAME bench_validate_concurrent_single_readonly
+    COMMAND concurrent_bench_single --readers 1 --duration 0.3 --warmup 0.1 --pin off --writer off)
+add_test(NAME bench_validate_concurrent_single_inline_writer
+    COMMAND concurrent_bench_single --readers 1 --duration 0.3 --warmup 0.1 --pin off
+            --writer inline:10)
+add_test(NAME bench_validate_layout
+    COMMAND layout_bench --records 20000 --ops 200000 --reps 2)
+set_tests_properties(
+    bench_validate_concurrent_global_lock bench_validate_concurrent_rwlock
+    bench_validate_concurrent_rwlock_paced bench_validate_concurrent_reference_keys
+    bench_validate_concurrent_single_readonly bench_validate_concurrent_single_inline_writer
+    bench_validate_layout
+    PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
+
+# The harness must REFUSE an unsynchronized store with a concurrent writer.
+add_test(NAME bench_rejects_concurrent_single
+    COMMAND concurrent_bench_single --readers 2 --duration 0.2 --pin off)
+set_tests_properties(bench_rejects_concurrent_single PROPERTIES WILL_FAIL TRUE TIMEOUT 60)

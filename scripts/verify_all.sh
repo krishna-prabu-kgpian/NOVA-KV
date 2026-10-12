@@ -126,7 +126,7 @@ fi
 # ---- Informational (do not affect the verdict) ------------------------------
 # Profiling is first needed in A2; A0 only records whether it will be possible.
 run_gate perf_stat_usable no perf stat -e task-clock -- true
-run_gate flamegraph_scripts_present no sh -c 'command -v stackcollapse-perf.pl && command -v flamegraph.pl'
+run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegraph.pl -a -x .tools/FlameGraph/stackcollapse-perf.pl || { command -v stackcollapse-perf.pl && command -v flamegraph.pl; }'
 
 # ---- Summary ------------------------------------------------------------------
 {
