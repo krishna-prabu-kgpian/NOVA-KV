@@ -1,0 +1,7 @@
+# command: build/release/concurrent_bench_rwlock --readers 1 --reader-cpus 0 --seed 3 --run-id rwlock_writer_paced_r1_rep3 --git-sha b699af97c377 --scenario writer_paced --csv results/b2/reference_part_a_runs.csv --hist results/b2/hist/rwlock_writer_paced_r1_rep3.csv --warmup 0.5 --duration 3 --writer on --writer-cpu 15 --writer-rate 10000
+rwlock       scenario=writer_paced readers=1 writer=thread_paced keys=hit seconds=3.000
+  store lock object at 0x64cf1f788cc0, 56 bytes (cache lines 0x64cf1f788cc0..0x64cf1f788cc0)
+  reads : ops=19186781 rps=6395434 hits=19186781 misses=0 corrupt=0
+  read latency ns: p50=80 p99=461 p999=781 max=159882 mean=103.2
+  writes: ok=29999 failed=0 rps=9999 p50=520 p99=5888 max=149313 ns
+# exit_status: 0

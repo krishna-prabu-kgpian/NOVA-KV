@@ -160,7 +160,7 @@ table("Reclaim batch at 8 readers, unthrottled writer (3 s window unless noted)"
 
 # 3. Same-session references
 body = []
-for label, src, variant in (("Part B (B2), batch 64", runs, "rcu"), ("B1 checkpoint (no reclamation)", ref_b1, "b1"),
+for label, src, variant in (("Part B (B2), batch 64", runs, "rcu"), ("B1 checkpoint (no reclamation, no epoch announcement)", ref_b1, "rcu"),
                             ("Part A rwlock", ref_a, "rwlock"), ("Part A global\\_lock", ref_a, "global_lock"),
                             ("Part A single thread, no lock", ref_a, "single")):
     for scen in ("readonly", "writer_paced", "writer_max"):

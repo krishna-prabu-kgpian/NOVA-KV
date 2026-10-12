@@ -1,0 +1,11 @@
+# command: build/release/concurrent_bench_rcu --readers 1 --reader-cpus 0 --seed 1 --run-id rcu_writer_max_r1_rep1 --git-sha b699af97c377 --scenario writer_max --csv results/b2/runs.csv --hist results/b2/hist/rcu_writer_max_r1_rep1.csv --warmup 0.5 --duration 3 --writer on --writer-cpu 15 --cow-csv results/b2/cow.csv
+rcu          scenario=writer_max readers=1 writer=thread_max keys=hit seconds=3.000
+  store lock object at 0x5f77cbc0fd80, 8 bytes (cache lines 0x5f77cbc0fd80..0x5f77cbc0fd80)
+  reads : ops=11214914 rps=3738202 hits=11214914 misses=0 corrupt=0
+  read latency ns: p50=171 p99=611 p999=902 max=159275 mean=210.1
+  writes: ok=280736 failed=0 rps=93576 p50=9088 p99=24832 max=533176 ns
+  rcu   : publications=331298 (writes incl. warm-up=331298) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23937 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=105.5 value_bytes=32.0
+  rcu reclamation: reclaimed=331285 backlog_at_end=0 backlog_max=88 passes=50436 epoch_advances=48043/50043 attempts (2000 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=3606 cleaner_cpu=2.819s (80.5% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=19.3 MiB settled=19.3 MiB (versions + segments + chunks)
+# exit_status: 0

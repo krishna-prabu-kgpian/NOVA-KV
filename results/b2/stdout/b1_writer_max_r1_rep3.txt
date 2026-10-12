@@ -1,0 +1,10 @@
+# command: build/b1_reference/build/concurrent_bench_rcu --readers 1 --reader-cpus 0 --seed 3 --run-id b1_writer_max_r1_rep3 --git-sha b699af97c377 --scenario writer_max --csv results/b2/reference_b1_runs.csv --hist results/b2/hist/b1_writer_max_r1_rep3.csv --warmup 0.3 --duration 1 --writer on --writer-cpu 15 --retain-limit-mb 12000
+rcu          scenario=writer_max readers=1 writer=thread_max keys=hit seconds=1.000
+  store lock object at 0x5815c86ffcc0, 8 bytes (cache lines 0x5815c86ffcc0..0x5815c86ffcc0)
+  reads : ops=3472572 rps=3472043 hits=3472572 misses=0 corrupt=0
+  read latency ns: p50=180 p99=871 p999=1168 max=54450 mean=232.8
+  writes: ok=44256 failed=0 rps=44249 p50=21504 p99=34816 max=301067 ns
+  rcu   : publications=57732 (writes incl. warm-up=57732) retained_at_end=57732 commits_failed=0
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23917 directory_bytes_copied=2048 owner_refs=255.0 chunk_pins=63.2 value_bytes=32.0
+  rcu memory held: after_load=9.0 MiB at_end=1470.9 MiB (versions + segments + chunks; nothing is reclaimed in B1)
+# exit_status: 0

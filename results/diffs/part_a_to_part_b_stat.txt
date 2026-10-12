@@ -1,0 +1,20 @@
+ src/alloc.cpp           |  25 ++
+ src/config.h            |   3 +
+ src/cow_segment.cpp     | 130 ++++++++
+ src/cow_segment.h       | 123 ++++++++
+ src/epoch.cpp           | 189 ++++++++++++
+ src/epoch.h             | 140 +++++++++
+ src/hash_segment.cpp    |  28 +-
+ src/hash_segment.h      |  11 +
+ src/inspect.cpp         | 153 +++++++++-
+ src/inspect.h           |  85 +++++-
+ src/kvstore.cpp         |  78 ++++-
+ src/kvstore_impl.h      |  16 +
+ src/pinned_arena.cpp    | 283 ++++++++++++++++++
+ src/pinned_arena.h      | 178 +++++++++++
+ src/sync_mode.h         |  13 +-
+ src/sync_policy.h       |   5 +
+ src/test_points.h       |  53 ++++
+ src/versioned_store.cpp | 766 ++++++++++++++++++++++++++++++++++++++++++++++++
+ src/versioned_store.h   | 288 ++++++++++++++++++
+ 19 files changed, 2541 insertions(+), 26 deletions(-)

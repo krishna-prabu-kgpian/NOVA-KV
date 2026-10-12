@@ -1,0 +1,2828 @@
+diff --git a/src/alloc.cpp b/src/alloc.cpp
+index 75e9ec9..0b334c5 100644
+--- a/src/alloc.cpp
++++ b/src/alloc.cpp
+@@ -1,5 +1,8 @@
+ #include "alloc.h"
+ 
++#include "test_points.h"
++
++#include <atomic>
+ #include <cstdlib>
+ 
+ namespace nova {
+@@ -22,6 +25,28 @@ long allocations_since_armed() noexcept { return g_calls; }
+ }  // namespace test_hooks
+ #endif
+ 
++#ifdef NOVA_KV_TEST_HOOKS
++namespace test_hooks {
++namespace {
++std::atomic<PointFn> g_point_fn{nullptr};
++std::atomic<void*> g_point_context{nullptr};
++std::atomic<long> g_live[3] = {};
++}  // namespace
++void set_point_hook(PointFn fn, void* context) noexcept {
++    g_point_context.store(context);
++    g_point_fn.store(fn);
++}
++void at_point(TestPoint point) noexcept {
++    const PointFn fn = g_point_fn.load();
++    if (fn != nullptr) fn(point, g_point_context.load());
++}
++long live_objects(LiveObject kind) noexcept { return g_live[static_cast<int>(kind)].load(); }
++void count_object(LiveObject kind, long delta) noexcept {
++    g_live[static_cast<int>(kind)].fetch_add(delta);
++}
++}  // namespace test_hooks
++#endif
++
+ void* alloc_bytes(std::size_t size, std::size_t align) noexcept {
+ #ifdef NOVA_KV_TEST_HOOKS
+     const long call = g_calls++;
+diff --git a/src/config.h b/src/config.h
+index dc061b0..803bb50 100644
+--- a/src/config.h
++++ b/src/config.h
+@@ -13,6 +13,9 @@ constexpr unsigned kPartitionBits = 8;
+ constexpr std::uint32_t kPartitionCount = 1u << kPartitionBits;
+ constexpr std::uint32_t kInitialSegmentCapacity = 1024;  // slots, power of two
+ constexpr std::uint32_t kMaxSegmentCapacity = 1u << 30;
++// Part B (copy-on-write) segments start small: every write copies the whole
++// segment it touches, so a segment should be no larger than its contents need.
++constexpr std::uint32_t kCowInitialSegmentCapacity = 16;
+ 
+ // Occupied slots (live + tombstones) may fill at most 7/10 of a segment.
+ constexpr std::uint64_t kMaxLoadNum = 7;
+diff --git a/src/cow_segment.cpp b/src/cow_segment.cpp
+new file mode 100644
+index 0000000..4cdb8e5
+--- /dev/null
++++ b/src/cow_segment.cpp
+@@ -0,0 +1,130 @@
++#include "cow_segment.h"
++
++#include "alloc.h"
++#include "test_points.h"
++
++#include <cstring>
++#include <new>
++
++namespace nova {
++
++void destroy_segment(Segment* seg) noexcept {
++    if (seg == nullptr) return;
++    NOVA_COUNT_OBJECT(LiveObject::Segment, -1);
++    free_bytes(seg->slots);
++    seg->~Segment();
++    free_bytes(seg);
++}
++
++SegmentBuilder::SegmentBuilder() noexcept
++    : work_(kCowInitialSegmentCapacity),
++      plan_(),
++      pins_(nullptr),
++      pin_count_(0),
++      pin_capacity_(0),
++      header_(nullptr),
++      changed_(false) {}
++
++SegmentBuilder::~SegmentBuilder() {
++    work_.abort_upsert(plan_);
++    free_bytes(pins_);
++    free_bytes(header_);  // raw storage only: no Segment was constructed in it
++}
++
++bool SegmentBuilder::begin(const Segment* base, std::uint32_t max_ops) noexcept {
++    const std::uint32_t base_pins = base != nullptr ? base->pin_count : 0;
++    pin_capacity_ = base_pins + max_ops;
++    if (pin_capacity_ != 0) {
++        pins_ = static_cast<ChunkPin*>(alloc_bytes(sizeof(ChunkPin) * pin_capacity_));
++        if (pins_ == nullptr) return false;
++        if (base_pins != 0) std::memcpy(pins_, base->pins, sizeof(ChunkPin) * base_pins);
++    }
++    pin_count_ = base_pins;
++    if (base != nullptr &&
++        !work_.clone_from(base->slots, base->capacity, base->live, base->tombstones)) {
++        return false;
++    }
++    return true;
++}
++
++bool SegmentBuilder::prepare_put(long key, std::uint64_t h) noexcept {
++    return work_.prepare_upsert(key, h, plan_);
++}
++
++void SegmentBuilder::commit_put(long key, std::uint64_t h, const ValueRef& ref) noexcept {
++    ValueRef old{};
++    const bool replaced = work_.commit_upsert(key, h, ref, plan_, &old);
++    pin_add(ref);
++    if (replaced) pin_sub(old);
++    changed_ = true;
++}
++
++void SegmentBuilder::abort_put() noexcept { work_.abort_upsert(plan_); }
++
++bool SegmentBuilder::erase(long key, std::uint64_t h) noexcept {
++    ValueRef old{};
++    if (!work_.erase(key, h, &old)) return false;
++    pin_sub(old);
++    changed_ = true;
++    return true;
++}
++
++void SegmentBuilder::pin_add(const ValueRef& ref) noexcept {
++    if (ref.length == 0) return;  // empty values live in no chunk
++    std::uint32_t lo = 0, hi = pin_count_;
++    while (lo < hi) {
++        const std::uint32_t mid = lo + (hi - lo) / 2;
++        if (pins_[mid].chunk_id < ref.chunk_id) lo = mid + 1;
++        else hi = mid;
++    }
++    if (lo < pin_count_ && pins_[lo].chunk_id == ref.chunk_id) {
++        ++pins_[lo].refs;
++        return;
++    }
++    // Room is guaranteed: begin() reserved one slot per put.
++    std::memmove(pins_ + lo + 1, pins_ + lo, sizeof(ChunkPin) * (pin_count_ - lo));
++    pins_[lo] = ChunkPin{ref.chunk_id, 1};
++    ++pin_count_;
++}
++
++void SegmentBuilder::pin_sub(const ValueRef& ref) noexcept {
++    if (ref.length == 0) return;
++    std::uint32_t lo = 0, hi = pin_count_;
++    while (lo < hi) {
++        const std::uint32_t mid = lo + (hi - lo) / 2;
++        if (pins_[mid].chunk_id < ref.chunk_id) lo = mid + 1;
++        else hi = mid;
++    }
++    // Present by construction: every occupied entry is counted in the list.
++    --pins_[lo].refs;  // entries that reach zero are dropped in finish()
++}
++
++bool SegmentBuilder::prepare_finish() noexcept {
++    if (work_.live() == 0) return true;  // the partition becomes empty: no segment
++    std::uint32_t used = 0;
++    for (std::uint32_t i = 0; i < pin_count_; ++i) used += pins_[i].refs != 0 ? 1u : 0u;
++    header_ = static_cast<Segment*>(
++        alloc_bytes(sizeof(Segment) + sizeof(ChunkPin) * used, alignof(Segment)));
++    return header_ != nullptr;
++}
++
++Segment* SegmentBuilder::finish() noexcept {
++    if (work_.live() == 0) return nullptr;  // work_'s array is freed with the builder
++    Segment* seg = new (header_) Segment();
++    NOVA_COUNT_OBJECT(LiveObject::Segment, 1);
++    header_ = nullptr;
++    seg->owners.store(0, std::memory_order_relaxed);
++    seg->capacity = work_.capacity();
++    seg->live = work_.live();
++    seg->tombstones = work_.tombstones();
++    seg->pins = reinterpret_cast<ChunkPin*>(seg + 1);
++    std::uint32_t n = 0;
++    for (std::uint32_t i = 0; i < pin_count_; ++i) {
++        if (pins_[i].refs != 0) seg->pins[n++] = pins_[i];
++    }
++    seg->pin_count = n;
++    seg->slots = work_.release_slots();
++    return seg;
++}
++
++}  // namespace nova
+diff --git a/src/cow_segment.h b/src/cow_segment.h
+new file mode 100644
+index 0000000..4b03d9c
+--- /dev/null
++++ b/src/cow_segment.h
+@@ -0,0 +1,123 @@
++// cow_segment.h -- immutable published index segments and their private builder
++// (Part B).
++//
++// A Segment is one partition of the primary index as seen by readers: an
++// open-addressed, linearly probed slot array that never changes after it has
++// been published. A write that touches a partition does not modify its
++// Segment; it builds a replacement with SegmentBuilder (a private copy that is
++// edited in place where no reader can see it) and the replacement becomes
++// visible only as part of a newly published Version.
++//
++// Ownership recorded in a Segment (blueprint 3.3, 3.4):
++//   owners  number of Versions whose directory points at this segment. Several
++//           versions share an unchanged segment.
++//   pins    the distinct chunk IDs referenced by the segment's occupied slots.
++//           The segment holds one arena pin per listed chunk for as long as it
++//           exists, which is what keeps value bytes alive for every version
++//           that can still reach them.
++#pragma once
++
++#include "config.h"
++#include "hash.h"
++#include "hash_segment.h"
++#include "value_ref.h"
++
++#include <atomic>
++#include <cstdint>
++
++namespace nova {
++
++// One distinct chunk referenced by a segment. `refs` (how many of the segment's
++// entries point into the chunk) lets a builder keep the set exact when entries
++// are replaced or erased; the arena is pinned once per ChunkPin, not per entry.
++struct ChunkPin {
++    std::uint32_t chunk_id;
++    std::uint32_t refs;
++};
++
++struct Segment {
++    std::atomic<std::uint32_t> owners;  // versions referencing this segment (writer/cleaner side)
++    std::uint32_t capacity;             // power of two, > 0
++    std::uint32_t live;
++    std::uint32_t tombstones;
++    std::uint32_t pin_count;
++    Entry* slots;                       // immutable once published
++    ChunkPin* pins;                     // sorted by chunk_id; stored after this header
++};
++
++// Lookup in a published (or any) segment. Same rule as Part A: stop at Empty,
++// skip Tombstone, match on the full key. `seg` may be null (empty partition).
++inline const Entry* segment_find(const Segment* seg, long key, std::uint64_t h) noexcept {
++    if (seg == nullptr) return nullptr;
++    const std::uint32_t mask = seg->capacity - 1;
++    std::uint32_t i = static_cast<std::uint32_t>(h >> kPartitionBits) & mask;
++    for (std::uint32_t n = 0; n < seg->capacity; ++n, i = (i + 1) & mask) {
++        const Entry& e = seg->slots[i];
++        if (e.state == SlotState::Empty) return nullptr;
++        if (e.state == SlotState::Occupied && e.key == key) return &e;
++    }
++    return nullptr;
++}
++
++// Frees a segment's memory. Its arena pins must already have been dropped (or
++// never taken). Null is allowed.
++void destroy_segment(Segment* seg) noexcept;
++
++// Builds the replacement for one partition, privately.
++//
++//   begin()                      private copy of the published segment
++//   prepare_put / commit_put     insert or overwrite (two phases so the value
++//                                can be appended to the arena in between)
++//   erase                        remove
++//   prepare_finish()             last fallible step
++//   finish()                     hands over the immutable Segment; cannot fail
++//
++// Everything a builder allocates is released by its destructor unless finish()
++// handed it over, so abandoning a commit at any point is just destroying the
++// builders. A builder takes no arena pin and touches no shared counter: all
++// ownership is acquired by the caller after the last fallible step.
++class SegmentBuilder {
++public:
++    SegmentBuilder() noexcept;
++    ~SegmentBuilder();
++    SegmentBuilder(const SegmentBuilder&) = delete;
++    SegmentBuilder& operator=(const SegmentBuilder&) = delete;
++
++    // `base` may be null. `max_ops` bounds the puts that will follow (each can
++    // introduce at most one new chunk). False on allocation failure.
++    bool begin(const Segment* base, std::uint32_t max_ops) noexcept;
++
++    bool prepare_put(long key, std::uint64_t h) noexcept;  // false: allocation failure
++    void commit_put(long key, std::uint64_t h, const ValueRef& ref) noexcept;
++    void abort_put() noexcept;
++
++    // True if the key was present and is now removed. Needs no memory.
++    bool erase(long key, std::uint64_t h) noexcept;
++
++    bool changed() const noexcept { return changed_; }
++
++    // Allocates the Segment header for the final contents. False on failure.
++    bool prepare_finish() noexcept;
++    // Returns the finished segment (owners == 0, no pins taken yet), or null if
++    // the partition ended up with no live key. Requires prepare_finish().
++    Segment* finish() noexcept;
++
++    // Slot bytes copied or rebuilt on behalf of this builder so far.
++    std::uint64_t bytes_built() const noexcept { return work_.bytes_built(); }
++    std::uint64_t growths() const noexcept { return work_.growths(); }
++    std::uint64_t rebuilds() const noexcept { return work_.rebuilds(); }
++
++private:
++    void pin_add(const ValueRef& ref) noexcept;
++    void pin_sub(const ValueRef& ref) noexcept;
++
++    HashSegment work_;          // the private, editable copy
++    HashSegment::UpsertPlan plan_;
++    ChunkPin* pins_;            // sorted by chunk_id; entries may drop to refs == 0
++    std::uint32_t pin_count_;
++    std::uint32_t pin_capacity_;
++    Segment* header_;           // allocated by prepare_finish()
++    bool changed_;
++};
++
++}  // namespace nova
+diff --git a/src/epoch.cpp b/src/epoch.cpp
+new file mode 100644
+index 0000000..938a9b4
+--- /dev/null
++++ b/src/epoch.cpp
+@@ -0,0 +1,189 @@
++#include "epoch.h"
++
++#include <new>
++#include <utility>
++#include <vector>
++
++namespace nova {
++
++namespace {
++constexpr std::uint32_t kSlotsPerBlock = 32;
++}
++
++// A block of slots. Fully initialized before it is linked; once linked it is
++// never unlinked, moved or freed until the domain is destroyed.
++struct EpochDomain::SlotBlock {
++    ReaderSlot slots[kSlotsPerBlock];
++    std::atomic<SlotBlock*> next{nullptr};
++};
++
++// ---- Which domains are alive ------------------------------------------------------
++//
++// A thread caches the slot it was given per domain. When the thread exits it
++// must give those slots back, but a domain may have been destroyed in the
++// meantime. Domains therefore carry an ID that is never reused, and this
++// registry says which IDs are alive. Thread exit and domain destruction both
++// take its mutex, so a slot is either returned to a live domain or not touched
++// at all. None of this is on the read path. The registry is never destroyed
++// (threads may exit during process shutdown).
++namespace {
++
++struct LiveDomains {
++    std::mutex mutex;
++    std::vector<std::pair<std::uint64_t, EpochDomain*>> live;
++    std::atomic<std::uint64_t> next_id{1};  // 0 is "no domain"
++};
++
++LiveDomains& live_domains() {
++    static LiveDomains* instance = new LiveDomains();
++    return *instance;
++}
++
++}  // namespace
++
++// Every slot this thread holds, for all domains. Destroyed at thread exit.
++struct EpochThreadCache {
++    struct Entry {
++        std::uint64_t domain_id;
++        ReaderSlot* slot;
++    };
++    std::vector<Entry> entries;
++
++    ~EpochThreadCache() {
++        LiveDomains& reg = live_domains();
++        std::lock_guard<std::mutex> lock(reg.mutex);
++        for (const Entry& e : entries) {
++            for (const auto& d : reg.live) {
++                if (d.first == e.domain_id) {
++                    d.second->release_slot(e.slot);  // the domain still exists
++                    break;
++                }
++            }
++            // Otherwise the domain is gone and took its slots with it.
++        }
++    }
++};
++
++namespace {
++thread_local EpochThreadCache tl_cache;
++}
++
++EpochDomain::EpochDomain()
++    : id_(live_domains().next_id.fetch_add(1)), epoch_(0), first_(nullptr) {
++    first_ = new (std::nothrow) SlotBlock();
++    LiveDomains& reg = live_domains();
++    std::lock_guard<std::mutex> lock(reg.mutex);
++    reg.live.emplace_back(id_, this);
++}
++
++EpochDomain::~EpochDomain() {
++    {
++        // After this block no exiting thread can reach this domain's slots.
++        LiveDomains& reg = live_domains();
++        std::lock_guard<std::mutex> lock(reg.mutex);
++        for (std::size_t i = 0; i < reg.live.size(); ++i) {
++            if (reg.live[i].first == id_) {
++                reg.live[i] = reg.live.back();
++                reg.live.pop_back();
++                break;
++            }
++        }
++    }
++    for (SlotBlock* b = first_; b != nullptr;) {
++        SlotBlock* next = b->next.load(std::memory_order_relaxed);
++        delete b;
++        b = next;
++    }
++}
++
++ReaderSlot* EpochDomain::acquire_slot() {
++    std::lock_guard<std::mutex> lock(registration_mutex_);
++    SlotBlock* last = nullptr;
++    for (SlotBlock* b = first_; b != nullptr; b = b->next.load(std::memory_order_seq_cst)) {
++        for (ReaderSlot& s : b->slots) {
++            // Only registration (under this mutex) sets `owned`; a release
++            // clears it. A free slot is inactive, so the collector ignores it.
++            if (s.owned.load(std::memory_order_seq_cst) == 0) {
++                s.owned.store(1, std::memory_order_seq_cst);
++                registrations_.fetch_add(1, std::memory_order_relaxed);
++                return &s;
++            }
++        }
++        last = b;
++    }
++    // Every slot is taken: add a block. It is complete (all slots inactive)
++    // before the store below makes it reachable, and the slot handed out is in
++    // a block that is already linked when the caller first announces in it.
++    SlotBlock* block = new (std::nothrow) SlotBlock();
++    if (block == nullptr || last == nullptr) throw std::bad_alloc();
++    block->slots[0].owned.store(1, std::memory_order_relaxed);
++    last->next.store(block, std::memory_order_seq_cst);                               // [R1] link
++    registrations_.fetch_add(1, std::memory_order_relaxed);
++    return &block->slots[0];
++}
++
++void EpochDomain::release_slot(ReaderSlot* slot) noexcept {
++    slot->state.store(kEpochInactive, std::memory_order_seq_cst);
++    slot->owned.store(0, std::memory_order_seq_cst);
++}
++
++ReaderSlot* EpochDomain::thread_slot_slow() {
++    for (const EpochThreadCache::Entry& e : tl_cache.entries) {
++        if (e.domain_id == id_) {
++            tl_epoch_last = EpochTlsLast{id_, e.slot};
++            return e.slot;
++        }
++    }
++    tl_cache.entries.reserve(tl_cache.entries.size() + 1);  // may throw: nothing acquired yet
++    ReaderSlot* slot = acquire_slot();                       // may throw: nothing recorded yet
++    tl_cache.entries.push_back(EpochThreadCache::Entry{id_, slot});  // cannot throw now
++    tl_epoch_last = EpochTlsLast{id_, slot};
++    return slot;
++}
++
++bool EpochDomain::try_advance() noexcept {
++    advance_attempts_.fetch_add(1, std::memory_order_relaxed);
++    std::uint64_t e = epoch_.load(std::memory_order_seq_cst);                         // [C1]
++    NOVA_TEST_POINT(TestPoint::CleanerBeforeScan);
++    for (SlotBlock* b = first_; b != nullptr; b = b->next.load(std::memory_order_seq_cst)) {  // [C2]
++        for (ReaderSlot& s : b->slots) {
++            const std::uint64_t announced = s.state.load(std::memory_order_seq_cst);  // [C3]
++            NOVA_TEST_POINT(TestPoint::CleanerMidScan);
++            if (announced != kEpochInactive && announced != e) {
++                // A participant is still in an older epoch: no advance. Not a
++                // wait; the next pass tries again.
++                advance_blocked_.fetch_add(1, std::memory_order_relaxed);
++                return false;
++            }
++        }
++    }
++    NOVA_TEST_POINT(TestPoint::CleanerBeforeAdvance);
++    // Advance by exactly one, and only from the epoch that was scanned.
++    if (!epoch_.compare_exchange_strong(e, e + 1, std::memory_order_seq_cst)) return false;  // [C4]
++    advance_successes_.fetch_add(1, std::memory_order_relaxed);
++    return true;
++}
++
++EpochStats EpochDomain::stats() const noexcept {
++    EpochStats s;
++    s.epoch = epoch_.load(std::memory_order_seq_cst);
++    s.advance_attempts = advance_attempts_.load(std::memory_order_relaxed);
++    s.advance_successes = advance_successes_.load(std::memory_order_relaxed);
++    s.advance_blocked = advance_blocked_.load(std::memory_order_relaxed);
++    s.registrations = registrations_.load(std::memory_order_relaxed);
++    for (SlotBlock* b = first_; b != nullptr; b = b->next.load(std::memory_order_seq_cst)) {
++        for (const ReaderSlot& slot : b->slots) {
++            ++s.slots_total;
++            if (slot.owned.load(std::memory_order_seq_cst) != 0) ++s.slots_owned;
++            const std::uint64_t st = slot.state.load(std::memory_order_seq_cst);
++            if (st != kEpochInactive) {
++                ++s.slots_active;
++                if (st < s.oldest_active_epoch) s.oldest_active_epoch = st;
++            }
++            s.validation_retries += slot.retries.load(std::memory_order_relaxed);
++        }
++    }
++    return s;
++}
++
++}  // namespace nova
+diff --git a/src/epoch.h b/src/epoch.h
+new file mode 100644
+index 0000000..e34bb95
+--- /dev/null
++++ b/src/epoch.h
+@@ -0,0 +1,140 @@
++// epoch.h -- epoch-based reclamation (EBR): the reader side and the epoch gate.
++//
++// Classical three-epoch scheme with GATED advancement, exactly the protocol of
++// NOVA_KV_Formal_Safety_and_Agent_Audit.md section 3. Every atomic operation
++// of the protocol is memory_order_seq_cst.
++//
++//   reader pin:    loop { e = epoch.load; slot.store(e); if (epoch.load == e) break; }
++//                  ... then, and only then, load the root and use it ...
++//   reader unpin:  slot.store(INACTIVE)
++//   collector:     e = epoch.load; for every slot: if (active && slot != e) give up;
++//                  epoch.compare_exchange(e, e + 1)
++//   retirement:    tag = epoch.load  AFTER the root has been replaced
++//   eligibility:   epoch.load >= tag + 2
++//
++// The collector never waits for a reader and a reader never waits for anyone:
++// a reader that has not left simply makes the collector's advance fail, to be
++// tried again in a later pass. Age is never used: only the two gated advances.
++//
++// SLOTS. A participant (a reading thread, or a long-lived pin such as a future
++// Snapshot) announces itself in a ReaderSlot. Slots live in blocks that are
++// appended to a list and never moved or freed while the domain lives, so the
++// collector can always enumerate every slot that was ever handed out. There is
++// no fixed limit on their number. Handing a slot out (registration) is the only
++// operation that takes a mutex or allocates; it happens once per (thread,
++// store), not per read.
++//
++// The correctness argument, tied to the lines of this file and of
++// versioned_store.cpp, is docs/reclamation.md.
++#pragma once
++
++#include "config.h"
++#include "test_points.h"
++
++#include <atomic>
++#include <cstdint>
++#include <mutex>
++
++namespace nova {
++
++constexpr std::uint64_t kEpochInactive = ~std::uint64_t{0};
++
++// One participant's announcement. Alone on its cache line: readers on
++// different cores never write to the same line.
++struct alignas(kCacheLine) ReaderSlot {
++    std::atomic<std::uint64_t> state{kEpochInactive};  // announced epoch, or kEpochInactive
++    std::atomic<std::uint32_t> owned{0};               // 1 while handed out
++    std::atomic<std::uint64_t> retries{0};             // validations that had to repeat (owner writes)
++};
++
++struct EpochStats {
++    std::uint64_t epoch = 0;
++    std::uint64_t advance_attempts = 0;
++    std::uint64_t advance_successes = 0;
++    std::uint64_t advance_blocked = 0;        // attempts stopped by a participant in an older epoch
++    std::uint64_t slots_total = 0;            // slots that exist
++    std::uint64_t slots_owned = 0;            // slots currently handed out
++    std::uint64_t slots_active = 0;           // slots announcing an epoch right now
++    std::uint64_t registrations = 0;          // slots handed out, cumulative
++    std::uint64_t validation_retries = 0;     // reader pin loops that repeated, cumulative
++    std::uint64_t oldest_active_epoch = kEpochInactive;
++};
++
++// The slot this thread used for its most recent read, and for which domain.
++// Constant-initialized and defined inline so that reading it is a plain
++// thread-local load with no initialization guard on the read path.
++struct EpochTlsLast {
++    std::uint64_t domain_id;  // 0 = none; domain IDs start at 1 and are never reused
++    ReaderSlot* slot;
++};
++inline thread_local EpochTlsLast tl_epoch_last = {0, nullptr};
++
++class EpochDomain {
++public:
++    EpochDomain();
++    ~EpochDomain();
++    EpochDomain(const EpochDomain&) = delete;
++    EpochDomain& operator=(const EpochDomain&) = delete;
++
++    // False if the first slot block could not be allocated.
++    bool ok() const noexcept { return first_ != nullptr; }
++
++    // ---- Participants -------------------------------------------------------
++    // The calling thread's slot for this domain, registering the thread on
++    // first use. Steady state: one thread-local comparison, no lock, no
++    // allocation. Throws std::bad_alloc if a slot cannot be provided; it never
++    // returns a slot the collector cannot see.
++    ReaderSlot* thread_slot() {
++        if (tl_epoch_last.domain_id == id_) return tl_epoch_last.slot;
++        return thread_slot_slow();
++    }
++    // A slot not tied to any thread (long-lived pins). Throws std::bad_alloc.
++    ReaderSlot* acquire_slot();
++    // Returns a slot; it must be inactive.
++    void release_slot(ReaderSlot* slot) noexcept;
++
++    // Announces the participant and validates the announcement. On return the
++    // slot holds an epoch that was the global epoch at a moment after the slot
++    // was written; only now may the caller load the root. One participant, one
++    // critical section at a time per slot.
++    void pin(ReaderSlot* slot) noexcept {
++        for (;;) {
++            const std::uint64_t e = epoch_.load(std::memory_order_seq_cst);          // [P1]
++            NOVA_TEST_POINT(TestPoint::ReaderBeforeAnnounce);
++            slot->state.store(e, std::memory_order_seq_cst);                         // [P2] announce
++            NOVA_TEST_POINT(TestPoint::ReaderAfterAnnounce);
++            if (epoch_.load(std::memory_order_seq_cst) == e) break;                  // [P3] validate
++            // The epoch moved between [P1] and [P3]: announce again. Nothing
++            // has been dereferenced yet.
++            slot->retries.store(slot->retries.load(std::memory_order_relaxed) + 1,
++                                std::memory_order_relaxed);
++        }
++        NOVA_TEST_POINT(TestPoint::ReaderAfterValidate);
++    }
++    void unpin(ReaderSlot* slot) noexcept {
++        slot->state.store(kEpochInactive, std::memory_order_seq_cst);                // [P5]
++    }
++
++    // ---- Collector (one thread at a time) -------------------------------------
++    std::uint64_t epoch() const noexcept { return epoch_.load(std::memory_order_seq_cst); }
++    // One gated attempt to move the epoch forward by one. Never waits.
++    bool try_advance() noexcept;
++
++    EpochStats stats() const noexcept;
++
++private:
++    struct SlotBlock;
++    ReaderSlot* thread_slot_slow();
++    friend struct EpochThreadCache;
++
++    const std::uint64_t id_;                  // unique for the life of the process
++    std::atomic<std::uint64_t> epoch_;
++    SlotBlock* first_;                        // head of the block list; never changes
++    std::mutex registration_mutex_;           // registration only, never on the read path
++    std::atomic<std::uint64_t> registrations_{0};
++    std::atomic<std::uint64_t> advance_attempts_{0};
++    std::atomic<std::uint64_t> advance_successes_{0};
++    std::atomic<std::uint64_t> advance_blocked_{0};
++};
++
++}  // namespace nova
+diff --git a/src/hash_segment.cpp b/src/hash_segment.cpp
+index 4025034..91c4840 100644
+--- a/src/hash_segment.cpp
++++ b/src/hash_segment.cpp
+@@ -16,7 +16,8 @@ HashSegment::HashSegment(std::uint32_t initial_capacity, unsigned hash_shift,
+       hash_shift_(hash_shift),
+       hash_fn_(hash_fn),
+       growths_(0),
+-      rebuilds_(0) {}
++      rebuilds_(0),
++      bytes_built_(0) {}
+ 
+ HashSegment::~HashSegment() { free_bytes(slots_); }
+ 
+@@ -36,6 +37,7 @@ Entry* HashSegment::build_table(std::uint32_t new_capacity) const noexcept {
+     Entry* table = static_cast<Entry*>(alloc_bytes(bytes, kCacheLine));
+     if (table == nullptr) return nullptr;
+     std::memset(table, 0, bytes);  // SlotState::Empty == 0
++    bytes_built_ += bytes;
+     for (std::uint32_t i = 0; i < capacity_; ++i) {
+         const Entry& e = slots_[i];
+         if (e.state == SlotState::Occupied) {
+@@ -56,6 +58,30 @@ void HashSegment::install(Entry* table, std::uint32_t capacity) noexcept {
+     tombstones_ = 0;
+ }
+ 
++bool HashSegment::clone_from(const Entry* slots, std::uint32_t capacity, std::uint32_t live,
++                             std::uint32_t tombstones) noexcept {
++    if (capacity == 0) return true;
++    const std::size_t bytes = sizeof(Entry) * static_cast<std::size_t>(capacity);
++    Entry* table = static_cast<Entry*>(alloc_bytes(bytes, kCacheLine));
++    if (table == nullptr) return false;
++    std::memcpy(table, slots, bytes);
++    bytes_built_ += bytes;
++    slots_ = table;
++    capacity_ = capacity;
++    live_ = live;
++    tombstones_ = tombstones;
++    return true;
++}
++
++Entry* HashSegment::release_slots() noexcept {
++    Entry* table = slots_;
++    slots_ = nullptr;
++    capacity_ = 0;
++    live_ = 0;
++    tombstones_ = 0;
++    return table;
++}
++
+ bool HashSegment::prepare_upsert(long key, std::uint64_t h, UpsertPlan& plan) const noexcept {
+     plan = UpsertPlan{};
+ 
+diff --git a/src/hash_segment.h b/src/hash_segment.h
+index 6793b94..4b0af5b 100644
+--- a/src/hash_segment.h
++++ b/src/hash_segment.h
+@@ -83,6 +83,16 @@ public:
+     // allocate it is simply retried by a later operation.
+     bool erase(long key, std::uint64_t h, ValueRef* old_ref) noexcept;
+ 
++    // ---- Private-copy support for the copy-on-write engine (Part B) ----
++    // Makes this (empty) segment a private copy of an existing slot array.
++    // Returns false on allocation failure, leaving the segment empty.
++    bool clone_from(const Entry* slots, std::uint32_t capacity, std::uint32_t live,
++                    std::uint32_t tombstones) noexcept;
++    // Hands the slot array to the caller and leaves this segment empty.
++    Entry* release_slots() noexcept;
++    // Bytes of slot arrays this object has allocated and filled so far.
++    std::uint64_t bytes_built() const noexcept { return bytes_built_; }
++
+     // ---- Introspection (tests, statistics, validation) ----
+     std::uint32_t capacity() const noexcept { return capacity_; }
+     std::uint32_t live() const noexcept { return live_; }
+@@ -111,6 +121,7 @@ private:
+     HashFn hash_fn_;
+     std::uint64_t growths_;     // installs with a larger capacity
+     std::uint64_t rebuilds_;    // installs at the same capacity (tombstone removal)
++    mutable std::uint64_t bytes_built_;  // slot bytes allocated + filled (copy amplification)
+ };
+ 
+ }  // namespace nova
+diff --git a/src/inspect.cpp b/src/inspect.cpp
+index 5d9362b..c2c3652 100644
+--- a/src/inspect.cpp
++++ b/src/inspect.cpp
+@@ -4,6 +4,147 @@
+ 
+ #include <vector>
+ 
++#if NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
++
++// ---- Part B (rcu) -------------------------------------------------------------------
++
++using nova::Entry;
++using nova::Segment;
++using nova::SlotState;
++using nova::Version;
++
++NovaKvStats NovaKvInspector::stats(const KVStore& store) {
++    const nova::VersionedStore& vs = store.impl_->store;
++    const nova::VersionedStats v = vs.stats();
++    NovaKvStats s;
++    // Index figures describe the CURRENT version. Reading it unprotected is
++    // fine here: only the writer can retire it, and the caller guarantees the
++    // writer is not running.
++    const Version* cur = vs.current_version_unprotected();
++    for (const Segment* seg : cur->segments) {
++        if (seg == nullptr) continue;
++        s.live_keys += seg->live;
++        s.tombstones += seg->tombstones;
++        s.slot_capacity += seg->capacity;
++        s.segments_allocated += 1;
++        if (seg->owners.load() > 1) ++s.segments_shared;
++        for (std::uint32_t i = 0; i < seg->capacity; ++i) {
++            if (seg->slots[i].state == SlotState::Occupied) s.value_bytes_live += seg->slots[i].value.length;
++        }
++    }
++    s.segment_growths = v.segment_growths;
++    s.segment_rebuilds = v.segment_rebuilds;
++    s.chunks_live = v.arena.chunks_live;
++    s.chunk_ids_issued = v.arena.chunk_ids_issued;
++    s.chunks_freed = v.arena.chunks_freed;
++    s.chunk_ids_reused = v.arena.ids_reused;
++    s.chunk_bytes_reserved = v.arena.bytes_reserved;
++    s.versions_published = v.versions_published;
++    s.versions_retired = v.versions_retired;
++    s.versions_reclaimed = v.versions_reclaimed;
++    s.versions_retained = v.versions_retained;
++    s.backlog_max = v.backlog_max;
++    s.commits_failed = v.commits_failed;
++    s.segments_built = v.segments_built;
++    s.segments_released = v.segments_released;
++    s.index_bytes_copied = v.index_bytes_copied;
++    s.directory_bytes_copied = v.directory_bytes_copied;
++    s.owner_refs_taken = v.owner_refs_taken;
++    s.chunk_refs_taken = v.arena.refs_taken;
++    s.chunk_refs_dropped = v.arena.refs_dropped;
++    s.value_bytes_appended = v.arena.bytes_appended;
++    s.index_bytes_held = v.index_bytes_held;
++    s.epoch = v.epoch.epoch;
++    s.epoch_advance_attempts = v.epoch.advance_attempts;
++    s.epoch_advances = v.epoch.advance_successes;
++    s.epoch_advances_blocked = v.epoch.advance_blocked;
++    s.reader_slots = v.epoch.slots_total;
++    s.reader_slots_owned = v.epoch.slots_owned;
++    s.reader_registrations = v.epoch.registrations;
++    s.reader_validation_retries = v.epoch.validation_retries;
++    s.reclaim_passes = v.reclaim_passes;
++    s.reclaim_passes_with_work = v.reclaim_passes_with_work;
++    s.reclaim_max_versions_in_pass = v.reclaim_max_versions_in_pass;
++    s.reclaim_max_units_in_pass = v.reclaim_max_units_in_pass;
++    s.reclaim_interrupted_versions = v.reclaim_interrupted_versions;
++    s.stw_pauses = v.stw_pauses;
++    s.cleaner_cpu_ns = v.cleaner_cpu_ns;
++    s.reclaim_batch = vs.reclaim_batch();
++    return s;
++}
++
++const void* NovaKvInspector::lock_address(const KVStore& store) {
++    return store.impl_->store.root_address();
++}
++
++std::size_t NovaKvInspector::lock_size() { return sizeof(std::atomic<Version*>); }
++
++const char* NovaKvInspector::validate(KVStore& store) {
++    nova::VersionedStore& vs = store.impl_->store;
++    vs.stop_cleaner();
++    const char* err = vs.validate();
++    if (err == nullptr) {
++        // Each key of the current version lives in its own partition.
++        const Version* cur = vs.current_version_unprotected();
++        for (std::uint32_t p = 0; p < nova::kPartitionCount && err == nullptr; ++p) {
++            const Segment* seg = cur->segments[p];
++            if (seg == nullptr) continue;
++            for (std::uint32_t i = 0; i < seg->capacity; ++i) {
++                const Entry& e = seg->slots[i];
++                if (e.state == SlotState::Occupied &&
++                    nova::partition_of(nova::hash_key(e.key)) != p) {
++                    err = "key stored in the wrong partition";
++                    break;
++                }
++            }
++        }
++    }
++    if (!vs.start_cleaner() && err == nullptr) err = "could not restart the cleaner thread";
++    return err;
++}
++
++bool NovaKvInspector::is_versioned() { return true; }
++
++bool NovaKvInspector::commit_batch(KVStore& store, const NovaBatchOp* ops, std::size_t n) {
++    std::vector<nova::BatchOp> batch(n);
++    for (std::size_t i = 0; i < n; ++i) {
++        batch[i] = nova::BatchOp{ops[i].is_put ? nova::BatchOp::Kind::Put : nova::BatchOp::Kind::Erase,
++                                 ops[i].key, ops[i].value, ops[i].length};
++    }
++    return store.impl_->store.commit(batch.data(), n);
++}
++
++void NovaKvInspector::set_default_rcu_options(int reclaim, int cleaner) {
++    nova::StoreOptions o;
++    o.reclaim = reclaim == 1 ? nova::ReclaimMode::Disabled
++                             : (reclaim == 2 ? nova::ReclaimMode::StopTheWorld : nova::ReclaimMode::Epoch);
++    o.cleaner = cleaner == 1 ? nova::CleanerMode::Manual
++                             : (cleaner == 2 ? nova::CleanerMode::Inline : nova::CleanerMode::Background);
++    nova::set_default_store_options(o);
++}
++
++bool NovaKvInspector::settle(KVStore& store) {
++    nova::VersionedStore& vs = store.impl_->store;
++    vs.stop_cleaner();
++    const bool empty = vs.drain();
++    vs.start_cleaner();
++    return empty;
++}
++
++std::uint64_t NovaKvInspector::memory_held_bytes(const KVStore& store) {
++    return store.impl_->store.memory_held_bytes();
++}
++
++std::uint64_t NovaKvInspector::backlog(const KVStore& store) { return store.impl_->store.backlog(); }
++
++void NovaKvInspector::set_reclaim_work_per_version(KVStore& store, unsigned units) {
++    store.impl_->store.set_reclaim_work_per_version(units);
++}
++
++#else
++
++// ---- Part A (lock-based variants) ---------------------------------------------------
++
+ using nova::Chunk;
+ using nova::Entry;
+ using nova::HashSegment;
+@@ -36,7 +177,7 @@ const void* NovaKvInspector::lock_address(const KVStore& store) {
+ 
+ std::size_t NovaKvInspector::lock_size() { return sizeof(nova::StoreLock); }
+ 
+-const char* NovaKvInspector::validate(const KVStore& store) {
++const char* NovaKvInspector::validate(KVStore& store) {
+     const KVStore::Impl& impl = *store.impl_;
+     const nova::Arena& arena = impl.arena;
+     const std::uint64_t ids = arena.stats().chunk_ids_issued;
+@@ -110,3 +251,13 @@ const char* NovaKvInspector::validate(const KVStore& store) {
+     if (value_bytes != arena.stats().value_bytes_live) return "live value byte count mismatch";
+     return nullptr;
+ }
++
++bool NovaKvInspector::is_versioned() { return false; }
++bool NovaKvInspector::commit_batch(KVStore&, const NovaBatchOp*, std::size_t) { return false; }
++void NovaKvInspector::set_default_rcu_options(int, int) {}
++bool NovaKvInspector::settle(KVStore&) { return true; }
++std::uint64_t NovaKvInspector::memory_held_bytes(const KVStore&) { return 0; }
++std::uint64_t NovaKvInspector::backlog(const KVStore&) { return 0; }
++void NovaKvInspector::set_reclaim_work_per_version(KVStore&, unsigned) {}
++
++#endif  // NOVA_KV_SYNC_MODE
+diff --git a/src/inspect.h b/src/inspect.h
+index 44c83dd..dce493b 100644
+--- a/src/inspect.h
++++ b/src/inspect.h
+@@ -20,21 +20,92 @@ struct NovaKvStats {
+     std::uint64_t chunk_ids_reused = 0;
+     std::uint64_t chunk_bytes_reserved = 0;
+     std::uint64_t value_bytes_live = 0;
++
++    // Part B (rcu variant) only; all zero for the lock-based variants.
++    std::uint64_t versions_published = 0;     // successful root publications
++    std::uint64_t versions_retired = 0;       // handed to the retirement queue
++    std::uint64_t versions_reclaimed = 0;     // completely destroyed
++    std::uint64_t versions_retained = 0;      // backlog: retired, not yet destroyed
++    std::uint64_t backlog_max = 0;            // largest backlog the writer saw
++    std::uint64_t commits_failed = 0;         // commits that published nothing
++    std::uint64_t segments_built = 0;         // replacement segments published (clones)
++    std::uint64_t segments_released = 0;
++    std::uint64_t segments_shared = 0;        // of the current version, also owned by a retired one
++    std::uint64_t index_bytes_copied = 0;     // slot bytes copied or rebuilt, cumulative
++    std::uint64_t directory_bytes_copied = 0; // cumulative
++    std::uint64_t owner_refs_taken = 0;       // segment references acquired, cumulative
++    std::uint64_t chunk_refs_taken = 0;       // by segments, cumulative
++    std::uint64_t chunk_refs_dropped = 0;
++    std::uint64_t value_bytes_appended = 0;   // cumulative
++    std::uint64_t index_bytes_held = 0;       // versions + segments, current and retired
++    // Epoch-based reclamation
++    std::uint64_t epoch = 0;
++    std::uint64_t epoch_advance_attempts = 0;
++    std::uint64_t epoch_advances = 0;
++    std::uint64_t epoch_advances_blocked = 0; // attempts stopped by a participant in an older epoch
++    std::uint64_t reader_slots = 0;           // slots that exist
++    std::uint64_t reader_slots_owned = 0;
++    std::uint64_t reader_registrations = 0;
++    std::uint64_t reader_validation_retries = 0;
++    std::uint64_t reclaim_passes = 0;
++    std::uint64_t reclaim_passes_with_work = 0;
++    std::uint64_t reclaim_max_versions_in_pass = 0;
++    std::uint64_t reclaim_max_units_in_pass = 0;
++    std::uint64_t reclaim_interrupted_versions = 0;
++    std::uint64_t stw_pauses = 0;
++    std::uint64_t cleaner_cpu_ns = 0;         // background cleaner CPU time, up to its last stop
++    int reclaim_batch = 0;
++};
++
++// One operation of an internal multi-key write (rcu variant; the public
++// Transaction class is Part C).
++struct NovaBatchOp {
++    bool is_put;
++    long key;
++    const void* value;
++    std::size_t length;
+ };
+ 
+ struct NovaKvInspector {
++    // Quiet store (writer not running) or the writer's own thread.
+     static NovaKvStats stats(const KVStore& store);
+ 
+-    // Address of the store's lock object (meaningless for the `single`
+-    // variant). Lets a profiler's cache-line report be matched to the lock.
+-    static const void* lock_address(const KVStore& store);
+-    static std::size_t lock_size();
+-
++    // Quiet store required (no writer running). For the rcu variant the
++    // background cleaner is stopped for the duration and restarted afterwards.
++    //
+     // Walks the whole store and checks its structural invariants: slot counts,
+     // load bound, each key in its own partition and reachable exactly once
+     // through its probe chain, every ValueRef in bounds of a live chunk, and
+-    // each chunk's reference count equal to the entries pointing at it.
++    // every ownership count equal to what the existing objects imply.
+     // Returns nullptr if everything holds, else a description of the first
+     // violation.
+-    static const char* validate(const KVStore& store);
++    static const char* validate(KVStore& store);
++
++    // Address of the store's lock object (meaningless for the `single`
++    // variant). Lets a profiler's cache-line report be matched to the lock.
++    // For the rcu variant: the address and size of the atomic root pointer.
++    static const void* lock_address(const KVStore& store);
++    static std::size_t lock_size();
++
++    // ---- Part B (rcu variant). On the other variants these do nothing and
++    // return false / 0.
++    static bool is_versioned();
++    // Applies all operations as one logical write with one publication.
++    static bool commit_batch(KVStore& store, const NovaBatchOp* ops, std::size_t n);
++    // Process-wide options for stores constructed from now on.
++    //   reclaim: 0 epoch-based (default), 1 disabled (comparator), 2 stop-the-world (comparator)
++    //   cleaner: 0 background thread (default), 1 manual, 2 inline in the writer
++    static void set_default_rcu_options(int reclaim, int cleaner);
++    // Stops the background cleaner (if any), runs reclamation passes on the
++    // calling thread until nothing is retired or no pass makes progress, then
++    // restarts the cleaner. Returns true if the backlog is empty. The caller
++    // must not be racing with the store's writer.
++    static bool settle(KVStore& store);
++    // Bytes held by versions, segments and chunks, current and retired. Cheap;
++    // call from the writer thread or on a quiet store. 0 on other variants.
++    static std::uint64_t memory_held_bytes(const KVStore& store);
++    // Retired versions not yet destroyed. Any thread, any time.
++    static std::uint64_t backlog(const KVStore& store);
++    // Work units per version a pass may spend (see docs/reclamation.md).
++    static void set_reclaim_work_per_version(KVStore& store, unsigned units);
+ };
+diff --git a/src/kvstore.cpp b/src/kvstore.cpp
+index 5b25e70..82de3b9 100644
+--- a/src/kvstore.cpp
++++ b/src/kvstore.cpp
+@@ -1,14 +1,22 @@
+ // kvstore.cpp -- NOVA-KV store implementation.
+ //
+-// MILESTONE A1 STATE: Part A baseline. put / get / erase are implemented on a
+-// segmented linear-probing hash index (hash_segment.h) whose entries reference
+-// value bytes in a chunked arena (arena.h). Segments are mutated in place under
+-// the build's synchronization policy (sync_policy.h); that policy is the only
+-// difference between the single / global_lock / rwlock libraries.
++// One KVStore class, compiled once per synchronization policy (sync_mode.h):
+ //
+-// Parts B and C are declared in kvstore.h for source compatibility with the
+-// supplied workload generator but are NOT implemented: their bodies below are
+-// inert and never report success.
++//   single / global_lock / rwlock   Part A baseline: a segmented linear-probing
++//       hash index (hash_segment.h) over a chunked value arena (arena.h),
++//       mutated in place under the policy's lock (sync_policy.h).
++//   rcu                             Part B: the same hash, slot format, probing
++//       rules and chunked values, but every write builds new state privately
++//       and publishes an immutable version with one atomic pointer swap; reads
++//       take no lock (versioned_store.h).
++//
++// Part B (rcu) is complete as of milestone B2: replaced versions are reclaimed
++// by epoch-based reclamation on a background cleaner thread, in passes bounded
++// by set_reclaim_batch() (docs/reclamation.md).
++//
++// Part C (Transaction, Snapshot, secondary index) is declared in kvstore.h for
++// source compatibility with the supplied workload generator but is NOT
++// implemented: those bodies are inert and never report success.
+ #include "kvstore.h"
+ 
+ #include "build_info.h"
+@@ -18,20 +26,61 @@
+ 
+ #include <cstdint>
+ #include <cstring>
++#include <new>
++
++const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
++
++#if NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
++
++// ---- Part B: RCU ------------------------------------------------------------------
++
++KVStore::KVStore() : impl_(new Impl()) {
++    if (!impl_->store.ok()) {  // initial version, queue or cleaner thread could not be created
++        delete impl_;
++        throw std::bad_alloc();
++    }
++}
++
++KVStore::~KVStore() { delete impl_; }
++
++// Single writer (the assignment's assumption): put and erase must not be called
++// from two threads at once. Each successful call publishes exactly one version.
++bool KVStore::put(long key, const void* value, size_t value_len) {
++    return impl_->store.put(key, value, value_len);
++}
++
++// Any number of threads, concurrently with the writer: announce an epoch, one
++// atomic load of the current version, no lock, no waiting, bytes copied out
++// before returning. Resource exhaustion is never reported as "not found": the
++// only allocation a read can need is its thread's reader slot, on that thread's
++// first read of this store, and if that fails std::bad_alloc is thrown.
++bool KVStore::get(long key, void* value_out, size_t value_out_len) const {
++    return impl_->store.get(key, value_out, value_out_len);
++}
++
++// Returns false if the key is absent. It also returns false, with the store
++// unchanged, if memory for the replacement version cannot be allocated.
++bool KVStore::erase(long key) { return impl_->store.erase(key); }
++
++// How many retired versions one reclamation pass may completely free. A pass
++// is one attempt to advance the reclamation epoch followed by the destruction
++// of versions whose grace period has passed. n <= 0 is treated as 1. Takes
++// effect from the next pass; never blocks a reader or the writer.
++void KVStore::set_reclaim_batch(int n) { impl_->store.set_reclaim_batch(n); }
++
++#else
++
++// ---- Part A: lock-based baseline ---------------------------------------------------
+ 
+ using nova::HashSegment;
+ using nova::ReadGuard;
+ using nova::ValueRef;
+ using nova::WriteGuard;
+ 
+-const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
+-
+ KVStore::KVStore() : impl_(new Impl()) {}
+ 
+ KVStore::~KVStore() { delete impl_; }
+ 
+-// ---- Part A -------------------------------------------------------------------
+-
+ bool KVStore::put(long key, const void* value, size_t value_len) {
+     if (value_len > nova::kMaxValueBytes) return false;
+     if (value_len != 0 && value == nullptr) return false;
+@@ -92,10 +141,11 @@ bool KVStore::erase(long key) {
+     return true;
+ }
+ 
+-// ---- Part B (not implemented until B2) ----------------------------------------
+-
++// The lock-based stores keep no retired versions: there is nothing to reclaim.
+ void KVStore::set_reclaim_batch(int n) { (void)n; }
+ 
++#endif  // NOVA_KV_SYNC_MODE
++
+ // ---- Part C (not implemented until C1/C2) ----------------------------------
+ 
+ bool KVStore::create_index(size_t field_offset, size_t field_len) {
+diff --git a/src/kvstore_impl.h b/src/kvstore_impl.h
+index 0a759bd..6bc46d1 100644
+--- a/src/kvstore_impl.h
++++ b/src/kvstore_impl.h
+@@ -4,13 +4,29 @@
+ 
+ #include "kvstore.h"
+ 
++#include "sync_mode.h"
++
++#if NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
++
++#include "versioned_store.h"
++
++// Part B: immutable published versions behind one atomic root pointer.
++struct KVStore::Impl {
++    nova::VersionedStore store;
++};
++
++#else
++
+ #include "arena.h"
+ #include "config.h"
+ #include "hash_segment.h"
+ #include "sync_policy.h"
+ 
++// Part A: one mutable index and arena, guarded by the variant's lock.
+ struct KVStore::Impl {
+     nova::StoreLock lock;                             // guards everything below
+     nova::HashSegment segments[nova::kPartitionCount];  // primary index
+     nova::Arena arena;                                // value bytes
+ };
++
++#endif
+diff --git a/src/pinned_arena.cpp b/src/pinned_arena.cpp
+new file mode 100644
+index 0000000..594370b
+--- /dev/null
++++ b/src/pinned_arena.cpp
+@@ -0,0 +1,283 @@
++#include "pinned_arena.h"
++
++#include "alloc.h"
++#include "test_points.h"
++
++#include <cstring>
++#include <new>
++
++namespace nova {
++
++PinnedArena::PinnedArena(std::uint32_t chunk_bytes, std::uint32_t max_blocks) noexcept
++    : chunk_bytes_(chunk_bytes),
++      max_blocks_(max_blocks < kChunkDirMaxBlocks ? max_blocks : kChunkDirMaxBlocks),
++      current_(nullptr),
++      next_fresh_id_(0),
++      mark_current_(nullptr),
++      mark_used_(0),
++      commit_refs_(nullptr),
++      commit_bytes_(0),
++      free_head_(kNoChunk) {
++    for (auto& b : blocks_) b.store(nullptr, std::memory_order_relaxed);
++}
++
++PinnedArena::~PinnedArena() {
++    // Precondition: writer and cleaner have stopped. Whatever is still in the
++    // directory (normally just the writable chunk) is freed here.
++    for (std::uint32_t b = 0; b < kChunkDirMaxBlocks; ++b) {
++        DirBlock* block = blocks_[b].load(std::memory_order_relaxed);
++        if (block == nullptr) continue;
++        for (std::uint32_t s = 0; s < kChunkDirBlockSlots; ++s) {
++            PinnedChunk* c = block->slot[s].load(std::memory_order_relaxed);
++            if (c != nullptr) NOVA_COUNT_OBJECT(LiveObject::Chunk, -1);
++            free_bytes(c);
++        }
++        free_bytes(block);
++    }
++}
++
++const PinnedChunk* PinnedArena::chunk(std::uint32_t id) const noexcept {
++    if (id >= next_fresh_id_) return nullptr;
++    return block_of(id)->slot[id & (kChunkDirBlockSlots - 1)].load(std::memory_order_seq_cst);
++}
++
++PinnedArenaStats PinnedArena::stats() const noexcept {
++    PinnedArenaStats s;
++    s.chunks_created = chunks_created_.load(std::memory_order_relaxed);
++    s.chunks_freed = chunks_freed_.load(std::memory_order_relaxed);
++    s.chunks_live = s.chunks_created - s.chunks_freed;
++    s.bytes_reserved = bytes_reserved();
++    s.refs_dropped = refs_dropped_.load(std::memory_order_relaxed);
++    s.chunk_ids_issued = chunk_ids_issued_;
++    s.ids_reused = ids_reused_;
++    s.bytes_appended = bytes_appended_;
++    s.rollbacks = rollbacks_;
++    s.refs_taken = refs_taken_;
++    return s;
++}
++
++// ---- Chunk-ID pool ---------------------------------------------------------------
++//
++// A Treiber stack threaded through the per-block `next_free` arrays: the link
++// of a pooled ID lives in the directory block of that ID, so pushing needs no
++// allocation and cannot fail.
++//
++// Pushers: any thread that destroys a chunk (writer or cleaner).
++// Popper:  only the writer.
++//
++// ABA: a pop reads head H and link L = next_free[H], then CASes head H -> L.
++// That is wrong only if, in between, H was popped and pushed back with a
++// different link. Only the writer pops, and it is the thread executing this
++// pop, so H cannot have been popped in between; concurrent pushes change the
++// head and make the CAS fail, after which the pop retries. A push that
++// re-reads a stale head is likewise caught by its own CAS.
++
++void PinnedArena::push_free_id(std::uint32_t id) noexcept {
++    std::atomic<std::uint32_t>& link = block_of(id)->next_free[id & (kChunkDirBlockSlots - 1)];
++    std::uint32_t head = free_head_.load(std::memory_order_seq_cst);
++    do {
++        link.store(head, std::memory_order_seq_cst);
++    } while (!free_head_.compare_exchange_weak(head, id, std::memory_order_seq_cst));
++}
++
++bool PinnedArena::pop_free_id(std::uint32_t* id) noexcept {
++    std::uint32_t head = free_head_.load(std::memory_order_seq_cst);
++    while (head != kNoChunk) {
++        const std::uint32_t next =
++            block_of(head)->next_free[head & (kChunkDirBlockSlots - 1)].load(std::memory_order_seq_cst);
++        if (free_head_.compare_exchange_weak(head, next, std::memory_order_seq_cst)) {
++            *id = head;
++            return true;
++        }
++    }
++    return false;
++}
++
++// ---- Creation and destruction -----------------------------------------------------
++
++PinnedChunk* PinnedArena::new_chunk(std::uint32_t capacity) noexcept {
++    // Step 1: memory for the chunk. Nothing shared has changed if this fails.
++    void* raw = alloc_bytes(sizeof(PinnedChunk) + static_cast<std::size_t>(capacity),
++                            alignof(PinnedChunk));
++    if (raw == nullptr) return nullptr;
++
++    // Step 2: an ID, recycled if the pool has one, otherwise fresh. A directory
++    // block allocated for a fresh ID stays if this commit later fails; it is
++    // not reachable from any ValueRef.
++    std::uint32_t id;
++    bool recycled = pop_free_id(&id);
++    if (!recycled) {
++        id = next_fresh_id_;
++        const std::uint32_t block_index = id >> kChunkDirBlockBits;
++        if (block_index >= max_blocks_) {  // directory exhausted
++            free_bytes(raw);
++            return nullptr;
++        }
++        if (blocks_[block_index].load(std::memory_order_relaxed) == nullptr) {
++            void* braw = alloc_bytes(sizeof(DirBlock), alignof(DirBlock));
++            if (braw == nullptr) {
++                free_bytes(raw);
++                return nullptr;
++            }
++            DirBlock* block = new (braw) DirBlock();
++            for (std::uint32_t s = 0; s < kChunkDirBlockSlots; ++s) {
++                block->slot[s].store(nullptr, std::memory_order_relaxed);
++                block->next_free[s].store(kNoChunk, std::memory_order_relaxed);
++            }
++            // Installed once, fully initialized, never replaced or freed while
++            // the arena lives. Nobody looks at this block before an ID inside
++            // it has been issued.
++            blocks_[block_index].store(block, std::memory_order_seq_cst);
++        }
++        ++next_fresh_id_;
++        ++chunk_ids_issued_;
++    } else {
++        ++ids_reused_;
++    }
++
++    PinnedChunk* c = new (raw) PinnedChunk();
++    NOVA_COUNT_OBJECT(LiveObject::Chunk, 1);
++    c->id = id;
++    c->capacity = capacity;
++    c->used = 0;
++    c->sealed = false;
++    c->link = nullptr;
++    // Born with one reference, owned by the caller (it becomes the writable
++    // reference or a commit reference).
++    c->refs.store(1, std::memory_order_relaxed);
++    chunks_created_.fetch_add(1, std::memory_order_relaxed);
++    bytes_created_.fetch_add(capacity, std::memory_order_relaxed);
++    // Publish in the directory before any version whose ValueRefs name this
++    // chunk. The slot is null here: fresh, or cleared by destroy() before the
++    // ID entered the pool.
++    block_of(id)->slot[id & (kChunkDirBlockSlots - 1)].store(c, std::memory_order_seq_cst);
++    return c;
++}
++
++void PinnedArena::drop_ref(PinnedChunk* c) noexcept {
++    // THE freeing rule: the decrement that reaches zero destroys. Exactly one
++    // decrement observes 1, so exactly one thread destroys, and it does so
++    // only when no reference of any kind is left.
++    if (c->refs.fetch_sub(1, std::memory_order_seq_cst) == 1) destroy(c);
++}
++
++void PinnedArena::destroy(PinnedChunk* c) noexcept {
++    const std::uint32_t id = c->id;
++    const std::uint32_t capacity = c->capacity;
++    // 1. Withdraw from the directory.
++    block_of(id)->slot[id & (kChunkDirBlockSlots - 1)].store(nullptr, std::memory_order_seq_cst);
++    // 2. Free the memory.
++    NOVA_COUNT_OBJECT(LiveObject::Chunk, -1);
++    c->~PinnedChunk();
++    free_bytes(c);
++    chunks_freed_.fetch_add(1, std::memory_order_relaxed);
++    bytes_freed_.fetch_add(capacity, std::memory_order_relaxed);
++    // 3. Only now may the ID be handed out again.
++    push_free_id(id);
++}
++
++// ---- Commits ----------------------------------------------------------------------
++
++void PinnedArena::begin_commit() noexcept {
++    mark_current_ = current_;
++    mark_used_ = current_ != nullptr ? current_->used : 0;
++    commit_refs_ = nullptr;
++    commit_bytes_ = 0;
++}
++
++bool PinnedArena::append(const void* data, std::uint32_t len, ValueRef* out) noexcept {
++    if (len == 0) {
++        *out = ValueRef{kNoChunk, 0, 0};
++        return true;
++    }
++    if (len > chunk_bytes_) {
++        // Oversized value: a dedicated chunk, sealed from the start. Its birth
++        // reference is held by the commit.
++        PinnedChunk* c = new_chunk(len);
++        if (c == nullptr) return false;
++        std::memcpy(c->data(), data, len);
++        c->used = len;
++        c->sealed = true;
++        c->link = commit_refs_;
++        commit_refs_ = c;
++        commit_bytes_ += len;
++        *out = ValueRef{c->id, 0, len};
++        return true;
++    }
++    if (current_ == nullptr || current_->capacity - current_->used < len) {
++        PinnedChunk* next = new_chunk(chunk_bytes_);
++        if (next == nullptr) return false;
++        if (current_ != nullptr) {
++            // The previous writable chunk keeps its reference: what was the
++            // writable reference is now a commit reference, because this commit
++            // may hold unpublished ValueRefs into the chunk.
++            current_->sealed = true;
++            current_->link = commit_refs_;
++            commit_refs_ = current_;
++        }
++        current_ = next;  // its birth reference is the writable reference
++    }
++    const std::uint32_t offset = current_->used;
++    // Bytes beyond every published reference: no reader can be looking here.
++    std::memcpy(current_->data() + offset, data, len);
++    current_->used = offset + len;
++    commit_bytes_ += len;
++    *out = ValueRef{current_->id, offset, len};
++    return true;
++}
++
++void PinnedArena::end_commit() noexcept {
++    bytes_appended_ += commit_bytes_;
++    NOVA_TEST_POINT(TestPoint::WriterEndCommitBeforeRelease);
++    // The new segments hold their own references now. Drop the commit's.
++    for (PinnedChunk* c = commit_refs_; c != nullptr;) {
++        PinnedChunk* next = c->link;
++        c->link = nullptr;
++        drop_ref(c);  // `c` may be gone after this line
++        c = next;
++    }
++    commit_refs_ = nullptr;
++    mark_current_ = nullptr;
++}
++
++void PinnedArena::rollback_commit() noexcept {
++    ++rollbacks_;
++    // Chunks the failed commit holds a reference on: everything it created
++    // except possibly the current writable one, plus the chunk that was
++    // writable when it began if the commit moved on from it. The latter is not
++    // released: it becomes the writable chunk again and keeps its reference.
++    for (PinnedChunk* c = commit_refs_; c != nullptr;) {
++        PinnedChunk* next = c->link;
++        c->link = nullptr;
++        if (c != mark_current_) drop_ref(c);
++        c = next;
++    }
++    commit_refs_ = nullptr;
++    // A writable chunk created by this commit: drop its birth reference too.
++    if (current_ != mark_current_ && current_ != nullptr) drop_ref(current_);
++    current_ = mark_current_;
++    if (current_ != nullptr) {
++        current_->used = mark_used_;  // drop the unpublished tail
++        current_->sealed = false;
++    }
++    mark_current_ = nullptr;
++    commit_bytes_ = 0;
++}
++
++// ---- Segment references -----------------------------------------------------------
++
++void PinnedArena::add_ref(std::uint32_t chunk_id) noexcept {
++    PinnedChunk* c =
++        block_of(chunk_id)->slot[chunk_id & (kChunkDirBlockSlots - 1)].load(std::memory_order_seq_cst);
++    c->refs.fetch_add(1, std::memory_order_seq_cst);
++    ++refs_taken_;
++}
++
++void PinnedArena::release(std::uint32_t chunk_id) noexcept {
++    PinnedChunk* c =
++        block_of(chunk_id)->slot[chunk_id & (kChunkDirBlockSlots - 1)].load(std::memory_order_seq_cst);
++    refs_dropped_.fetch_add(1, std::memory_order_relaxed);
++    drop_ref(c);
++}
++
++}  // namespace nova
+diff --git a/src/pinned_arena.h b/src/pinned_arena.h
+new file mode 100644
+index 0000000..988d76d
+--- /dev/null
++++ b/src/pinned_arena.h
+@@ -0,0 +1,178 @@
++// pinned_arena.h -- value storage for the Part B (RCU) store: append-only
++// chunks behind a global chunk directory that concurrent readers may consult.
++//
++// LIFETIME: ONE REFERENCE COUNT PER CHUNK, ONE RULE.
++//
++// Every reason a chunk must stay alive is one counted reference (`refs`):
++//
++//   segment reference   each existing Segment that lists the chunk holds one,
++//                       taken before the segment is published and dropped when
++//                       the segment is destroyed (by the cleaner, after the
++//                       grace period of every version that owned the segment);
++//   writable reference  the writer holds one on the chunk it appends to, for as
++//                       long as that chunk is the writable one;
++//   commit reference    an open commit holds one on every chunk it created and
++//                       on a chunk that stopped being writable during it, until
++//                       the commit has ended (its new segments have taken their
++//                       own references) or has been rolled back.
++//
++// A chunk is destroyed by exactly one event: the `fetch_sub` that takes `refs`
++// from 1 to 0. Whichever thread performs that decrement (writer or cleaner)
++// destroys the chunk; no thread ever inspects the count and then decides to
++// free. Destruction clears the directory slot, frees the memory and only then
++// returns the chunk ID to the pool, so an ID is reusable only after nothing can
++// reference its previous chunk.
++//
++// Because a reader can reach a chunk only through a Segment of a version it is
++// protected in, and that Segment holds a reference for as long as it exists, a
++// chunk a reader can still dereference is never destroyed and its ID never
++// reused (INV-05, INV-06). The writer never rewinds or overwrites a chunk.
++//
++// THREADS: one writer calls begin/append/end/rollback/add_ref. release() may be
++// called by the writer and by the cleaner concurrently. data() is safe from any
++// number of readers concurrently with both.
++//
++// The chunk-ID pool is a lock-free stack with any number of pushers (whoever
++// destroys a chunk) and a single popper (the writer); see pinned_arena.cpp for
++// why a single popper makes it ABA-free.
++#pragma once
++
++#include "config.h"
++#include "value_ref.h"
++
++#include <atomic>
++#include <cstddef>
++#include <cstdint>
++
++namespace nova {
++
++struct PinnedChunk {
++    std::uint32_t id;                  // immutable
++    std::uint32_t capacity;            // immutable: payload bytes
++    std::uint32_t used;                // writer-only: bytes appended so far
++    bool sealed;                       // writer-only: accepts no further appends
++    std::atomic<std::uint32_t> refs;   // all references, see the header comment
++    PinnedChunk* link;                 // writer-only: list of the open commit's references
++
++    // Payload follows the header. Readers use only this address computation
++    // and the bytes themselves; they never read the fields above.
++    std::byte* data() noexcept { return reinterpret_cast<std::byte*>(this + 1); }
++    const std::byte* data() const noexcept {
++        return reinterpret_cast<const std::byte*>(this + 1);
++    }
++};
++
++struct PinnedArenaStats {
++    std::uint64_t chunks_live = 0;
++    std::uint64_t chunk_ids_issued = 0;    // distinct IDs ever handed out
++    std::uint64_t chunks_created = 0;
++    std::uint64_t chunks_freed = 0;
++    std::uint64_t ids_reused = 0;          // creations that took a recycled ID
++    std::uint64_t bytes_reserved = 0;      // payload capacity of live chunks
++    std::uint64_t bytes_appended = 0;      // committed value bytes, cumulative
++    std::uint64_t rollbacks = 0;           // commits whose appends were undone
++    std::uint64_t refs_taken = 0;          // segment references taken
++    std::uint64_t refs_dropped = 0;        // segment references dropped
++};
++
++class PinnedArena {
++public:
++    explicit PinnedArena(std::uint32_t chunk_bytes = kChunkBytes,
++                         std::uint32_t max_blocks = kChunkDirMaxBlocks) noexcept;
++    ~PinnedArena();
++    PinnedArena(const PinnedArena&) = delete;
++    PinnedArena& operator=(const PinnedArena&) = delete;
++
++    // ---- Writer: one commit = begin, appends, then end or rollback ----------
++    void begin_commit() noexcept;
++    // Copies `len` bytes and returns their reference. False on allocation
++    // failure or directory exhaustion; nothing already appended is disturbed.
++    // The chunk holding the bytes is protected by a writable or commit
++    // reference until end_commit() / rollback_commit().
++    bool append(const void* data, std::uint32_t len, ValueRef* out) noexcept;
++    // Ends the commit: drops its commit references. Call AFTER the new segments
++    // have taken their references with add_ref(); a chunk nobody else
++    // references is destroyed by that drop.
++    void end_commit() noexcept;
++    // Discards every append since begin_commit(): drops the references on
++    // chunks the commit created and restores the writable chunk and its write
++    // offset. Cannot fail.
++    void rollback_commit() noexcept;
++
++    // ---- Segment references --------------------------------------------------
++    // Writer only. The caller must already be protecting the chunk: it is
++    // listed by a segment of the current version, or covered by a writable or
++    // commit reference. Never an increment from zero.
++    void add_ref(std::uint32_t chunk_id) noexcept;
++    // Writer or cleaner. Drops one segment reference; destroys the chunk if it
++    // was the last reference of any kind.
++    void release(std::uint32_t chunk_id) noexcept;
++
++    // ---- Readers --------------------------------------------------------------
++    // Bytes of a non-empty reference obtained from a Segment the caller is
++    // protected in.
++    const std::byte* data(const ValueRef& ref) const noexcept {
++        const DirBlock* block =
++            blocks_[ref.chunk_id >> kChunkDirBlockBits].load(std::memory_order_seq_cst);
++        const PinnedChunk* c =
++            block->slot[ref.chunk_id & (kChunkDirBlockSlots - 1)].load(std::memory_order_seq_cst);
++        return c->data() + ref.offset;
++    }
++
++    // ---- Introspection --------------------------------------------------------
++    // chunk(), current(): only when neither the writer nor the cleaner is running.
++    const PinnedChunk* chunk(std::uint32_t id) const noexcept;
++    const PinnedChunk* current() const noexcept { return current_; }
++    std::uint32_t chunk_bytes() const noexcept { return chunk_bytes_; }
++    // Consistent when writer and cleaner are quiet; while they run, each field
++    // is individually valid but the set is not a snapshot.
++    PinnedArenaStats stats() const noexcept;
++    // Payload bytes of live chunks. Safe from any thread at any time.
++    std::uint64_t bytes_reserved() const noexcept {
++        return bytes_created_.load(std::memory_order_relaxed) -
++               bytes_freed_.load(std::memory_order_relaxed);
++    }
++
++private:
++    struct DirBlock {
++        std::atomic<PinnedChunk*> slot[kChunkDirBlockSlots];
++        std::atomic<std::uint32_t> next_free[kChunkDirBlockSlots];  // ID-pool links
++    };
++
++    PinnedChunk* new_chunk(std::uint32_t capacity) noexcept;
++    void drop_ref(PinnedChunk* c) noexcept;   // any thread
++    void destroy(PinnedChunk* c) noexcept;    // the thread whose drop reached zero
++    DirBlock* block_of(std::uint32_t id) const noexcept {
++        return blocks_[id >> kChunkDirBlockBits].load(std::memory_order_seq_cst);
++    }
++    void push_free_id(std::uint32_t id) noexcept;    // any thread
++    bool pop_free_id(std::uint32_t* id) noexcept;    // writer only
++
++    const std::uint32_t chunk_bytes_;
++    const std::uint32_t max_blocks_;
++
++    // ---- Writer-only state ---------------------------------------------------
++    PinnedChunk* current_;          // the writable chunk (holds the writable reference), or null
++    std::uint32_t next_fresh_id_;
++    PinnedChunk* mark_current_;     // writable chunk when the open commit began
++    std::uint32_t mark_used_;       // its write offset then
++    PinnedChunk* commit_refs_;      // chunks on which the open commit holds a reference
++    std::uint64_t commit_bytes_;
++    std::uint64_t chunk_ids_issued_ = 0;
++    std::uint64_t ids_reused_ = 0;
++    std::uint64_t bytes_appended_ = 0;
++    std::uint64_t rollbacks_ = 0;
++    std::uint64_t refs_taken_ = 0;
++
++    // ---- Shared between writer and cleaner ------------------------------------
++    std::atomic<std::uint32_t> free_head_;           // top of the ID pool, kNoChunk if empty
++    std::atomic<std::uint64_t> chunks_created_{0};
++    std::atomic<std::uint64_t> bytes_created_{0};
++    std::atomic<std::uint64_t> chunks_freed_{0};
++    std::atomic<std::uint64_t> bytes_freed_{0};
++    std::atomic<std::uint64_t> refs_dropped_{0};
++
++    std::atomic<DirBlock*> blocks_[kChunkDirMaxBlocks];
++};
++
++}  // namespace nova
+diff --git a/src/sync_mode.h b/src/sync_mode.h
+index 5ebae67..7833fcc 100644
+--- a/src/sync_mode.h
++++ b/src/sync_mode.h
+@@ -1,13 +1,18 @@
+ // sync_mode.h -- build-time selection of the store's synchronization policy.
+ //
+-// The same kvstore.cpp is compiled once per policy (see CMakeLists.txt); only
+-// the synchronization differs between the resulting libraries, never the data
+-// structure. The public kvstore.h is identical for every policy.
++// The same kvstore.cpp is compiled once per policy (see CMakeLists.txt). The
++// public kvstore.h is identical for every policy.
++//
++// The three Part A policies share one mutable index and differ only in the
++// lock. The Part B policy (rcu) replaces the lock with immutable published
++// versions (src/versioned_store.h); it uses the same hash, slot format, probing
++// rules and chunked value storage, built copy-on-write instead of in place.
+ #pragma once
+ 
+ #define NOVA_KV_SYNC_SINGLE 1       // no internal synchronization (single-threaded driver)
+ #define NOVA_KV_SYNC_GLOBAL_LOCK 2  // one std::mutex around every operation
+ #define NOVA_KV_SYNC_RWLOCK 3       // std::shared_mutex: shared get, unique put/erase
++#define NOVA_KV_SYNC_RCU 4          // Part B: immutable versions, atomic root, lock-free reads
+ 
+ #ifndef NOVA_KV_SYNC_MODE
+ #error "NOVA_KV_SYNC_MODE must be defined by the build (see CMakeLists.txt)"
+@@ -19,6 +24,8 @@
+ #define NOVA_KV_SYNC_MODE_NAME "global_lock"
+ #elif NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RWLOCK
+ #define NOVA_KV_SYNC_MODE_NAME "rwlock"
++#elif NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
++#define NOVA_KV_SYNC_MODE_NAME "rcu"
+ #else
+ #error "NOVA_KV_SYNC_MODE has an unknown value"
+ #endif
+diff --git a/src/sync_policy.h b/src/sync_policy.h
+index aebb8b3..1935899 100644
+--- a/src/sync_policy.h
++++ b/src/sync_policy.h
+@@ -3,6 +3,7 @@
+ //   single       no lock; the caller guarantees one thread at a time
+ //   global_lock  one std::mutex held for every put / get / erase
+ //   rwlock       std::shared_mutex: get shared, put / erase exclusive
++//   rcu          (Part B) no lock at all; see versioned_store.h
+ #pragma once
+ 
+ #include "sync_mode.h"
+@@ -38,6 +39,10 @@ using StoreLock = std::shared_mutex;
+ using ReadGuard = std::shared_lock<std::shared_mutex>;
+ using WriteGuard = std::unique_lock<std::shared_mutex>;
+ 
++#elif NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
++
++// No lock type: the Part B store has no lock on any path (versioned_store.h).
++
+ #endif
+ 
+ }  // namespace nova
+diff --git a/src/test_points.h b/src/test_points.h
+new file mode 100644
+index 0000000..bfdb8b8
+--- /dev/null
++++ b/src/test_points.h
+@@ -0,0 +1,53 @@
++// test_points.h -- named pause points for deterministic interleaving tests.
++//
++// With NOVA_KV_TEST_HOOKS defined (only the *_testhooks libraries), each
++// NOVA_TEST_POINT(p) calls a test-installed function, which a test uses to park
++// a thread at an exact step and let another thread run. Without the macro the
++// points compile to nothing: production variants contain no hook code.
++#pragma once
++
++namespace nova {
++
++enum class TestPoint : int {
++    // ---- reader (get / pin) ----
++    ReaderBeforeAnnounce = 1,    // epoch read, slot not yet written
++    ReaderAfterAnnounce = 2,     // slot written, epoch not yet re-read
++    ReaderAfterValidate = 3,     // announcement validated, root not yet loaded
++    ReaderAfterRootLoad = 4,     // the one load of `current` is done
++    ReaderBeforeCopyOut = 5,     // entry found, bytes not yet copied
++    // ---- writer (commit) ----
++    WriterAfterAppends = 10,           // values appended, no ownership taken yet
++    WriterEndCommitBeforeRelease = 11, // new segments own their chunks; commit references not yet dropped
++    WriterBeforePublish = 12,          // new version fully built, not yet visible
++    WriterAfterPublish = 13,           // root swapped, old version not yet tagged or queued
++    WriterAfterRetireTag = 14,         // retirement epoch sampled, record not yet queued
++    // ---- cleaner (reclamation pass) ----
++    CleanerBeforeScan = 20,      // epoch read, no slot examined yet
++    CleanerMidScan = 21,         // after examining each slot
++    CleanerBeforeAdvance = 22,   // scan passed, epoch not yet advanced
++    CleanerMidVersion = 23,      // between two directory entries of a version being released
++};
++
++// Kinds of engine objects whose creation and destruction are counted in hook
++// builds, so a test can assert that destroying a store released everything
++// (independently of a leak checker).
++enum class LiveObject : int { Version = 0, Segment = 1, Chunk = 2 };
++
++#ifdef NOVA_KV_TEST_HOOKS
++namespace test_hooks {
++using PointFn = void (*)(TestPoint point, void* context);
++// Installs (or with nullptr removes) the function called at every test point.
++void set_point_hook(PointFn fn, void* context) noexcept;
++void at_point(TestPoint point) noexcept;
++// Process-wide number of objects of a kind that currently exist.
++long live_objects(LiveObject kind) noexcept;
++void count_object(LiveObject kind, long delta) noexcept;
++}  // namespace test_hooks
++#define NOVA_TEST_POINT(p) ::nova::test_hooks::at_point(p)
++#define NOVA_COUNT_OBJECT(kind, delta) ::nova::test_hooks::count_object(kind, delta)
++#else
++#define NOVA_TEST_POINT(p) ((void)0)
++#define NOVA_COUNT_OBJECT(kind, delta) ((void)0)
++#endif
++
++}  // namespace nova
+diff --git a/src/versioned_store.cpp b/src/versioned_store.cpp
+new file mode 100644
+index 0000000..6fea2ee
+--- /dev/null
++++ b/src/versioned_store.cpp
+@@ -0,0 +1,766 @@
++#include "versioned_store.h"
++
++#include "alloc.h"
++#include "test_points.h"
++
++#include <algorithm>
++#include <chrono>
++#include <cstring>
++#include <ctime>
++#include <mutex>
++#include <new>
++#include <vector>
++
++namespace nova {
++
++namespace {
++
++std::atomic<std::uint8_t> g_default_reclaim{static_cast<std::uint8_t>(ReclaimMode::Epoch)};
++std::atomic<std::uint8_t> g_default_cleaner{static_cast<std::uint8_t>(CleanerMode::Background)};
++
++// How long the background cleaner sleeps when a pass found nothing to do.
++constexpr std::chrono::microseconds kCleanerIdleSleep{200};
++// StopTheWorld comparator: free the retire list once it is at least this long.
++constexpr std::uint64_t kStwBacklogTrigger = 1024;
++
++std::uint64_t segment_bytes(const Segment* s) noexcept {
++    return sizeof(Segment) + sizeof(ChunkPin) * std::uint64_t{s->pin_count} +
++           sizeof(Entry) * std::uint64_t{s->capacity};
++}
++
++// The builders of one commit: one per touched partition. A single-key write
++// uses the inline builder; larger batches allocate an array.
++class BuilderSet {
++public:
++    BuilderSet() noexcept : heap_(nullptr), count_(0), constructed_(0) {}
++    ~BuilderSet() {
++        for (std::uint32_t i = 0; i < constructed_; ++i) at(i).~SegmentBuilder();
++        free_bytes(heap_);
++    }
++    bool init(std::uint32_t count) noexcept {
++        count_ = count;
++        if (count > 1) {
++            heap_ = static_cast<SegmentBuilder*>(
++                alloc_bytes(sizeof(SegmentBuilder) * count, alignof(SegmentBuilder)));
++            if (heap_ == nullptr) return false;
++        }
++        for (std::uint32_t i = 0; i < count; ++i) {
++            new (&at(i)) SegmentBuilder();
++            ++constructed_;
++        }
++        return true;
++    }
++    SegmentBuilder& at(std::uint32_t i) noexcept {
++        return heap_ != nullptr ? heap_[i] : *reinterpret_cast<SegmentBuilder*>(inline_);
++    }
++
++private:
++    alignas(SegmentBuilder) unsigned char inline_[sizeof(SegmentBuilder)];
++    SegmentBuilder* heap_;
++    std::uint32_t count_;
++    std::uint32_t constructed_;
++};
++
++void raise_max(std::atomic<std::uint64_t>& a, std::uint64_t v) noexcept {
++    std::uint64_t cur = a.load(std::memory_order_relaxed);
++    while (v > cur && !a.compare_exchange_weak(cur, v, std::memory_order_relaxed)) {
++    }
++}
++
++}  // namespace
++
++void set_default_store_options(const StoreOptions& options) noexcept {
++    g_default_reclaim.store(static_cast<std::uint8_t>(options.reclaim));
++    g_default_cleaner.store(static_cast<std::uint8_t>(options.cleaner));
++}
++
++StoreOptions default_store_options() noexcept {
++    StoreOptions o;
++    o.reclaim = static_cast<ReclaimMode>(g_default_reclaim.load());
++    o.cleaner = static_cast<CleanerMode>(g_default_cleaner.load());
++    return o;
++}
++
++VersionedStore::VersionedStore() : VersionedStore(default_store_options()) {}
++
++VersionedStore::VersionedStore(const StoreOptions& options)
++    : options_(options),
++      current_(nullptr),
++      latest_(nullptr),
++      queue_tail_(nullptr),
++      queue_head_(nullptr) {
++    if (!epochs_.ok()) return;
++    // Readers never see a null root: an empty version exists from the start.
++    void* raw = alloc_bytes(sizeof(Version), alignof(Version));
++    void* dummy = alloc_bytes(sizeof(RetireNode), alignof(RetireNode));
++    if (raw == nullptr || dummy == nullptr) {
++        free_bytes(raw);
++        free_bytes(dummy);
++        return;
++    }
++    Version* v = new (raw) Version();
++    NOVA_COUNT_OBJECT(LiveObject::Version, 1);
++    v->sequence = 0;
++    for (Segment*& s : v->segments) s = nullptr;
++    latest_ = v;
++    w_.index_bytes_added = sizeof(Version);
++    // The retirement queue always holds one dummy node; the writer appends
++    // after the tail, the cleaner consumes after the head.
++    RetireNode* d = new (dummy) RetireNode();
++    d->version = nullptr;
++    d->retire_epoch = 0;
++    d->next.store(nullptr, std::memory_order_relaxed);
++    queue_head_ = d;
++    queue_tail_ = d;
++    current_.store(v, std::memory_order_seq_cst);
++    ok_ = true;
++    if (options_.cleaner == CleanerMode::Background && !start_cleaner()) ok_ = false;
++}
++
++VersionedStore::~VersionedStore() {
++    // Shutdown contract (blueprint 2.2, 15.4): every reader and the writer have
++    // stopped and every Pin has been released before the store is destroyed.
++    stop_cleaner();          // 1. no other thread runs passes from here on
++    destroy_everything();    // 2. this thread releases the whole ownership graph
++    // 3. epochs_ unregisters from the live-domain table before freeing its
++    //    slots, so a thread exiting later cannot touch them; arena_ frees the
++    //    writable chunk.
++}
++
++void VersionedStore::destroy_everything() noexcept {
++    if (latest_ == nullptr) return;  // construction failed early
++    std::uint64_t unlimited = ~std::uint64_t{0};
++    if (job_.version != nullptr) {
++        run_job(unlimited);
++        reclaimed_.fetch_add(1, std::memory_order_seq_cst);
++    }
++    // Every queued version, whatever its epoch: no reader exists any more.
++    for (;;) {
++        RetireNode* next = queue_head_->next.load(std::memory_order_seq_cst);
++        if (next == nullptr) break;
++        free_bytes(queue_head_);
++        queue_head_ = next;
++        job_ = Job{};
++        job_.version = next->version;
++        unlimited = ~std::uint64_t{0};
++        run_job(unlimited);
++        reclaimed_.fetch_add(1, std::memory_order_seq_cst);
++    }
++    free_bytes(queue_head_);
++    queue_head_ = nullptr;
++    // The current version.
++    job_ = Job{};
++    job_.version = latest_;
++    unlimited = ~std::uint64_t{0};
++    run_job(unlimited);
++    latest_ = nullptr;
++    current_.store(nullptr, std::memory_order_seq_cst);
++}
++
++// ---- Read path ---------------------------------------------------------------------
++
++bool VersionedStore::read(const Version* v, long key, std::uint64_t h, void* value_out,
++                          std::size_t value_out_len) const noexcept {
++    const Entry* e = segment_find(v->segments[partition_of(h)], key, h);
++    if (e == nullptr) return false;
++    const std::uint32_t len = e->value.length;
++    if (len > value_out_len) return false;  // never a truncated copy; buffer untouched
++    if (len == 0) return true;              // present, empty value
++    if (value_out == nullptr) return false;
++    NOVA_TEST_POINT(TestPoint::ReaderBeforeCopyOut);
++    // The segment holds a reference on the chunk, so the directory slot is
++    // non-null and the bytes are immutable. Copy out while still protected; no
++    // internal pointer leaves the store.
++    std::memcpy(value_out, arena_.data(e->value), len);
++    return true;
++}
++
++bool VersionedStore::get(long key, void* value_out, std::size_t value_out_len) const {
++    const std::uint64_t h = hash_key(key);
++    // StopTheWorld comparator only (an immutable flag, never set by default).
++    std::shared_lock<std::shared_mutex> stw(stw_lock_, std::defer_lock);
++    if (options_.reclaim == ReclaimMode::StopTheWorld) stw.lock();
++
++    // This thread's slot: a thread-local lookup, except on the thread's first
++    // read of this store, when it is registered (may throw std::bad_alloc).
++    ReaderSlot* slot = epochs_.thread_slot();
++    epochs_.pin(slot);                                                   // [P1]-[P3]
++    // Protected from here. The one and only load of the root in this
++    // operation; seq_cst, so it is ordered after the writer's exchange that
++    // published this version and after this reader's validated announcement.
++    const Version* v = current_.load(std::memory_order_seq_cst);        // [P4]
++    NOVA_TEST_POINT(TestPoint::ReaderAfterRootLoad);
++    const bool found = read(v, key, h, value_out, value_out_len);
++    epochs_.unpin(slot);                                                 // [P5]
++    return found;
++}
++
++VersionedStore::Pin VersionedStore::acquire_pin() const {
++    Pin pin;
++    pin.slot = epochs_.acquire_slot();  // dedicated slot; may throw before anything is pinned
++    epochs_.pin(pin.slot);
++    pin.version = current_.load(std::memory_order_seq_cst);  // one load, after validation
++    NOVA_TEST_POINT(TestPoint::ReaderAfterRootLoad);
++    return pin;
++}
++
++bool VersionedStore::get_pinned(const Pin& pin, long key, void* value_out,
++                                std::size_t value_out_len) const noexcept {
++    // No new announcement and no root load: the pin's slot has been announcing
++    // one epoch since acquire_pin(), and the version is the one loaded then.
++    return read(pin.version, key, hash_key(key), value_out, value_out_len);
++}
++
++void VersionedStore::release_pin(Pin& pin) const noexcept {
++    if (pin.slot == nullptr) return;
++    epochs_.unpin(pin.slot);
++    epochs_.release_slot(pin.slot);
++    pin = Pin{};
++}
++
++bool VersionedStore::get_at_unprotected(const Version* v, long key, void* value_out,
++                                        std::size_t value_out_len) const noexcept {
++    return read(v, key, hash_key(key), value_out, value_out_len);
++}
++
++// ---- Write path --------------------------------------------------------------------
++
++bool VersionedStore::put(long key, const void* value, std::size_t value_len) noexcept {
++    const BatchOp op{BatchOp::Kind::Put, key, value, value_len};
++    return commit(&op, 1);
++}
++
++bool VersionedStore::erase(long key) noexcept {
++    // An absent key is reported without building or publishing anything. The
++    // writer may read the current version freely: it cannot be retired except
++    // by the writer itself.
++    const std::uint64_t h = hash_key(key);
++    if (segment_find(latest_->segments[partition_of(h)], key, h) == nullptr) return false;
++    const BatchOp op{BatchOp::Kind::Erase, key, nullptr, 0};
++    bool applied = false;
++    return commit(&op, 1, &applied) && applied;
++}
++
++bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) noexcept {
++    if (n == 0) return true;
++    if (n > 0xFFFFFFFFu) return false;
++
++    // ---- Phase 0: validate every argument before anything is built. ----------
++    for (std::size_t i = 0; i < n; ++i) {
++        if (ops[i].kind != BatchOp::Kind::Put) continue;
++        if (ops[i].length > kMaxValueBytes) return false;
++        if (ops[i].length != 0 && ops[i].value == nullptr) return false;
++    }
++
++    // The current version. Only the writer retires it, and only at the end of
++    // this function, so it and every segment and chunk it references stay
++    // alive for the whole commit whatever the cleaner does.
++    Version* const base = latest_;
++
++    // ---- Phase 1: group by partition; one builder per touched partition. -----
++    std::uint16_t builder_of[kPartitionCount];
++    std::uint32_t ops_in[kPartitionCount];
++    std::memset(builder_of, 0xFF, sizeof(builder_of));
++    std::uint32_t touched = 0;
++    for (std::size_t i = 0; i < n; ++i) {
++        const std::uint32_t p = partition_of(hash_key(ops[i].key));
++        if (builder_of[p] == 0xFFFF) {
++            builder_of[p] = static_cast<std::uint16_t>(touched);
++            ops_in[touched] = 0;
++            ++touched;
++        }
++        ++ops_in[builder_of[p]];
++    }
++
++    BuilderSet builders;
++    Version* next = nullptr;
++    RetireNode* node = nullptr;
++    bool arena_open = false;
++
++    // Everything from here to "nothing can fail" works on private memory, plus
++    // arena appends that are covered by writable / commit references. On any
++    // failure: roll the arena back (which releases those references), let the
++    // builders free what they allocated, and report failure. No segment owner
++    // count or segment chunk reference has been touched and `current_` has not
++    // been written.
++    auto fail = [&]() {
++        if (arena_open) arena_.rollback_commit();
++        free_bytes(next);
++        free_bytes(node);
++        ++w_.commits_failed;
++        return false;
++    };
++
++    if (!builders.init(touched)) return fail();
++    for (std::uint32_t p = 0; p < kPartitionCount; ++p) {
++        if (builder_of[p] == 0xFFFF) continue;
++        if (!builders.at(builder_of[p]).begin(base->segments[p], ops_in[builder_of[p]])) {
++            return fail();
++        }
++    }
++
++    // ---- Phase 2: apply the operations in order to the private copies. ------
++    arena_.begin_commit();
++    arena_open = true;
++    bool any_change = false;
++    for (std::size_t i = 0; i < n; ++i) {
++        const std::uint64_t h = hash_key(ops[i].key);
++        SegmentBuilder& b = builders.at(builder_of[partition_of(h)]);
++        bool took_effect;
++        if (ops[i].kind == BatchOp::Kind::Put) {
++            if (!b.prepare_put(ops[i].key, h)) return fail();
++            ValueRef ref;
++            if (!arena_.append(ops[i].value, static_cast<std::uint32_t>(ops[i].length), &ref)) {
++                b.abort_put();
++                return fail();
++            }
++            b.commit_put(ops[i].key, h, ref);
++            took_effect = true;
++        } else {
++            took_effect = b.erase(ops[i].key, h);
++        }
++        any_change = any_change || took_effect;
++        if (applied != nullptr) applied[i] = took_effect;
++    }
++
++    if (!any_change) {
++        // Only erases of absent keys: the state is unchanged, publish nothing.
++        arena_.rollback_commit();
++        ++w_.commits_without_change;
++        return true;
++    }
++    // The commit now holds unpublished ValueRefs. Every chunk they name is
++    // covered by the arena's writable or commit reference until end_commit().
++    NOVA_TEST_POINT(TestPoint::WriterAfterAppends);
++
++    // ---- Phase 3: the remaining allocations. ---------------------------------
++    for (std::uint32_t i = 0; i < touched; ++i) {
++        if (builders.at(i).changed() && !builders.at(i).prepare_finish()) return fail();
++    }
++    next = static_cast<Version*>(alloc_bytes(sizeof(Version), alignof(Version)));
++    if (next == nullptr) return fail();
++    // The retirement record is reserved BEFORE publication, so handing the old
++    // version over afterwards cannot fail.
++    node = static_cast<RetireNode*>(alloc_bytes(sizeof(RetireNode), alignof(RetireNode)));
++    if (node == nullptr) return fail();
++
++    // ================= Nothing below this line can fail. =======================
++
++    // ---- Phase 4: assemble the new version and take ownership. --------------
++    new (next) Version();
++    NOVA_COUNT_OBJECT(LiveObject::Version, 1);
++    next->sequence = base->sequence + 1;
++    std::memcpy(next->segments, base->segments, sizeof(next->segments));
++    w_.directory_bytes_copied += sizeof(next->segments);
++
++    bool replaced[kPartitionCount] = {};
++    for (std::uint32_t p = 0; p < kPartitionCount; ++p) {
++        if (builder_of[p] == 0xFFFF) continue;
++        SegmentBuilder& b = builders.at(builder_of[p]);
++        if (!b.changed()) continue;  // e.g. an erase of an absent key: keep sharing
++        w_.index_bytes_copied += b.bytes_built();
++        w_.segment_growths += b.growths();
++        w_.segment_rebuilds += b.rebuilds();
++        Segment* seg = b.finish();
++        if (seg != nullptr) {
++            // The new segment takes its own reference on every chunk it lists,
++            // BEFORE it can be seen. Each of those chunks is alive: it is
++            // either listed by the base segment (which `base` owns) or covered
++            // by this commit's writable / commit reference.
++            for (std::uint32_t k = 0; k < seg->pin_count; ++k) arena_.add_ref(seg->pins[k].chunk_id);
++            seg->owners.store(1, std::memory_order_seq_cst);
++            w_.index_bytes_added += segment_bytes(seg);
++            ++w_.segments_built;
++        } else {
++            ++w_.segments_dropped;
++        }
++        next->segments[p] = seg;
++        replaced[p] = true;
++    }
++    // Segments carried over unchanged gain one more owning version. `base`
++    // owns each of them, so this is never an increment from zero.
++    for (std::uint32_t p = 0; p < kPartitionCount; ++p) {
++        if (replaced[p] || next->segments[p] == nullptr) continue;
++        next->segments[p]->owners.fetch_add(1, std::memory_order_seq_cst);
++        ++w_.owner_refs_taken;
++    }
++    w_.index_bytes_added += sizeof(Version);
++    // The new segments hold their references now: the commit drops its own.
++    arena_.end_commit();
++
++    // ---- Phase 5: publish. The linearization point of the whole write. ------
++    NOVA_TEST_POINT(TestPoint::WriterBeforePublish);
++    Version* const old = current_.exchange(next, std::memory_order_seq_cst);     // [W1]
++    latest_ = next;
++    ++w_.versions_published;
++    NOVA_TEST_POINT(TestPoint::WriterAfterPublish);
++
++    // ---- Phase 6: retire the replaced version. -------------------------------
++    // It is owned by this local variable until the store to the queue below;
++    // nothing in between can fail or return, so it cannot be lost. The tag is
++    // read AFTER the exchange: every reader that can hold `old` loaded the
++    // root before [W1], hence validated an epoch <= this tag.
++    node->version = old;
++    node->retire_epoch = epochs_.epoch();                                        // [W2]
++    node->next.store(nullptr, std::memory_order_relaxed);
++    NOVA_TEST_POINT(TestPoint::WriterAfterRetireTag);
++    // One store makes the record visible to the cleaner, complete.
++    queue_tail_->next.store(node, std::memory_order_seq_cst);                    // [W3]
++    queue_tail_ = node;
++    const std::uint64_t retired = retired_.load(std::memory_order_relaxed) + 1;
++    retired_.store(retired, std::memory_order_seq_cst);
++    const std::uint64_t backlog = retired - reclaimed_.load(std::memory_order_seq_cst);
++    if (backlog > w_.backlog_max) w_.backlog_max = backlog;
++
++    // Deterministic single-threaded configurations: the writer also plays the
++    // cleaner. These are ordinary passes; they never wait for a reader.
++    if (options_.cleaner == CleanerMode::Inline) drain();
++    return true;
++}
++
++// ---- Reclamation ---------------------------------------------------------------------
++
++void VersionedStore::set_reclaim_batch(int n) noexcept {
++    reclaim_batch_.store(n <= 0 ? 1 : n, std::memory_order_seq_cst);
++}
++
++void VersionedStore::set_reclaim_work_per_version(std::uint32_t units) noexcept {
++    work_per_version_.store(units == 0 ? 1 : units, std::memory_order_seq_cst);
++}
++
++// Releases the version in job_, resuming where a previous call stopped. Spends
++// at most `budget` work units (one per directory entry visited, one per chunk
++// reference dropped). Returns true when the version is completely destroyed;
++// false if the budget ran out first, leaving job_ ready to be resumed.
++bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
++    Version* v = job_.version;
++    for (;;) {
++        if (job_.segment == nullptr) {
++            if (job_.partition == kPartitionCount) break;
++            if (budget == 0) return false;
++            --budget;
++            Segment* seg = v->segments[job_.partition];
++            // This version gives up its reference. Only the decrement that
++            // reaches zero makes this thread the segment's destroyer; every
++            // other version that points at the segment still owns it.
++            if (seg == nullptr || seg->owners.fetch_sub(1, std::memory_order_seq_cst) != 1) {
++                ++job_.partition;
++                continue;
++            }
++            job_.segment = seg;
++            job_.pin = 0;
++        }
++        // We are the last owner of job_.segment: drop its chunk references.
++        Segment* seg = job_.segment;
++        while (job_.pin < seg->pin_count) {
++            if (budget == 0) return false;
++            --budget;
++            arena_.release(seg->pins[job_.pin].chunk_id);
++            ++job_.pin;
++        }
++        index_bytes_released_.fetch_add(segment_bytes(seg), std::memory_order_relaxed);
++        segments_released_.fetch_add(1, std::memory_order_relaxed);
++        destroy_segment(seg);
++        job_.segment = nullptr;
++        ++job_.partition;
++        NOVA_TEST_POINT(TestPoint::CleanerMidVersion);
++    }
++    index_bytes_released_.fetch_add(sizeof(Version), std::memory_order_relaxed);
++    NOVA_COUNT_OBJECT(LiveObject::Version, -1);
++    v->~Version();
++    free_bytes(v);
++    job_ = Job{};
++    return true;
++}
++
++bool VersionedStore::epoch_pass() noexcept {
++    bool progress = false;
++    const bool pending =
++        job_.version != nullptr || queue_head_->next.load(std::memory_order_seq_cst) != nullptr;
++    // (1) One gated attempt to advance the epoch, if anything is waiting for it.
++    if (pending && epochs_.try_advance()) progress = true;
++
++    // (2) Destroy retired versions whose grace period has passed: at most
++    // `batch` of them completely, oldest first, within the work budget.
++    const std::uint64_t batch = static_cast<std::uint64_t>(reclaim_batch_.load(std::memory_order_seq_cst));
++    const std::uint64_t allowance = batch * work_per_version_.load(std::memory_order_seq_cst);
++    std::uint64_t budget = allowance;
++    std::uint64_t freed = 0;
++    while (freed < batch) {
++        if (job_.version == nullptr) {
++            RetireNode* oldest = queue_head_->next.load(std::memory_order_seq_cst);   // [C5]
++            if (oldest == nullptr) break;
++            // ELIGIBILITY: two gated advances beyond the retirement tag.
++            // Nothing else (not age, not queue length) makes a version
++            // destroyable. The queue is in tag order, so if the oldest entry
++            // is not eligible none behind it is.
++            if (epochs_.epoch() < oldest->retire_epoch + 2) break;                   // [C6]
++            // Take it. `oldest` becomes the new dummy; its payload has been
++            // moved into job_ and is never read from the node again.
++            job_.version = oldest->version;
++            RetireNode* consumed = queue_head_;
++            queue_head_ = oldest;
++            free_bytes(consumed);
++        }
++        const std::uint64_t before = budget;
++        const bool done = run_job(budget);
++        if (before != budget) progress = true;
++        if (!done) {
++            interrupted_versions_.fetch_add(1, std::memory_order_relaxed);
++            break;  // budget exhausted: resume in a later pass
++        }
++        // Only now, with every reference released and the memory freed, does
++        // the version count as reclaimed.
++        ++freed;
++        reclaimed_.fetch_add(1, std::memory_order_seq_cst);
++        progress = true;
++    }
++    raise_max(max_versions_in_pass_, freed);
++    raise_max(max_units_in_pass_, allowance - budget);
++    return progress;
++}
++
++// Comparator for Part D.2 only. Every reader holds stw_lock_ shared for the
++// whole of its get(); taking it exclusively therefore means no reader is
++// inside the store, and the entire retire list can be freed regardless of
++// epochs. This is the unbounded stop-the-world sweep the assignment asks to be
++// compared against, not a mode for normal use.
++bool VersionedStore::stw_pass() noexcept {
++    if (backlog() < kStwBacklogTrigger) return false;
++    std::unique_lock<std::shared_mutex> freeze(stw_lock_);
++    stw_pauses_.fetch_add(1, std::memory_order_relaxed);
++    std::uint64_t unlimited = ~std::uint64_t{0};
++    for (;;) {
++        if (job_.version == nullptr) {
++            RetireNode* oldest = queue_head_->next.load(std::memory_order_seq_cst);
++            if (oldest == nullptr) break;
++            job_.version = oldest->version;
++            RetireNode* consumed = queue_head_;
++            queue_head_ = oldest;
++            free_bytes(consumed);
++        }
++        run_job(unlimited);
++        reclaimed_.fetch_add(1, std::memory_order_seq_cst);
++    }
++    return true;
++}
++
++bool VersionedStore::reclaim_pass() noexcept {
++    // One pass at a time; a second caller leaves at once instead of waiting.
++    if (pass_running_.exchange(true, std::memory_order_seq_cst)) return false;
++    bool progress = false;
++    switch (options_.reclaim) {
++        case ReclaimMode::Epoch: progress = epoch_pass(); break;
++        case ReclaimMode::StopTheWorld: progress = stw_pass(); break;
++        case ReclaimMode::Disabled: break;  // retired versions are kept until destruction
++    }
++    passes_.fetch_add(1, std::memory_order_relaxed);
++    if (progress) passes_with_work_.fetch_add(1, std::memory_order_relaxed);
++    pass_running_.store(false, std::memory_order_seq_cst);
++    return progress;
++}
++
++bool VersionedStore::drain() noexcept {
++    // Passes are repeated only while they achieve something. If a pinned
++    // participant holds the epoch back, this returns with the backlog intact.
++    for (int i = 0; i < 1 << 20 && backlog() != 0; ++i) {
++        if (!reclaim_pass()) break;
++    }
++    return backlog() == 0;
++}
++
++void VersionedStore::cleaner_main() noexcept {
++    while (!cleaner_stop_.load(std::memory_order_seq_cst)) {
++        // Back to back while there is work; a short sleep when there is none.
++        // The cleaner never blocks on a reader or on the writer.
++        if (!reclaim_pass()) std::this_thread::sleep_for(kCleanerIdleSleep);
++    }
++    // CPU time this thread consumed, for the statistics (read after stop_cleaner()).
++    timespec ts;
++    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
++        cleaner_cpu_ns_.fetch_add(static_cast<std::uint64_t>(ts.tv_sec) * 1000000000ull +
++                                      static_cast<std::uint64_t>(ts.tv_nsec),
++                                  std::memory_order_relaxed);
++    }
++}
++
++bool VersionedStore::start_cleaner() noexcept {
++    if (options_.cleaner != CleanerMode::Background || cleaner_thread_.joinable()) return true;
++    cleaner_stop_.store(false, std::memory_order_seq_cst);
++    try {
++        cleaner_thread_ = std::thread([this]() { cleaner_main(); });
++    } catch (...) {
++        return false;
++    }
++    return true;
++}
++
++void VersionedStore::stop_cleaner() noexcept {
++    if (!cleaner_thread_.joinable()) return;
++    cleaner_stop_.store(true, std::memory_order_seq_cst);
++    cleaner_thread_.join();
++}
++
++// ---- Introspection -----------------------------------------------------------------
++
++std::uint64_t VersionedStore::memory_held_bytes() const noexcept {
++    return w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed) +
++           arena_.bytes_reserved();
++}
++
++VersionedStats VersionedStore::stats() const noexcept {
++    VersionedStats s;
++    s.versions_published = w_.versions_published;
++    s.commits_failed = w_.commits_failed;
++    s.commits_without_change = w_.commits_without_change;
++    s.versions_retired = retired_.load(std::memory_order_seq_cst);
++    s.versions_reclaimed = reclaimed_.load(std::memory_order_seq_cst);
++    s.versions_retained = s.versions_retired - s.versions_reclaimed;
++    s.backlog_max = w_.backlog_max;
++    s.reclaim_passes = passes_.load(std::memory_order_relaxed);
++    s.reclaim_passes_with_work = passes_with_work_.load(std::memory_order_relaxed);
++    s.reclaim_max_versions_in_pass = max_versions_in_pass_.load(std::memory_order_relaxed);
++    s.reclaim_max_units_in_pass = max_units_in_pass_.load(std::memory_order_relaxed);
++    s.reclaim_interrupted_versions = interrupted_versions_.load(std::memory_order_relaxed);
++    s.stw_pauses = stw_pauses_.load(std::memory_order_relaxed);
++    s.cleaner_cpu_ns = cleaner_cpu_ns_.load(std::memory_order_relaxed);
++    s.epoch = epochs_.stats();
++    s.segments_built = w_.segments_built;
++    s.segments_dropped = w_.segments_dropped;
++    s.segments_released = segments_released_.load(std::memory_order_relaxed);
++    s.segment_growths = w_.segment_growths;
++    s.segment_rebuilds = w_.segment_rebuilds;
++    s.index_bytes_copied = w_.index_bytes_copied;
++    s.directory_bytes_copied = w_.directory_bytes_copied;
++    s.owner_refs_taken = w_.owner_refs_taken;
++    s.index_bytes_held = w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed);
++    s.arena = arena_.stats();
++    // Commits that changed nothing also unwind the arena, without being failures.
++    s.arena.rollbacks -= w_.commits_without_change;
++    return s;
++}
++
++void VersionedStore::for_each_version(void (*fn)(const Version*, void*), void* context) const {
++    fn(latest_, context);
++    for (const RetireNode* node = queue_head_->next.load(std::memory_order_seq_cst);
++         node != nullptr; node = node->next.load(std::memory_order_seq_cst)) {
++        fn(node->version, context);
++    }
++}
++
++const char* VersionedStore::validate() {
++    if (latest_ == nullptr) return "store has no current version";
++    if (current_.load(std::memory_order_seq_cst) != latest_) return "current_ differs from the writer's latest version";
++    if (pass_running_.load(std::memory_order_seq_cst)) return "validate() called while a reclamation pass is running";
++    // A version caught half-released was already eligible; finish it so that
++    // every version that exists is whole.
++    if (job_.version != nullptr) {
++        std::uint64_t unlimited = ~std::uint64_t{0};
++        run_job(unlimited);
++        reclaimed_.fetch_add(1, std::memory_order_seq_cst);
++    }
++
++    // Every (version, partition) reference that exists.
++    std::vector<const Segment*> refs;
++    std::uint64_t versions = 0;
++    struct Ctx {
++        std::vector<const Segment*>* refs;
++        std::uint64_t* versions;
++    } ctx{&refs, &versions};
++    for_each_version(
++        [](const Version* v, void* c) {
++            Ctx* x = static_cast<Ctx*>(c);
++            ++*x->versions;
++            for (const Segment* s : v->segments) {
++                if (s != nullptr) x->refs->push_back(s);
++            }
++        },
++        &ctx);
++    if (versions != backlog() + 1) return "queued version count differs from the backlog";
++    std::sort(refs.begin(), refs.end());
++
++    const PinnedArenaStats arena_stats = arena_.stats();
++    std::vector<std::uint32_t> chunk_refs(arena_stats.chunk_ids_issued, 0);
++    std::uint64_t held = versions * sizeof(Version);
++    for (std::size_t i = 0; i < refs.size();) {
++        const Segment* s = refs[i];
++        std::size_t j = i;
++        while (j < refs.size() && refs[j] == s) ++j;
++        // O1: owners == number of versions whose directory points at the segment.
++        if (s->owners.load(std::memory_order_seq_cst) != j - i) return "segment owner count mismatch";
++        i = j;
++        held += segment_bytes(s);
++
++        if (s->capacity == 0 || (s->capacity & (s->capacity - 1)) != 0) return "segment capacity invalid";
++        if (s->live == 0) return "published segment has no live key";
++        std::uint32_t live = 0, tombs = 0;
++        std::vector<ChunkPin> counted;
++        for (std::uint32_t k = 0; k < s->capacity; ++k) {
++            const Entry& e = s->slots[k];
++            if (e.state == SlotState::Tombstone) {
++                ++tombs;
++                continue;
++            }
++            if (e.state == SlotState::Empty) continue;
++            if (e.state != SlotState::Occupied) return "slot has an invalid state";
++            ++live;
++            const std::uint64_t h = hash_key(e.key);
++            if (segment_find(s, e.key, h) != &e) return "key unreachable or duplicated in its segment";
++            if (e.value.length == 0) {
++                if (e.value.chunk_id != kNoChunk || e.value.offset != 0) return "empty value does not use the sentinel reference";
++                continue;
++            }
++            const PinnedChunk* c = arena_.chunk(e.value.chunk_id);
++            if (c == nullptr) return "ValueRef points at a missing chunk";
++            if (c->id != e.value.chunk_id) return "chunk id does not match its directory slot";
++            if (std::uint64_t{e.value.offset} + e.value.length > c->used) return "ValueRef exceeds the chunk's written bytes";
++            bool found = false;
++            for (ChunkPin& cp : counted) {
++                if (cp.chunk_id == e.value.chunk_id) {
++                    ++cp.refs;
++                    found = true;
++                    break;
++                }
++            }
++            if (!found) counted.push_back(ChunkPin{e.value.chunk_id, 1});
++        }
++        if (live != s->live) return "segment live count mismatch";
++        if (tombs != s->tombstones) return "segment tombstone count mismatch";
++        if ((std::uint64_t{live} + tombs) * kMaxLoadDen > std::uint64_t{s->capacity} * kMaxLoadNum) return "segment exceeds the load bound";
++        // O2: the list is exactly the set of distinct chunks referenced.
++        if (counted.size() != s->pin_count) return "segment chunk list does not match its entries";
++        for (std::uint32_t k = 0; k < s->pin_count; ++k) {
++            if (k != 0 && s->pins[k - 1].chunk_id >= s->pins[k].chunk_id) return "segment chunk list not sorted";
++            bool found = false;
++            for (const ChunkPin& cp : counted) {
++                if (cp.chunk_id == s->pins[k].chunk_id) {
++                    found = cp.refs == s->pins[k].refs;
++                    break;
++                }
++            }
++            if (!found) return "segment chunk entry does not match its entries";
++            ++chunk_refs[s->pins[k].chunk_id];
++        }
++    }
++    if (held != w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed)) return "index bytes held mismatch";
++
++    // O3/O4: refs == segments listing the chunk, plus one for the writable
++    // chunk (no commit is open here). A chunk with no reference does not exist.
++    std::uint64_t live_chunks = 0;
++    for (std::uint32_t id = 0; id < chunk_refs.size(); ++id) {
++        const PinnedChunk* c = arena_.chunk(id);
++        if (c == nullptr) {
++            if (chunk_refs[id] != 0) return "a segment references a destroyed chunk";
++            continue;
++        }
++        ++live_chunks;
++        const std::uint32_t expected = chunk_refs[id] + (c == arena_.current() ? 1u : 0u);
++        if (c->refs.load(std::memory_order_seq_cst) != expected) return "chunk reference count mismatch";
++        if (expected == 0) return "chunk exists with no reference";
++        if (c->used > c->capacity) return "chunk used beyond its capacity";
++    }
++    if (live_chunks != arena_stats.chunks_live) return "live chunk count mismatch";
++    return nullptr;
++}
++
++}  // namespace nova
+diff --git a/src/versioned_store.h b/src/versioned_store.h
+new file mode 100644
+index 0000000..908186e
+--- /dev/null
++++ b/src/versioned_store.h
+@@ -0,0 +1,288 @@
++// versioned_store.h -- the Part B storage engine: immutable published versions,
++// copy-on-write index, one atomic root pointer, epoch-based reclamation.
++//
++// Shape (blueprint section 3):
++//
++//   current ──atomic──> Version { sequence, segments[256] }      immutable
++//                           └──> Segment { slots[], chunk refs }  immutable, shared
++//                                    └──> ValueRef {chunk_id, offset, length}
++//   chunk directory (global, atomic slots) ──> chunk bytes        append-only
++//
++// THREE ROLES
++//
++//   Readers (any number of threads): announce an epoch in their own slot,
++//     validate it, load `current` exactly once, read only immutable objects,
++//     copy the value out, clear the slot. No lock, no allocation, no reference
++//     count, no waiting for anyone.
++//
++//   The writer (exactly one thread, as the assignment assumes): builds the
++//     replacement segments privately and publishes them with one atomic swap
++//     of `current`. The replaced version is tagged with the epoch read AFTER
++//     the swap and appended to the retirement queue using a record allocated
++//     BEFORE the swap. The writer never waits for a grace period.
++//
++//   The cleaner (one thread at a time): in passes. One pass = one gated attempt
++//     to advance the epoch, then destruction of retired versions whose grace
++//     period has passed: at most `reclaim batch` versions per pass, in FIFO
++//     order, within a work budget, resumable in the middle of a version. It
++//     never waits for a reader and never writes `current`.
++//
++// A version may be destroyed only when the global epoch is at least two gated
++// advances past its retirement tag. Never because of its age or its position
++// in the queue. The argument that this is sufficient, line by line, is
++// docs/reclamation.md.
++//
++// Ownership (unchanged from B1, see docs/versioning.md): a Version owns one
++// reference to each Segment in its directory (`owners`); a Segment owns one
++// reference to each distinct chunk it lists; the arena adds writable and commit
++// references so that one count decides a chunk's life (pinned_arena.h).
++#pragma once
++
++#include "cow_segment.h"
++#include "epoch.h"
++#include "pinned_arena.h"
++
++#include <atomic>
++#include <cstddef>
++#include <cstdint>
++#include <shared_mutex>
++#include <thread>
++
++namespace nova {
++
++// One complete, immutable state of the store.
++struct Version {
++    std::uint64_t sequence;                 // commits since creation; diagnostic only
++    Segment* segments[kPartitionCount];     // the directory; null = empty partition
++};
++
++struct BatchOp {
++    enum class Kind : std::uint8_t { Put, Erase };
++    Kind kind;
++    long key;
++    const void* value;   // Put only
++    std::size_t length;  // Put only
++};
++
++// How retired versions are treated.
++enum class ReclaimMode : std::uint8_t {
++    Epoch,         // the real thing: epoch-based reclamation (default)
++    Disabled,      // comparator: versions are retired but never destroyed
++    StopTheWorld,  // comparator ONLY: readers take a shared lock; the cleaner
++                   // excludes all of them and frees the whole retire list at once
++};
++
++// Who runs reclamation passes.
++enum class CleanerMode : std::uint8_t {
++    Background,  // a dedicated thread owned by the store (default)
++    Manual,      // nobody, until reclaim_pass() / drain() is called (tests)
++    Inline,      // the writer, after each commit (deterministic single-thread tests)
++};
++
++struct StoreOptions {
++    ReclaimMode reclaim = ReclaimMode::Epoch;
++    CleanerMode cleaner = CleanerMode::Background;
++};
++
++// Options used by stores constructed without explicit options (KVStore's
++// default constructor). Tests and benchmark harnesses set this before
++// constructing a store; it is not reachable through the assignment's API.
++void set_default_store_options(const StoreOptions& options) noexcept;
++StoreOptions default_store_options() noexcept;
++
++struct VersionedStats {
++    // Publication
++    std::uint64_t versions_published = 0;     // successful swaps of `current`
++    std::uint64_t commits_failed = 0;         // commits that published nothing (allocation, limits)
++    std::uint64_t commits_without_change = 0; // e.g. erase of absent keys only
++    // Reclamation
++    std::uint64_t versions_retired = 0;       // handed to the retirement queue
++    std::uint64_t versions_reclaimed = 0;     // completely destroyed
++    std::uint64_t versions_retained = 0;      // retired, not yet completely destroyed (the backlog)
++    std::uint64_t backlog_max = 0;            // largest backlog seen by the writer
++    std::uint64_t reclaim_passes = 0;
++    std::uint64_t reclaim_passes_with_work = 0;
++    std::uint64_t reclaim_max_versions_in_pass = 0;   // never above the batch size in force
++    std::uint64_t reclaim_max_units_in_pass = 0;
++    std::uint64_t reclaim_interrupted_versions = 0;   // destructions split across passes
++    std::uint64_t stw_pauses = 0;
++    std::uint64_t cleaner_cpu_ns = 0;         // CPU time of the background cleaner thread(s), recorded when stopped
++    EpochStats epoch;
++    // Copy-on-write cost
++    std::uint64_t segments_built = 0;         // replacement segments published
++    std::uint64_t segments_dropped = 0;       // partitions that became empty
++    std::uint64_t segments_released = 0;      // segments destroyed
++    std::uint64_t segment_growths = 0;
++    std::uint64_t segment_rebuilds = 0;
++    std::uint64_t index_bytes_copied = 0;     // slot bytes copied/rebuilt for published segments
++    std::uint64_t directory_bytes_copied = 0;
++    std::uint64_t owner_refs_taken = 0;       // segment references acquired by new versions
++    // Memory held by index structures (versions + segments), current and retired
++    std::uint64_t index_bytes_held = 0;
++    PinnedArenaStats arena;
++};
++
++class VersionedStore {
++public:
++    VersionedStore();                                  // default_store_options()
++    explicit VersionedStore(const StoreOptions& options);
++    ~VersionedStore();
++    VersionedStore(const VersionedStore&) = delete;
++    VersionedStore& operator=(const VersionedStore&) = delete;
++
++    // False if construction could not allocate what the store needs.
++    bool ok() const noexcept { return ok_; }
++
++    // ---- Readers (any thread) -----------------------------------------------
++    // Throws std::bad_alloc only if, on a thread's FIRST read of this store, a
++    // reader slot cannot be allocated; it never reports a present key as absent
++    // for lack of resources. Every later read by that thread cannot throw.
++    bool get(long key, void* value_out, std::size_t value_out_len) const;
++
++    // A long-lived protected view of one version: the internal foundation of
++    // the Part C Snapshot. It owns a dedicated reader slot, pinned from
++    // acquire_pin() to release_pin(), whichever thread holds it. Moving a Pin
++    // is copying this struct and clearing the source; the slot's announcement
++    // is not touched by a move. While a Pin exists, the version it names and
++    // everything reachable from it cannot be destroyed. One thread at a time
++    // may use a given Pin.
++    struct Pin {
++        ReaderSlot* slot = nullptr;
++        const Version* version = nullptr;
++        explicit operator bool() const noexcept { return slot != nullptr; }
++    };
++    Pin acquire_pin() const;                             // throws std::bad_alloc
++    bool get_pinned(const Pin& pin, long key, void* value_out,
++                    std::size_t value_out_len) const noexcept;
++    void release_pin(Pin& pin) const noexcept;           // pin becomes inert
++
++    // ---- The single writer -----------------------------------------------------
++    bool put(long key, const void* value, std::size_t value_len) noexcept;
++    bool erase(long key) noexcept;
++    // Applies `ops` in order as ONE logical write and publishes at most once.
++    // Returns false, having changed nothing, if an argument is invalid or an
++    // allocation fails. `applied` (optional, n entries) reports per operation
++    // whether it took effect.
++    bool commit(const BatchOp* ops, std::size_t n, bool* applied = nullptr) noexcept;
++
++    // ---- Reclamation ------------------------------------------------------------
++    // How many retired versions one pass may completely destroy. n <= 0 is
++    // treated as 1. Any thread.
++    void set_reclaim_batch(int n) noexcept;
++    int reclaim_batch() const noexcept { return reclaim_batch_.load(std::memory_order_seq_cst); }
++    // Work units (directory entries visited + chunk references dropped) one
++    // pass may spend per version of its batch. A version costing more is
++    // finished in a later pass. Any thread.
++    void set_reclaim_work_per_version(std::uint32_t units) noexcept;
++
++    // One reclamation pass on the calling thread. Returns true if it made
++    // progress (advanced the epoch or released something). If another pass is
++    // running it returns false at once; it never waits. With a Background
++    // cleaner, call this only after stop_cleaner().
++    bool reclaim_pass() noexcept;
++    // Runs passes until nothing is retired any more or passes stop making
++    // progress (a pinned participant holds the epoch back). Returns true if
++    // the backlog is empty. Same calling rule as reclaim_pass().
++    bool drain() noexcept;
++    // Stops and joins the background cleaner (no-op in other modes); restarts it.
++    void stop_cleaner() noexcept;
++    bool start_cleaner() noexcept;
++
++    // ---- Introspection ----------------------------------------------------------
++    // Safe from any thread at any time.
++    std::uint64_t backlog() const noexcept {
++        return retired_.load(std::memory_order_seq_cst) - reclaimed_.load(std::memory_order_seq_cst);
++    }
++    std::uint64_t epoch() const noexcept { return epochs_.epoch(); }
++    const StoreOptions& options() const noexcept { return options_; }
++    const void* root_address() const noexcept { return &current_; }
++    // Bytes held by versions, segments and chunks. Writer thread, or quiet store.
++    std::uint64_t memory_held_bytes() const noexcept;
++    // Writer thread, or quiet store (no writer; cleaner stopped or idle).
++    VersionedStats stats() const noexcept;
++    const PinnedArena& arena() const noexcept { return arena_; }
++
++    // The following require a QUIET store: no writer, no pass in progress, and
++    // the background cleaner stopped. They do not need readers to be absent.
++    //
++    // Pointer to the current version WITHOUT protection. It stays valid only
++    // until the version is retired and reclaimed; tests use it with a Manual
++    // cleaner, where nothing is reclaimed until they say so.
++    const Version* current_version_unprotected() const noexcept {
++        return current_.load(std::memory_order_seq_cst);
++    }
++    bool get_at_unprotected(const Version* v, long key, void* value_out,
++                            std::size_t value_out_len) const noexcept;
++    // Calls fn for the current version and every version still in the queue.
++    void for_each_version(void (*fn)(const Version*, void*), void* context) const;
++    // Recomputes every owner count and chunk reference from the versions that
++    // exist and compares with the stored counts. nullptr if consistent.
++    // Finishes a half-released version first (it was already eligible).
++    const char* validate();
++
++private:
++    struct RetireNode {
++        Version* version;
++        std::uint64_t retire_epoch;
++        std::atomic<RetireNode*> next;
++    };
++    // A version in the middle of being released, and where to resume.
++    struct Job {
++        Version* version = nullptr;
++        std::uint32_t partition = 0;
++        Segment* segment = nullptr;   // segment whose last owner we were; chunk refs in progress
++        std::uint32_t pin = 0;
++    };
++
++    bool read(const Version* v, long key, std::uint64_t h, void* value_out,
++              std::size_t value_out_len) const noexcept;
++    bool run_job(std::uint64_t& budget) noexcept;     // cleaner role
++    bool epoch_pass() noexcept;                       // cleaner role
++    bool stw_pass() noexcept;                         // cleaner role
++    void cleaner_main() noexcept;
++    void destroy_everything() noexcept;               // destructor only
++
++    const StoreOptions options_;
++    bool ok_ = false;
++
++    // The one word readers and the writer share, alone on its cache line.
++    alignas(kCacheLine) std::atomic<Version*> current_;
++
++    // ---- Writer-only state -------------------------------------------------------
++    alignas(kCacheLine) Version* latest_;   // == current_, without an atomic load
++    RetireNode* queue_tail_;                // last node of the retirement queue
++    struct WriterCounters {
++        std::uint64_t versions_published = 0, commits_failed = 0, commits_without_change = 0;
++        std::uint64_t segments_built = 0, segments_dropped = 0, segment_growths = 0, segment_rebuilds = 0;
++        std::uint64_t index_bytes_copied = 0, directory_bytes_copied = 0, owner_refs_taken = 0;
++        std::uint64_t index_bytes_added = 0, backlog_max = 0;
++    } w_;
++
++    // ---- Written by the writer, read by anyone -----------------------------------
++    alignas(kCacheLine) std::atomic<std::uint64_t> retired_{0};
++
++    // ---- Cleaner-role state -------------------------------------------------------
++    alignas(kCacheLine) RetireNode* queue_head_;   // dummy node; its successor is the oldest entry
++    Job job_;
++    std::atomic<bool> pass_running_{false};
++    std::atomic<std::uint64_t> reclaimed_{0};
++    std::atomic<std::uint64_t> segments_released_{0};
++    std::atomic<std::uint64_t> index_bytes_released_{0};
++    std::atomic<std::uint64_t> passes_{0}, passes_with_work_{0};
++    std::atomic<std::uint64_t> max_versions_in_pass_{0}, max_units_in_pass_{0};
++    std::atomic<std::uint64_t> interrupted_versions_{0};
++    std::atomic<std::uint64_t> stw_pauses_{0};
++    std::atomic<std::uint64_t> cleaner_cpu_ns_{0};
++
++    // ---- Configuration and the background thread ---------------------------------
++    std::atomic<int> reclaim_batch_{64};
++    std::atomic<std::uint32_t> work_per_version_{1024};
++    std::atomic<bool> cleaner_stop_{false};
++    std::thread cleaner_thread_;
++    mutable std::shared_mutex stw_lock_;   // StopTheWorld comparator only
++
++    mutable EpochDomain epochs_;
++    PinnedArena arena_;
++};
++
++}  // namespace nova
