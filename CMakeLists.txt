@@ -50,7 +50,12 @@ endif()
 
 # ---- Store library: one data structure, one library per sync policy ---------
 # Only NOVA_KV_SYNC_MODE differs between the variants (src/sync_mode.h).
-set(NOVA_STORE_SOURCES src/kvstore.cpp)
+set(NOVA_STORE_SOURCES
+    src/kvstore.cpp
+    src/hash_segment.cpp
+    src/arena.cpp
+    src/alloc.cpp
+    src/inspect.cpp)
 set(NOVA_VARIANTS single global_lock rwlock)
 
 foreach(variant IN LISTS NOVA_VARIANTS)
@@ -62,11 +67,32 @@ foreach(variant IN LISTS NOVA_VARIANTS)
     target_link_libraries(nova_kv_${variant} PUBLIC nova_build_flags PRIVATE nova_warnings)
 endforeach()
 
+# Test-only build of the store with allocation-failure injection compiled in
+# (src/alloc.h). The production variants above contain no hook code.
+add_library(nova_kv_single_testhooks STATIC ${NOVA_STORE_SOURCES})
+target_include_directories(nova_kv_single_testhooks PUBLIC include PRIVATE src)
+target_compile_definitions(nova_kv_single_testhooks
+    PRIVATE NOVA_KV_SYNC_MODE=NOVA_KV_SYNC_SINGLE
+    PUBLIC NOVA_KV_TEST_HOOKS)
+target_link_libraries(nova_kv_single_testhooks PUBLIC nova_build_flags PRIVATE nova_warnings)
+
 # ---- Supplied reference workload (compiled unmodified, no -Werror) ----------
 # It depends only on kvstore.h, so one object library serves every variant.
 add_library(nova_workload OBJECT supplied/workload_gen.cpp)
 target_include_directories(nova_workload PUBLIC supplied include)
 target_link_libraries(nova_workload PUBLIC nova_build_flags)
+
+# ---- Part A drivers ----------------------------------------------------------
+# driver source name -> store variant it is linked with
+set(NOVA_DRIVER_single_thread single)
+set(NOVA_DRIVER_global_lock global_lock)
+set(NOVA_DRIVER_rwlock rwlock)
+set(NOVA_DRIVERS single_thread global_lock rwlock)
+foreach(driver IN LISTS NOVA_DRIVERS)
+    add_executable(${driver} drivers/${driver}.cpp $<TARGET_OBJECTS:nova_workload>)
+    target_include_directories(${driver} PRIVATE supplied src)
+    target_link_libraries(${driver} PRIVATE nova_kv_${NOVA_DRIVER_${driver}} nova_warnings)
+endforeach()
 
 # ---- Tests ------------------------------------------------------------------
 enable_testing()
@@ -78,7 +104,7 @@ set(NOVA_TEST_ENV
 
 function(nova_add_test name)
     add_test(NAME ${name} COMMAND ${name})
-    set_tests_properties(${name} PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 120)
+    set_tests_properties(${name} PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
 endfunction()
 
 # The public header is identical for every variant, so one build pins the API.
@@ -86,7 +112,39 @@ add_executable(api_conformance_test tests/api_conformance_test.cpp)
 target_link_libraries(api_conformance_test PRIVATE nova_kv_single nova_warnings)
 nova_add_test(api_conformance_test)
 
+# Storage-engine unit tests (independent of the synchronization policy).
+add_executable(hash_segment_test tests/hash_segment_test.cpp src/hash_segment.cpp src/alloc.cpp)
+target_include_directories(hash_segment_test PRIVATE src)
+target_link_libraries(hash_segment_test PRIVATE nova_build_flags nova_warnings)
+nova_add_test(hash_segment_test)
+
+add_executable(arena_test tests/arena_test.cpp src/arena.cpp src/alloc.cpp)
+target_include_directories(arena_test PRIVATE src)
+target_link_libraries(arena_test PRIVATE nova_build_flags nova_warnings)
+nova_add_test(arena_test)
+
+# Allocation-failure injection against the hook-enabled store build.
+add_executable(alloc_failure_test tests/alloc_failure_test.cpp)
+target_include_directories(alloc_failure_test PRIVATE src)
+target_link_libraries(alloc_failure_test PRIVATE nova_kv_single_testhooks nova_warnings)
+nova_add_test(alloc_failure_test)
+
 foreach(variant IN LISTS NOVA_VARIANTS)
+    # The Part A sanity test, against every variant.
+    add_executable(kvstore_test_${variant} tests/kvstore_test.cpp)
+    target_include_directories(kvstore_test_${variant} PRIVATE src)
+    target_link_libraries(kvstore_test_${variant} PRIVATE nova_kv_${variant} nova_warnings)
+    nova_add_test(kvstore_test_${variant})
+
+    # Concurrent use is legal only for the locked variants.
+    if(NOT variant STREQUAL "single")
+        add_executable(concurrent_lock_test_${variant} tests/concurrent_lock_test.cpp)
+        target_include_directories(concurrent_lock_test_${variant} PRIVATE src)
+        target_link_libraries(concurrent_lock_test_${variant}
+            PRIVATE nova_kv_${variant} nova_warnings)
+        nova_add_test(concurrent_lock_test_${variant})
+    endif()
+
     add_executable(smoke_test_${variant} tests/smoke_test.cpp)
     target_include_directories(smoke_test_${variant} PRIVATE src)
     target_compile_definitions(smoke_test_${variant}
@@ -100,4 +158,14 @@ foreach(variant IN LISTS NOVA_VARIANTS)
     target_link_libraries(reference_workload_link_test_${variant}
         PRIVATE nova_kv_${variant} nova_warnings)
     nova_add_test(reference_workload_link_test_${variant})
+endforeach()
+
+# Each driver runs end to end with a short duration (2 readers, 1 second;
+# single_thread pins itself to 1 reader). These are functional checks of the
+# drivers, not measurements.
+foreach(driver IN LISTS NOVA_DRIVERS)
+    add_test(NAME driver_${driver} COMMAND ${driver} 2 1)
+    set_tests_properties(driver_${driver} PROPERTIES
+        ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600
+        PASS_REGULAR_EXPRESSION "ops=[1-9]")
 endforeach()

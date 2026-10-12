@@ -181,6 +181,9 @@ gates to it as the milestone lands.
 - **Never change a public signature in `include/kvstore.h`.** `tests/api_conformance_test.cpp`
   pins every Appendix A signature at compile time (including the absence of `noexcept`).
   Private members and `friend` declarations may change.
+- **Engine allocations go through `nova::alloc_bytes`** (`src/alloc.h`), which returns
+  `nullptr` on failure; every fallible step of a write must precede its first mutation, and
+  `tests/alloc_failure_test.cpp` must keep covering each allocation site.
 - **One data structure, several sync policies.** `src/kvstore.cpp` is compiled once per policy
   (`nova_kv_single`, `nova_kv_global_lock`, `nova_kv_rwlock`; `rcu` is added in Part B) with
   `NOVA_KV_SYNC_MODE` as the only difference. The public header is identical for all of them.
@@ -209,7 +212,15 @@ gates to it as the milestone lands.
 
 ## Current status
 
-- **A0 (bootstrap): complete** — see `reports/milestones/A0.md`. The store is an
-  API-complete placeholder: every mutation returns failure and every lookup misses. No
-  assignment part is implemented yet.
-- **Next: A1** (generic baseline `KVStore` + three sync variants). Requires user approval.
+- **A0 (bootstrap): complete** — `reports/milestones/A0.md`, tag `a0-bootstrap`.
+- **A1 (baseline store): complete** — `reports/milestones/A1.md`, tag `part-a-core`.
+  `put`/`get`/`erase` work on a segmented linear-probing index + chunked value arena, mutated
+  in place under the variant's lock (decisions D-016…D-020). Parts B and C are still inert
+  declarations. No benchmark or profiling results exist.
+- **Next: A2** (layout microbenchmark, lock profiling at 1/2/4/8 readers with an active
+  writer, Part A report). Requires user approval, and profiling needs the perf/FlameGraph
+  blockers resolved with the user's explicit permission (D-013).
+
+Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
+kernel-setting changes without explicit permission D-013; do not merge into `main`, keep all
+milestone tags D-014; cross-store snapshot ambiguity stays open D-015.

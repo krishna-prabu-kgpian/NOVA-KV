@@ -1,47 +1,98 @@
 // kvstore.cpp -- NOVA-KV store implementation.
 //
-// MILESTONE A0 STATE: API-complete placeholder. There is no hash table yet, so
-// the store is permanently empty: every mutation reports failure and every
-// lookup reports "not found". This exists so the build, the Appendix A
-// signatures and the unmodified supplied workload generator can be verified
-// before any storage code is written. Milestone A1 replaces the Part A bodies.
+// MILESTONE A1 STATE: Part A baseline. put / get / erase are implemented on a
+// segmented linear-probing hash index (hash_segment.h) whose entries reference
+// value bytes in a chunked arena (arena.h). Segments are mutated in place under
+// the build's synchronization policy (sync_policy.h); that policy is the only
+// difference between the single / global_lock / rwlock libraries.
+//
+// Parts B and C are declared in kvstore.h for source compatibility with the
+// supplied workload generator but are NOT implemented: their bodies below are
+// inert and never report success.
 #include "kvstore.h"
 
 #include "build_info.h"
+#include "hash.h"
+#include "kvstore_impl.h"
 #include "sync_mode.h"
 
-#include <new>
+#include <cstdint>
+#include <cstring>
+
+using nova::HashSegment;
+using nova::ReadGuard;
+using nova::ValueRef;
+using nova::WriteGuard;
 
 const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
-
-struct KVStore::Impl {};
 
 KVStore::KVStore() : impl_(new Impl()) {}
 
 KVStore::~KVStore() { delete impl_; }
 
-// ---- Part A (not implemented until A1) -------------------------------------
+// ---- Part A -------------------------------------------------------------------
 
 bool KVStore::put(long key, const void* value, size_t value_len) {
-    (void)key;
-    (void)value;
-    (void)value_len;
-    return false;  // nothing is stored, so success must not be reported
+    if (value_len > nova::kMaxValueBytes) return false;
+    if (value_len != 0 && value == nullptr) return false;
+    const std::uint32_t len = static_cast<std::uint32_t>(value_len);
+    const std::uint64_t h = nova::hash_key(key);
+    Impl& impl = *impl_;
+    HashSegment& seg = impl.segments[nova::partition_of(h)];
+
+    WriteGuard guard(impl.lock);
+
+    // Every step that can fail runs before the first change to the index:
+    // 1. find the slot, building a private replacement array if the segment
+    //    must grow or shed tombstones;
+    // 2. copy the value into the arena (the bytes are unreachable until an
+    //    index entry points at them).
+    HashSegment::UpsertPlan plan;
+    if (!seg.prepare_upsert(key, h, plan)) return false;
+    ValueRef ref;
+    if (!impl.arena.append(value, len, &ref)) {
+        seg.abort_upsert(plan);
+        return false;
+    }
+
+    // From here on nothing can fail.
+    ValueRef old_ref;
+    if (seg.commit_upsert(key, h, ref, plan, &old_ref)) impl.arena.release(old_ref);
+    return true;
 }
 
 bool KVStore::get(long key, void* value_out, size_t value_out_len) const {
-    (void)key;
-    (void)value_out;
-    (void)value_out_len;
-    return false;
+    const std::uint64_t h = nova::hash_key(key);
+    Impl& impl = *impl_;
+    const HashSegment& seg = impl.segments[nova::partition_of(h)];
+
+    ReadGuard guard(impl.lock);
+
+    const nova::Entry* e = seg.find(key, h);
+    if (e == nullptr) return false;
+    const std::uint32_t len = e->value.length;
+    if (len > value_out_len) return false;  // never a truncated copy; buffer untouched
+    if (len == 0) return true;              // present, empty value
+    if (value_out == nullptr) return false;
+    // Copy out while the lock is held: no internal pointer leaves the store.
+    std::memcpy(value_out, impl.arena.data(e->value), len);
+    return true;
 }
 
 bool KVStore::erase(long key) {
-    (void)key;
-    return false;
+    const std::uint64_t h = nova::hash_key(key);
+    Impl& impl = *impl_;
+    HashSegment& seg = impl.segments[nova::partition_of(h)];
+
+    WriteGuard guard(impl.lock);
+
+    ValueRef old_ref;
+    if (!seg.erase(key, h, &old_ref)) return false;
+    impl.arena.release(old_ref);
+    return true;
 }
 
-// ---- Part B (not implemented until B2) -------------------------------------
+// ---- Part B (not implemented until B2) ----------------------------------------
 
 void KVStore::set_reclaim_batch(int n) { (void)n; }
 

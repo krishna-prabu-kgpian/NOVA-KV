@@ -13,7 +13,7 @@
 # mandatory gate blocks overall PASS exactly like FAIL does.
 #
 # Gates are added here as milestones land; expectations are never loosened to
-# hide a failure. Currently covered: A0.
+# hide a failure. Currently covered: A0, A1.
 set -u -o pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$NOVA_ROOT"
@@ -136,7 +136,7 @@ run_gate flamegraph_scripts_present no sh -c 'command -v stackcollapse-perf.pl &
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0"
+    echo "- milestones covered: A0, A1"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"

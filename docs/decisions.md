@@ -111,6 +111,104 @@ This is a tooling workaround, not a project dependency; the README states it.
 Milestone evidence is committed in a second commit after the code commit, because a report
 cannot contain the SHA of the commit that adds it; the tag points at the evidence commit.
 
+## D-012 — Public error contracts confirmed by the user (ACCEPTED, 2026-10-12, before A1)
+
+The user confirmed the blueprint §2.2 policies as the contract for A1 onward:
+
+- If the output buffer is too small, `get()` returns `false` **without modifying the buffer**.
+- Zero-length values are supported. An existing zero-length value is distinguishable from a
+  missing key: `get()` returns `true` for it (also with `value_out == nullptr`,
+  `value_out_len == 0`) and `false` for a missing key.
+- `nullptr` with length > 0 is invalid and returns `false` (for both `put` and `get`).
+- Exact compatibility with the assignment's public API is preserved.
+
+## D-013 — Profiling environment deferred (ACCEPTED, 2026-10-12, user decision)
+
+- perf permissions and the FlameGraph installation are deferred until the profiling milestone
+  (A2).
+- Mandatory profiling deliverables are never silently skipped: when profiling becomes
+  necessary the limitations are documented and solutions proposed.
+- **No `sudo` and no kernel-setting change without the user's explicit permission.**
+
+## D-014 — Git continuation (ACCEPTED, 2026-10-12, user decision)
+
+- The `a0-bootstrap` tag is preserved.
+- Development continues from the verified A0 checkpoint: branch `part-a/core` starts at
+  `a0-bootstrap`.
+- Nothing is merged into `main` yet.
+- The completed A1 milestone is committed and tagged `part-a-core`.
+
+## D-015 — Cross-store snapshot ambiguity stays open (ACCEPTED, 2026-10-12, user decision)
+
+The exactly-one-Snapshot-across-two-stores ambiguity (O-1) stays documented and is **not**
+addressed in A1.
+
+## D-016 — A1 storage engine: in-place mutation under the store lock (ACCEPTED, A1)
+
+Blueprint §8.3: "Do not introduce RCU yet; show the simpler data structure deliberately."
+A1 implements the agreed architecture (256 hash partitions, one open-addressed linear-probing
+segment each, tombstones, private rebuilds, chunked append-only value arena, `ValueRef =
+(chunk_id, offset, length)`, global two-level chunk directory) but **mutates segments in
+place**, protected by the variant's lock. There is no Version root, no copy-on-write directory
+and no reclamation protocol; those are Part B.
+
+- Rebuilds and growth are still built privately and installed only after every fallible step
+  succeeded, so a failed `put` changes nothing.
+- Value bytes are never overwritten in place: an overwrite appends the new bytes and repoints
+  the entry, exactly as Part B will.
+
+## D-017 — A1 chunk lifetime: per-chunk entry count (ACCEPTED, A1; replaced in Part B)
+
+Without any reclamation an update-heavy baseline would grow without bound. A1 therefore keeps
+`live_refs` per chunk = number of index entries whose `ValueRef` points into it, maintained by
+the writer under the exclusive lock:
+
+- when the count of a sealed chunk reaches zero the chunk is freed, its directory slot is
+  nulled and its ID is pushed on the free-ID stack (reused by the next chunk allocation);
+- when the count of the *current writable* chunk reaches zero its write offset is reset to 0.
+
+This is safe in A1 only because every reader holds the store lock (or there is one thread);
+no reader can hold a `ValueRef` across a writer operation. It is **not** the Part B scheme:
+blueprint §3.4 (one pin per distinct chunk per segment, released after an EBR grace period)
+replaces it, and the reset-in-place of the writable chunk must be removed there. There is no
+compaction: a chunk with one live value keeps its whole allocation.
+
+## D-018 — A1 parameters and limits (ACCEPTED, A1; blueprint defaults unless noted)
+
+| Parameter | Value | Note |
+|---|---|---|
+| Partitions | 256 | blueprint default |
+| Initial segment capacity | 1024 slots, allocated lazily on the first insert into the partition | lazy allocation is an addition: an empty store costs no index memory |
+| Max occupied load (live + tombstones) | 0.70 | blueprint default |
+| Tombstone rebuild trigger | tombstones ≥ 20 % of capacity | blueprint default |
+| Growth rule on an insert that would exceed the load | tombstones ≥ 20 % → rebuild at the same capacity; otherwise double | hysteresis so every rebuild buys at least 0.2 × capacity further operations |
+| Shrinking | never | segments do not shrink after mass erase |
+| Arena chunk | 64 KiB | blueprint default |
+| Oversized value | dedicated chunk of exactly the value's size | blueprint §3.6 |
+| Maximum value length | 1 GiB (2^30 bytes); longer `put` returns `false` | chosen; `ValueRef` fields are 32-bit |
+| Chunk directory | 1024 blocks × 1024 slots = 1,048,576 chunk IDs; exhaustion → `put` returns `false` | fixed capacity per blueprint §3.5 |
+| Hash | 64-bit murmur3 finalizer of the key; low 8 bits pick the partition, next bits the start slot | fixed and documented in `src/hash.h` |
+| Slot | 24 bytes: key, `ValueRef`, state | |
+
+`get()` with a buffer larger than the value copies exactly the value's length and leaves the
+rest of the buffer untouched; the API cannot report the length (blueprint §2.2).
+
+## D-019 — Test-only allocation failure injection (ACCEPTED, A1)
+
+All store allocations go through `nova::alloc_bytes` (`src/alloc.h`). When compiled with
+`NOVA_KV_TEST_HOOKS` it can fail the N-th allocation. Only the extra library
+`nova_kv_single_testhooks` is built with that macro; the three production variants contain no
+hook code. Internal state is inspected by tests through `NovaKvInspector` (`src/inspect.h`), a
+private `friend` of `KVStore`; it is not part of the public API.
+
+## D-020 — Drivers (ACCEPTED, A1)
+
+`drivers/single_thread.cpp`, `global_lock.cpp`, `rwlock.cpp` have the shape printed in PDF
+Appendix A.2 and accept optional arguments `[num_readers] [duration_sec]`. `single_thread`
+always uses one reader thread: the store has no synchronization in that variant, so a
+multi-reader run would not be a valid single-threaded baseline (audit H17). With the supplied
+generator these are *preload-only* runs; the active-writer harness is A2.
+
 ---
 
 ## Open items carried forward
@@ -118,8 +216,8 @@ cannot contain the SHA of the commit that adds it; the tag points at the evidenc
 | ID | Item | Needed from | Blocks |
 |---|---|---|---|
 | O-1 | Exactly-one-Snapshot join across two `KVStore` instances (PDF p. 5 vs Appendix A two-table shape) | Instructor | Full PASS of C2 |
-| O-2 | `perf_event_paranoid = 4`: unprivileged `perf` is unusable on this machine | User (root: `sudo sysctl kernel.perf_event_paranoid=1`, or run captures with privileges) | A2 profiling, D flame graphs |
-| O-3 | FlameGraph scripts (`stackcollapse-perf.pl`, `flamegraph.pl`) not installed | User approval to fetch github.com/brendangregg/FlameGraph | A2, D |
+| O-2 | `perf_event_paranoid = 4`: unprivileged `perf` is unusable on this machine. Deferred to A2 by D-013; no sudo/kernel change without explicit permission | User (root: `sudo sysctl kernel.perf_event_paranoid=1`, or run captures with privileges) | A2 profiling, D flame graphs |
+| O-3 | FlameGraph scripts (`stackcollapse-perf.pl`, `flamegraph.pl`) not installed. Deferred to A2 by D-013 | User approval to fetch github.com/brendangregg/FlameGraph | A2, D |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
-| O-6 | Blueprint §14 review checklist (partition count, segment capacity, chunk size, thresholds, error contracts) not yet confirmed by the user | User | Should be confirmed before B1; A1 uses the §2.2 error contracts |
+| O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018) but not yet explicitly confirmed or measured | User / A2 measurements | Should be settled before B1 |

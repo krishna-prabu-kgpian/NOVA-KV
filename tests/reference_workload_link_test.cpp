@@ -10,6 +10,8 @@
 
 #include "test_util.h"
 
+#include <cstdio>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -24,6 +26,14 @@ WorkloadConfig tiny_config() {
     return cfg;
 }
 
+// Same layout as the Trade struct private to workload_gen.cpp.
+struct Trade {
+    long trade_id;
+    char symbol[8];
+    double price;
+    long ts;
+};
+
 void run(const std::string& label, const WorkloadConfig& cfg, bool with_instruments) {
     KVStore trades;
     KVStore instruments;
@@ -34,6 +44,28 @@ void run(const std::string& label, const WorkloadConfig& cfg, bool with_instrume
     NOVA_CHECK(res.rps > 0);
     NOVA_CHECK(res.p50_us <= res.p99_us);
     NOVA_CHECK(res.p99_us <= res.p999_us);
+
+    // With plain puts (Part A path) the generator's writer must have left every
+    // trade in the store, readable and intact. The Transaction path is Part C
+    // and is only link-checked here.
+    if (!cfg.use_txn) {
+        int wrong = 0;
+        for (int i = 0; i < cfg.m; i++) {
+            for (int j = 0; j < cfg.n; j++) {
+                const long id = static_cast<long>(i) * 100000 + j;
+                Trade t{};
+                char symbol[8];
+                std::snprintf(symbol, sizeof(symbol), "SYM%03d", (i + j) % 50);
+                if (!trades.get(id, &t, sizeof(t)) || t.trade_id != id ||
+                    std::strcmp(t.symbol, symbol) != 0) {
+                    ++wrong;
+                }
+            }
+        }
+        NOVA_CHECK(wrong == 0);
+        Trade t{};
+        NOVA_CHECK(!trades.get(static_cast<long>(cfg.m) * 100000, &t, sizeof(t)));
+    }
 }
 
 }  // namespace

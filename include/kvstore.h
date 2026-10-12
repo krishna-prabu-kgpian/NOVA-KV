@@ -75,6 +75,7 @@ public:
 
 private:
     friend class Transaction;
+    friend struct NovaKvInspector;  // internal test/statistics access (src/inspect.h)
     struct Impl;
     Impl* impl_;
 };
