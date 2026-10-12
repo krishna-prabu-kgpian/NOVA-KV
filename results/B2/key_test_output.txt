@@ -1,0 +1,212 @@
+===== build/verify/debug =====
+--- reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56750 checks, 0 failed
+exit status: 0
+--- reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=186402 published=39611 backlog_max=1291 passes=39770 epoch_advances=1247 (blocked 38519) chunk_ids_reused=727 registrations=7353
+  stress batch=8    writes=35602 erases=4398 reads=135220 published=39611 backlog_max=3048 passes=5075 epoch_advances=539 (blocked 4441) chunk_ids_reused=696 registrations=5001
+  stress batch=64   writes=35602 erases=4398 reads=207723 published=39611 backlog_max=1107 passes=927 epoch_advances=233 (blocked 693) chunk_ids_reused=734 registrations=7385
+  stress batch=1024 writes=35602 erases=4398 reads=156351 published=39611 backlog_max=916 passes=347 epoch_advances=212 (blocked 134) chunk_ids_reused=737 registrations=6484
+  memory: 60000 writes, peak held 0.7 MiB, settled 77.4 KiB, backlog peak 121
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+--- versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 119546/120478/119963, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+--- versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+--- epoch_test
+epoch_test: 6892 checks, 0 failed
+exit status: 0
+--- pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+--- concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=1596075 read_misses=394260 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== build/verify/release =====
+--- reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56750 checks, 0 failed
+exit status: 0
+--- reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=1055522 published=39611 backlog_max=1209 passes=39705 epoch_advances=388 (blocked 39311) chunk_ids_reused=730 registrations=6015
+  stress batch=8    writes=35602 erases=4398 reads=811620 published=39611 backlog_max=860 passes=5029 epoch_advances=242 (blocked 4786) chunk_ids_reused=734 registrations=4945
+  stress batch=64   writes=35602 erases=4398 reads=985897 published=39611 backlog_max=1179 passes=748 epoch_advances=203 (blocked 544) chunk_ids_reused=734 registrations=5898
+  stress batch=1024 writes=35602 erases=4398 reads=837625 published=39611 backlog_max=954 passes=286 epoch_advances=184 (blocked 101) chunk_ids_reused=735 registrations=4616
+  memory: 60000 writes, peak held 2.1 MiB, settled 77.4 KiB, backlog peak 437
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+--- versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 269908/256712/271827, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+--- versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+--- epoch_test
+epoch_test: 6892 checks, 0 failed
+exit status: 0
+--- pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+--- concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=2483790 read_misses=609467 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== build/verify/asan_ubsan =====
+--- reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56750 checks, 0 failed
+exit status: 0
+--- reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=256767 published=39611 backlog_max=257 passes=40715 epoch_advances=759 (blocked 39943) chunk_ids_reused=748 registrations=3543
+  stress batch=8    writes=35602 erases=4398 reads=192887 published=39611 backlog_max=407 passes=6005 epoch_advances=601 (blocked 5396) chunk_ids_reused=743 registrations=3452
+  stress batch=64   writes=35602 erases=4398 reads=196423 published=39611 backlog_max=356 passes=1703 epoch_advances=614 (blocked 1077) chunk_ids_reused=747 registrations=3485
+  stress batch=1024 writes=35602 erases=4398 reads=194720 published=39611 backlog_max=411 passes=1410 epoch_advances=616 (blocked 788) chunk_ids_reused=743 registrations=3471
+  memory: 60000 writes, peak held 1.6 MiB, settled 77.4 KiB, backlog peak 331
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+--- versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 157246/173415/170750, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+--- versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+--- epoch_test
+epoch_test: 6892 checks, 0 failed
+exit status: 0
+--- pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+--- concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=2394521 read_misses=598310 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
+===== build/verify/tsan =====
+--- reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+reclamation_test: 56750 checks, 0 failed
+exit status: 0
+--- reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=214570 published=39611 backlog_max=110 passes=43454 epoch_advances=2819 (blocked 40526) chunk_ids_reused=751 registrations=8728
+  stress batch=8    writes=35602 erases=4398 reads=219762 published=39611 backlog_max=63 passes=10096 epoch_advances=2855 (blocked 7130) chunk_ids_reused=751 registrations=9040
+  stress batch=64   writes=35602 erases=4398 reads=218840 published=39611 backlog_max=56 passes=7059 epoch_advances=2848 (blocked 4093) chunk_ids_reused=751 registrations=8896
+  stress batch=1024 writes=35602 erases=4398 reads=211798 published=39611 backlog_max=62 passes=6596 epoch_advances=2757 (blocked 3739) chunk_ids_reused=751 registrations=8866
+  memory: 60000 writes, peak held 0.2 MiB, settled 77.4 KiB, backlog peak 13
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+--- versioned_interleaving_test
+  S1 reader parked after root load: reader held version 51 across 3051 newer publications
+  S2 reader parked before copy-out: reader held version 51 across 3051 newer publications
+  S3 writer parked before publish: 800 multi-key observations, old=800 new=0 mixed=0
+  S4 writer parked after publish: 800 multi-key observations, old=0 new=800 mixed=0
+  stress: 15000 six-key commits, reader rounds 71113/72868/72996, mixed=0 torn=0
+  S6: 120 older versions released while a prepared version shared 36 segments; no shared segment or chunk lost
+versioned_interleaving_test: 573 checks, 0 failed
+exit status: 0
+--- versioned_alloc_failure_test
+  no reclamation pass run: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+  reclaim after every write: 174 writes completed, 862 injected failures all rolled back (501 arena rollbacks), 16 tolerated in erase, first put failed at 6 sites
+versioned_alloc_failure_test: 17 checks, 0 failed
+exit status: 0
+--- epoch_test
+epoch_test: 6892 checks, 0 failed
+exit status: 0
+--- pinned_arena_test
+pinned_arena_test: 4228 checks, 0 failed
+exit status: 0
+--- concurrent_lock_test_rcu
+  variant=rcu readers=4 puts=48115 erases=11885 read_hits=1464210 read_misses=356913 torn=0
+concurrent_lock_test: 93 checks, 0 failed
+exit status: 0
