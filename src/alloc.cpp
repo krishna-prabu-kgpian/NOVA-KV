@@ -9,19 +9,21 @@ namespace nova {
 
 #ifdef NOVA_KV_TEST_HOOKS
 namespace {
-long g_fail_at = -1;
-long g_calls = 0;
-bool g_fired = false;
+// Atomic: since Part C a Transaction stages its writes (and so allocates) on
+// whatever thread uses it, concurrently with the writer.
+std::atomic<long> g_fail_at{-1};
+std::atomic<long> g_calls{0};
+std::atomic<bool> g_fired{false};
 }  // namespace
 
 namespace test_hooks {
 void fail_nth_allocation(long n) noexcept {
-    g_fail_at = n;
-    g_calls = 0;
-    g_fired = false;
+    g_fail_at.store(n);
+    g_calls.store(0);
+    g_fired.store(false);
 }
-bool allocation_failure_fired() noexcept { return g_fired; }
-long allocations_since_armed() noexcept { return g_calls; }
+bool allocation_failure_fired() noexcept { return g_fired.load(); }
+long allocations_since_armed() noexcept { return g_calls.load(); }
 }  // namespace test_hooks
 #endif
 
@@ -49,9 +51,10 @@ void count_object(LiveObject kind, long delta) noexcept {
 
 void* alloc_bytes(std::size_t size, std::size_t align) noexcept {
 #ifdef NOVA_KV_TEST_HOOKS
-    const long call = g_calls++;
-    if (g_fail_at >= 0 && call == g_fail_at) {
-        g_fired = true;
+    const long call = g_calls.fetch_add(1);
+    const long fail_at = g_fail_at.load();
+    if (fail_at >= 0 && call == fail_at) {
+        g_fired.store(true);
         return nullptr;
     }
 #endif

@@ -1,3 +1,66 @@
+diff --git a/src/alloc.cpp b/src/alloc.cpp
+index 0b334c5..c301864 100644
+--- a/src/alloc.cpp
++++ b/src/alloc.cpp
+@@ -9,19 +9,21 @@ namespace nova {
+ 
+ #ifdef NOVA_KV_TEST_HOOKS
+ namespace {
+-long g_fail_at = -1;
+-long g_calls = 0;
+-bool g_fired = false;
++// Atomic: since Part C a Transaction stages its writes (and so allocates) on
++// whatever thread uses it, concurrently with the writer.
++std::atomic<long> g_fail_at{-1};
++std::atomic<long> g_calls{0};
++std::atomic<bool> g_fired{false};
+ }  // namespace
+ 
+ namespace test_hooks {
+ void fail_nth_allocation(long n) noexcept {
+-    g_fail_at = n;
+-    g_calls = 0;
+-    g_fired = false;
++    g_fail_at.store(n);
++    g_calls.store(0);
++    g_fired.store(false);
+ }
+-bool allocation_failure_fired() noexcept { return g_fired; }
+-long allocations_since_armed() noexcept { return g_calls; }
++bool allocation_failure_fired() noexcept { return g_fired.load(); }
++long allocations_since_armed() noexcept { return g_calls.load(); }
+ }  // namespace test_hooks
+ #endif
+ 
+@@ -49,9 +51,10 @@ void count_object(LiveObject kind, long delta) noexcept {
+ 
+ void* alloc_bytes(std::size_t size, std::size_t align) noexcept {
+ #ifdef NOVA_KV_TEST_HOOKS
+-    const long call = g_calls++;
+-    if (g_fail_at >= 0 && call == g_fail_at) {
+-        g_fired = true;
++    const long call = g_calls.fetch_add(1);
++    const long fail_at = g_fail_at.load();
++    if (fail_at >= 0 && call == fail_at) {
++        g_fired.store(true);
+         return nullptr;
+     }
+ #endif
+diff --git a/src/alloc.h b/src/alloc.h
+index 20ee7e7..877edf3 100644
+--- a/src/alloc.h
++++ b/src/alloc.h
+@@ -15,7 +15,9 @@ void free_bytes(void* p) noexcept;
+ 
+ #ifdef NOVA_KV_TEST_HOOKS
+ // Compiled only into the *_testhooks library; production variants contain none
+-// of this. Not thread-safe: for single-threaded failure-injection tests.
++// of this. The counters are atomic, so allocating from several threads is not a
++// data race; WHICH allocation is the n-th is only deterministic when one thread
++// allocates, so failure-injection tests are single-threaded.
+ namespace test_hooks {
+ // Makes the n-th alloc_bytes() call from now (0 = the very next one) return
+ // nullptr, once. A negative n disarms.
 diff --git a/src/epoch.h b/src/epoch.h
 index 934f199..38d5f01 100644
 --- a/src/epoch.h

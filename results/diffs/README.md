@@ -47,6 +47,8 @@ comparator, writer serialization). The diff the assignment asks for, Part B agai
 complete Part C, is exported at the end of milestone C2.
 
 ```
+ src/alloc.cpp           |  25 ++--
+ src/alloc.h             |   4 +-
  src/epoch.h             |   4 +
  src/kvstore.cpp         | 299 +++++++++++++++++++++++++++++++++++++++---------
  src/kvstore_impl.h      |   6 +
@@ -54,5 +56,5 @@ complete Part C, is exported at the end of milestone C2.
  src/staged_writes.h     |  52 +++++++++
  src/versioned_store.cpp |  72 ++++++++++--
  src/versioned_store.h   |  23 +++-
- 7 files changed, 467 insertions(+), 61 deletions(-)
+ 9 files changed, 484 insertions(+), 73 deletions(-)
 ```

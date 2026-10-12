@@ -15,7 +15,9 @@ void free_bytes(void* p) noexcept;
 
 #ifdef NOVA_KV_TEST_HOOKS
 // Compiled only into the *_testhooks library; production variants contain none
-// of this. Not thread-safe: for single-threaded failure-injection tests.
+// of this. The counters are atomic, so allocating from several threads is not a
+// data race; WHICH allocation is the n-th is only deterministic when one thread
+// allocates, so failure-injection tests are single-threaded.
 namespace test_hooks {
 // Makes the n-th alloc_bytes() call from now (0 = the very next one) return
 // nullptr, once. A negative n disarms.
