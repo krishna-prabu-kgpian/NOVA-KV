@@ -1,0 +1,408 @@
+===== debug / transaction_test_rcu
+$ build/verify/debug/transaction_test_rcu
+    1 keys: 1 publication, 1 partitions touched, 1 segments cloned
+    4 keys: 1 publication, 4 partitions touched, 4 segments cloned
+   16 keys: 1 publication, 15 partitions touched, 15 segments cloned
+  100 keys: 1 publication, 83 partitions touched, 83 segments cloned
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57326 checks, 0 failed
+exit status: 0
+===== debug / transaction_test_rwlock
+$ build/verify/debug/transaction_test_rwlock
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57305 checks, 0 failed
+exit status: 0
+===== debug / snapshot_test_rcu
+$ build/verify/debug/snapshot_test_rcu
+  keys(): 18 snapshots across 12 growths and 4 tombstone rebuilds each report their own key set
+  epoch, manual passes:        3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  epoch, background cleaner:   3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  stop-the-world comparator:   3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  reclamation disabled:        3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 0 chunks freed
+snapshot_test: 134713 checks, 0 failed
+exit status: 0
+===== debug / txn_failure_test_rcu
+$ build/verify/debug/txn_failure_test_rcu
+  1 key, empty store                             1 writes:  11 allocation points failed in turn;  11 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:  19 allocation points failed in turn;  19 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  48 allocation points failed in turn;  48 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  18 allocation points failed in turn;  18 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes: 270 allocation points failed in turn; 270 rolled back, 0 tolerated
+txn_failure_test: 14470 checks, 0 failed
+exit status: 0
+===== debug / txn_failure_test_single
+$ build/verify/debug/txn_failure_test_single
+  1 key, empty store                             1 writes:   8 allocation points failed in turn;   8 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:   5 allocation points failed in turn;   5 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  13 allocation points failed in turn;  13 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  10 allocation points failed in turn;  10 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes:  72 allocation points failed in turn;  72 rolled back, 0 tolerated
+txn_failure_test: 3793 checks, 0 failed
+exit status: 0
+===== debug / txn_concurrency_test
+$ build/verify/debug/txn_concurrency_test
+    1-key commit: none visible before the swap, all after it; older snapshot unchanged
+    4-key commit: none visible before the swap, all after it; older snapshot unchanged
+   16-key commit: none visible before the swap, all after it; older snapshot unchanged
+  100-key commit: none visible before the swap, all after it; older snapshot unchanged
+  acquire_snapshot parked before announcing:     799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after announcing:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after validating:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after loading the root: 799 transactions meanwhile; snapshot reads generation 1, complete
+    1-key transactions: 24000 commits, 71313 snapshots (0 partial, 0 unstable), 149440 point reads (0 torn); pairs of ordinary gets that saw two versions: 0 (allowed)
+    4-key transactions: 12000 commits, 25868 snapshots (0 partial, 0 unstable), 148684 point reads (0 torn); pairs of ordinary gets that saw two versions: 1973 (allowed)
+   16-key transactions: 4800 commits, 9862 snapshots (0 partial, 0 unstable), 180065 point reads (0 torn); pairs of ordinary gets that saw two versions: 801 (allowed)
+  100-key transactions: 1800 commits, 3304 snapshots (0 partial, 0 unstable), 286809 point reads (0 torn); pairs of ordinary gets that saw two versions: 254 (allowed)
+  4 writer threads: 14049 publications, each atomic; shared 8-key group never mixed under a snapshot
+  release during cleaning: 34424 snapshots taken and released by 4 threads over 2999 commits; 3998 chunks freed, 3855 IDs reused, 0 wrong reads
+txn_concurrency_test: 4860 checks, 0 failed
+exit status: 0
+===== debug / reclamation_test
+$ build/verify/debug/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+  pin in epoch mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in stop-the-world mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in disabled mode: 3020 versions held back while pinned, 0 chunks freed after release
+  progress, batch 1    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 600 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 8    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 75 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 64   stalled: backlog 600, 206 chunks, 14 MiB held; after release: 10 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 1024 stalled: backlog 600, 206 chunks, 14 MiB held; after release: 1 passes, backlog 0, 6 chunks, 392 KiB held
+reclamation_test: 77234 checks, 0 failed
+exit status: 0
+===== debug / reclamation_stress_test
+$ build/verify/debug/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=230671 published=39611 backlog_max=615 passes=39828 epoch_advances=524 (blocked 39302) chunk_ids_reused=743 registrations=6476
+  stress batch=8    writes=35602 erases=4398 reads=300722 published=39611 backlog_max=420 passes=5178 epoch_advances=517 (blocked 4660) chunk_ids_reused=745 registrations=7689
+  stress batch=64   writes=35602 erases=4398 reads=151163 published=39611 backlog_max=1950 passes=748 epoch_advances=311 (blocked 363) chunk_ids_reused=708 registrations=6584
+  stress batch=1024 writes=35602 erases=4398 reads=143277 published=39611 backlog_max=663 passes=338 epoch_advances=236 (blocked 75) chunk_ids_reused=740 registrations=5383
+  memory: 60000 writes, peak held 2.8 MiB, settled 77.4 KiB, backlog peak 605
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== debug / epoch_test
+$ build/verify/debug/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== release / transaction_test_rcu
+$ build/verify/release/transaction_test_rcu
+    1 keys: 1 publication, 1 partitions touched, 1 segments cloned
+    4 keys: 1 publication, 4 partitions touched, 4 segments cloned
+   16 keys: 1 publication, 15 partitions touched, 15 segments cloned
+  100 keys: 1 publication, 83 partitions touched, 83 segments cloned
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57326 checks, 0 failed
+exit status: 0
+===== release / transaction_test_rwlock
+$ build/verify/release/transaction_test_rwlock
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57305 checks, 0 failed
+exit status: 0
+===== release / snapshot_test_rcu
+$ build/verify/release/snapshot_test_rcu
+  keys(): 18 snapshots across 12 growths and 4 tombstone rebuilds each report their own key set
+  epoch, manual passes:        3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  epoch, background cleaner:   3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  stop-the-world comparator:   3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  reclamation disabled:        3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 0 chunks freed
+snapshot_test: 134713 checks, 0 failed
+exit status: 0
+===== release / txn_failure_test_rcu
+$ build/verify/release/txn_failure_test_rcu
+  1 key, empty store                             1 writes:  11 allocation points failed in turn;  11 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:  19 allocation points failed in turn;  19 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  48 allocation points failed in turn;  48 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  18 allocation points failed in turn;  18 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes: 270 allocation points failed in turn; 270 rolled back, 0 tolerated
+txn_failure_test: 14470 checks, 0 failed
+exit status: 0
+===== release / txn_failure_test_single
+$ build/verify/release/txn_failure_test_single
+  1 key, empty store                             1 writes:   8 allocation points failed in turn;   8 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:   5 allocation points failed in turn;   5 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  13 allocation points failed in turn;  13 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  10 allocation points failed in turn;  10 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes:  72 allocation points failed in turn;  72 rolled back, 0 tolerated
+txn_failure_test: 3793 checks, 0 failed
+exit status: 0
+===== release / txn_concurrency_test
+$ build/verify/release/txn_concurrency_test
+    1-key commit: none visible before the swap, all after it; older snapshot unchanged
+    4-key commit: none visible before the swap, all after it; older snapshot unchanged
+   16-key commit: none visible before the swap, all after it; older snapshot unchanged
+  100-key commit: none visible before the swap, all after it; older snapshot unchanged
+  acquire_snapshot parked before announcing:     799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after announcing:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after validating:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after loading the root: 799 transactions meanwhile; snapshot reads generation 1, complete
+    1-key transactions: 24000 commits, 116865 snapshots (0 partial, 0 unstable), 425938 point reads (0 torn); pairs of ordinary gets that saw two versions: 0 (allowed)
+    4-key transactions: 12000 commits, 139598 snapshots (0 partial, 0 unstable), 690527 point reads (0 torn); pairs of ordinary gets that saw two versions: 1524 (allowed)
+   16-key transactions: 4800 commits, 42087 snapshots (0 partial, 0 unstable), 342735 point reads (0 torn); pairs of ordinary gets that saw two versions: 634 (allowed)
+  100-key transactions: 1800 commits, 18322 snapshots (0 partial, 0 unstable), 1614775 point reads (0 torn); pairs of ordinary gets that saw two versions: 269 (allowed)
+  4 writer threads: 14049 publications, each atomic; shared 8-key group never mixed under a snapshot
+  release during cleaning: 17678 snapshots taken and released by 4 threads over 2999 commits; 3998 chunks freed, 3760 IDs reused, 0 wrong reads
+txn_concurrency_test: 4860 checks, 0 failed
+exit status: 0
+===== release / reclamation_test
+$ build/verify/release/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+  pin in epoch mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in stop-the-world mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in disabled mode: 3020 versions held back while pinned, 0 chunks freed after release
+  progress, batch 1    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 600 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 8    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 75 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 64   stalled: backlog 600, 206 chunks, 14 MiB held; after release: 10 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 1024 stalled: backlog 600, 206 chunks, 14 MiB held; after release: 1 passes, backlog 0, 6 chunks, 392 KiB held
+reclamation_test: 77234 checks, 0 failed
+exit status: 0
+===== release / reclamation_stress_test
+$ build/verify/release/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=1531594 published=39611 backlog_max=950 passes=39814 epoch_advances=580 (blocked 39232) chunk_ids_reused=736 registrations=7830
+  stress batch=8    writes=35602 erases=4398 reads=1170846 published=39611 backlog_max=1586 passes=5096 epoch_advances=268 (blocked 4822) chunk_ids_reused=726 registrations=5664
+  stress batch=64   writes=35602 erases=4398 reads=896132 published=39611 backlog_max=942 passes=730 epoch_advances=227 (blocked 502) chunk_ids_reused=730 registrations=5144
+  stress batch=1024 writes=35602 erases=4398 reads=850866 published=39611 backlog_max=1266 passes=189 epoch_advances=168 (blocked 20) chunk_ids_reused=727 registrations=4685
+  memory: 60000 writes, peak held 2.0 MiB, settled 77.4 KiB, backlog peak 428
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== release / epoch_test
+$ build/verify/release/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== asan_ubsan / transaction_test_rcu
+$ build/verify/asan_ubsan/transaction_test_rcu
+    1 keys: 1 publication, 1 partitions touched, 1 segments cloned
+    4 keys: 1 publication, 4 partitions touched, 4 segments cloned
+   16 keys: 1 publication, 15 partitions touched, 15 segments cloned
+  100 keys: 1 publication, 83 partitions touched, 83 segments cloned
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57326 checks, 0 failed
+exit status: 0
+===== asan_ubsan / transaction_test_rwlock
+$ build/verify/asan_ubsan/transaction_test_rwlock
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57305 checks, 0 failed
+exit status: 0
+===== asan_ubsan / snapshot_test_rcu
+$ build/verify/asan_ubsan/snapshot_test_rcu
+  keys(): 18 snapshots across 12 growths and 4 tombstone rebuilds each report their own key set
+  epoch, manual passes:        3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  epoch, background cleaner:   3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  stop-the-world comparator:   3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  reclamation disabled:        3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 0 chunks freed
+snapshot_test: 134713 checks, 0 failed
+exit status: 0
+===== asan_ubsan / txn_failure_test_rcu
+$ build/verify/asan_ubsan/txn_failure_test_rcu
+  1 key, empty store                             1 writes:  11 allocation points failed in turn;  11 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:  19 allocation points failed in turn;  19 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  48 allocation points failed in turn;  48 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  18 allocation points failed in turn;  18 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes: 270 allocation points failed in turn; 270 rolled back, 0 tolerated
+txn_failure_test: 14470 checks, 0 failed
+exit status: 0
+===== asan_ubsan / txn_failure_test_single
+$ build/verify/asan_ubsan/txn_failure_test_single
+  1 key, empty store                             1 writes:   8 allocation points failed in turn;   8 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:   5 allocation points failed in turn;   5 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  13 allocation points failed in turn;  13 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  10 allocation points failed in turn;  10 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes:  72 allocation points failed in turn;  72 rolled back, 0 tolerated
+txn_failure_test: 3793 checks, 0 failed
+exit status: 0
+===== asan_ubsan / txn_concurrency_test
+$ build/verify/asan_ubsan/txn_concurrency_test
+    1-key commit: none visible before the swap, all after it; older snapshot unchanged
+    4-key commit: none visible before the swap, all after it; older snapshot unchanged
+   16-key commit: none visible before the swap, all after it; older snapshot unchanged
+  100-key commit: none visible before the swap, all after it; older snapshot unchanged
+  acquire_snapshot parked before announcing:     799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after announcing:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after validating:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after loading the root: 799 transactions meanwhile; snapshot reads generation 1, complete
+    1-key transactions: 24000 commits, 95358 snapshots (0 partial, 0 unstable), 435664 point reads (0 torn); pairs of ordinary gets that saw two versions: 0 (allowed)
+    4-key transactions: 12000 commits, 47882 snapshots (0 partial, 0 unstable), 222785 point reads (0 torn); pairs of ordinary gets that saw two versions: 2091 (allowed)
+   16-key transactions: 4800 commits, 16509 snapshots (0 partial, 0 unstable), 196750 point reads (0 torn); pairs of ordinary gets that saw two versions: 764 (allowed)
+  100-key transactions: 1800 commits, 6340 snapshots (0 partial, 0 unstable), 447562 point reads (0 torn); pairs of ordinary gets that saw two versions: 307 (allowed)
+  4 writer threads: 14049 publications, each atomic; shared 8-key group never mixed under a snapshot
+  release during cleaning: 29208 snapshots taken and released by 4 threads over 2999 commits; 3998 chunks freed, 3818 IDs reused, 0 wrong reads
+txn_concurrency_test: 4860 checks, 0 failed
+exit status: 0
+===== asan_ubsan / reclamation_test
+$ build/verify/asan_ubsan/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+  pin in epoch mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in stop-the-world mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in disabled mode: 3020 versions held back while pinned, 0 chunks freed after release
+  progress, batch 1    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 600 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 8    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 75 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 64   stalled: backlog 600, 206 chunks, 14 MiB held; after release: 10 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 1024 stalled: backlog 600, 206 chunks, 14 MiB held; after release: 1 passes, backlog 0, 6 chunks, 392 KiB held
+reclamation_test: 77234 checks, 0 failed
+exit status: 0
+===== asan_ubsan / reclamation_stress_test
+$ build/verify/asan_ubsan/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=161698 published=39611 backlog_max=4874 passes=39779 epoch_advances=5630 (blocked 34016) chunk_ids_reused=663 registrations=2834
+  stress batch=8    writes=35602 erases=4398 reads=263209 published=39611 backlog_max=543 passes=5335 epoch_advances=709 (blocked 4622) chunk_ids_reused=744 registrations=4505
+  stress batch=64   writes=35602 erases=4398 reads=262189 published=39611 backlog_max=638 passes=1303 epoch_advances=606 (blocked 684) chunk_ids_reused=742 registrations=3902
+  stress batch=1024 writes=35602 erases=4398 reads=244000 published=39611 backlog_max=612 passes=899 epoch_advances=542 (blocked 349) chunk_ids_reused=742 registrations=3941
+  memory: 60000 writes, peak held 2.2 MiB, settled 77.4 KiB, backlog peak 478
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== asan_ubsan / epoch_test
+$ build/verify/asan_ubsan/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0
+===== tsan / transaction_test_rcu
+$ build/verify/tsan/transaction_test_rcu
+    1 keys: 1 publication, 1 partitions touched, 1 segments cloned
+    4 keys: 1 publication, 4 partitions touched, 4 segments cloned
+   16 keys: 1 publication, 15 partitions touched, 15 segments cloned
+  100 keys: 1 publication, 83 partitions touched, 83 segments cloned
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57326 checks, 0 failed
+exit status: 0
+===== tsan / transaction_test_rwlock
+$ build/verify/tsan/transaction_test_rwlock
+  randomized seed=12648430: 2021 transactions committed, 76107 writes staged, 587 keys live
+  randomized seed=20261012: 2006 transactions committed, 76428 writes staged, 592 keys live
+transaction_test: 57305 checks, 0 failed
+exit status: 0
+===== tsan / snapshot_test_rcu
+$ build/verify/tsan/snapshot_test_rcu
+  keys(): 18 snapshots across 12 growths and 4 tombstone rebuilds each report their own key set
+  epoch, manual passes:        3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  epoch, background cleaner:   3000 publications under one snapshot: 3000 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  stop-the-world comparator:   3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 1495 chunks freed
+  reclamation disabled:        3000 publications under one snapshot: 3024 versions held back, 0 chunks freed, 0 IDs reused; after release 0 chunks freed
+snapshot_test: 134713 checks, 0 failed
+exit status: 0
+===== tsan / txn_failure_test_rcu
+$ build/verify/tsan/txn_failure_test_rcu
+  1 key, empty store                             1 writes:  11 allocation points failed in turn;  11 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:  19 allocation points failed in turn;  19 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  48 allocation points failed in turn;  48 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  18 allocation points failed in turn;  18 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes: 270 allocation points failed in turn; 270 rolled back, 0 tolerated
+txn_failure_test: 14470 checks, 0 failed
+exit status: 0
+===== tsan / txn_failure_test_single
+$ build/verify/tsan/txn_failure_test_single
+  1 key, empty store                             1 writes:   8 allocation points failed in turn;   8 rolled back, 0 tolerated
+  4 keys, different partitions                   4 writes:   5 allocation points failed in turn;   5 rolled back, 0 tolerated
+  16 writes, repeats, empty and oversized       16 writes:  13 allocation points failed in turn;  13 rolled back, 0 tolerated
+  100 keys, one partition                      100 writes:  10 allocation points failed in turn;  10 rolled back, 0 tolerated
+  100 keys, many partitions, 300 KB            100 writes:  72 allocation points failed in turn;  72 rolled back, 0 tolerated
+txn_failure_test: 3793 checks, 0 failed
+exit status: 0
+===== tsan / txn_concurrency_test
+$ build/verify/tsan/txn_concurrency_test
+    1-key commit: none visible before the swap, all after it; older snapshot unchanged
+    4-key commit: none visible before the swap, all after it; older snapshot unchanged
+   16-key commit: none visible before the swap, all after it; older snapshot unchanged
+  100-key commit: none visible before the swap, all after it; older snapshot unchanged
+  acquire_snapshot parked before announcing:     799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after announcing:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after validating:      799 transactions meanwhile; snapshot reads generation 800, complete
+  acquire_snapshot parked after loading the root: 799 transactions meanwhile; snapshot reads generation 1, complete
+    1-key transactions: 24000 commits, 148195 snapshots (0 partial, 0 unstable), 186630 point reads (0 torn); pairs of ordinary gets that saw two versions: 0 (allowed)
+    4-key transactions: 12000 commits, 31034 snapshots (0 partial, 0 unstable), 75400 point reads (0 torn); pairs of ordinary gets that saw two versions: 1998 (allowed)
+   16-key transactions: 4800 commits, 7514 snapshots (0 partial, 0 unstable), 50568 point reads (0 torn); pairs of ordinary gets that saw two versions: 800 (allowed)
+  100-key transactions: 1800 commits, 3251 snapshots (0 partial, 0 unstable), 111760 point reads (0 torn); pairs of ordinary gets that saw two versions: 270 (allowed)
+  4 writer threads: 14049 publications, each atomic; shared 8-key group never mixed under a snapshot
+  release during cleaning: 24071 snapshots taken and released by 4 threads over 2999 commits; 3998 chunks freed, 3881 IDs reused, 0 wrong reads
+txn_concurrency_test: 4860 checks, 0 failed
+exit status: 0
+===== tsan / reclamation_test
+$ build/verify/tsan/reclamation_test
+  reader parked before announcing:           reclaimed while parked: 2000 of 2000, epoch moved by 4000
+  reader parked after announcing:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after validating:            reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked after loading the root:      reclaimed while parked: 0 of 2000, epoch moved by 1
+  reader parked before copying bytes:        reclaimed while parked: 0 of 2000, epoch moved by 1
+  writer parked after the root swap:         old version neither lost nor freed early
+  writer parked after tagging the old one:   old version neither lost nor freed early
+  cleaner parked in the middle of its scan:  reader in a new slot block was not overtaken
+  cleaner parked after its scan:             reader in a new slot block was not overtaken
+  batch     1: 3000 versions in 3001 passes, at most 1 per pass
+  batch     8: 3000 versions in 376 passes, at most 8 per pass
+  batch    64: 3000 versions in 48 passes, at most 64 per pass
+  batch   256: 3000 versions in 13 passes, at most 256 per pass
+  batch  1024: 3000 versions in 4 passes, at most 1024 per pass
+  batch     0: 3000 versions in 3001 passes, at most 1 per pass
+  batch    -5: 3000 versions in 3001 passes, at most 1 per pass
+  resumable destruction: 2 versions took 46 passes of <= 16 units, 43 interruptions
+  pin in epoch mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in stop-the-world mode: 3020 versions held back while pinned, 1500 chunks freed after release
+  pin in disabled mode: 3020 versions held back while pinned, 0 chunks freed after release
+  progress, batch 1    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 600 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 8    stalled: backlog 600, 206 chunks, 14 MiB held; after release: 75 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 64   stalled: backlog 600, 206 chunks, 14 MiB held; after release: 10 passes, backlog 0, 6 chunks, 392 KiB held
+  progress, batch 1024 stalled: backlog 600, 206 chunks, 14 MiB held; after release: 1 passes, backlog 0, 6 chunks, 392 KiB held
+reclamation_test: 77234 checks, 0 failed
+exit status: 0
+===== tsan / reclamation_stress_test
+$ build/verify/tsan/reclamation_stress_test
+  stress batch=1    writes=35602 erases=4398 reads=311523 published=39611 backlog_max=130 passes=42964 epoch_advances=4695 (blocked 38142) chunk_ids_reused=751 registrations=12369
+  stress batch=8    writes=35602 erases=4398 reads=203421 published=39611 backlog_max=214 passes=6881 epoch_advances=3192 (blocked 3645) chunk_ids_reused=750 registrations=8965
+  stress batch=64   writes=35602 erases=4398 reads=244479 published=39611 backlog_max=149 passes=4238 epoch_advances=2384 (blocked 1819) chunk_ids_reused=751 registrations=8699
+  stress batch=1024 writes=35602 erases=4398 reads=241317 published=39611 backlog_max=95 passes=5623 epoch_advances=3368 (blocked 2189) chunk_ids_reused=751 registrations=10353
+  memory: 60000 writes, peak held 0.4 MiB, settled 77.4 KiB, backlog peak 39
+reclamation_stress_test: 120178 checks, 0 failed
+exit status: 0
+===== tsan / epoch_test
+$ build/verify/tsan/epoch_test
+epoch_test: 6908 checks, 0 failed
+exit status: 0

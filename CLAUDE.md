@@ -229,6 +229,9 @@ gates to it as the milestone lands.
   `reports/milestones/C1.md`, tag `part-c-transactions`, branch `part-c/transactions`. Design
   note `docs/transactions.md`; checklist `docs/part_c_compliance.md`; interim diff
   `results/diffs/part_b_to_part_c1.diff`.
+- **Post-C1 source audit: done** — `reports/milestones/C1_audit.md`. No source change;
+  deterministic reclamation-progress tests added (D-058); isolation wording corrected
+  (D-057); cross-store snapshot analysis and the question for the instructor (D-059).
 - **Next: C2** (secondary index, `index_get`, index-nested-loop join, final B→C diff and
   Part C README). Requires user approval. `create_index`/`index_get` are still stubs that
   report "no index".

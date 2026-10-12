@@ -1,0 +1,7 @@
+# clean clone of 314d652
+configure exit: 0
+build exit: 0  warnings: 0
+100% tests passed, 0 tests failed out of 58
+
+Total Test time (real) =  56.76 sec
+ctest exit: 0
