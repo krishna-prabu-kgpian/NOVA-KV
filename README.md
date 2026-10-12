@@ -12,18 +12,23 @@ A single-node, in-memory key-value store with RCU reads, built for
 | A2 | Active-writer benchmark, lock profiling (perf stat, flame graphs, perf c2c), NSM/DSM/PAX microbenchmark, Part A report | **Done** (`reports/milestones/A2.md`) — Part A complete |
 | B1 | Immutable versions, copy-on-write index, atomic root, lock-free reads; replaced versions retained (no reclamation) | **Done** (`reports/milestones/B1.md`) |
 | B2 | Epoch-based reclamation, background cleaner, `set_reclaim_batch`; Part B README, compliance checklist, A→B diff | **Done** (`reports/milestones/B2.md`) — Part B complete |
-| C1–C2 | Transactions, snapshots, secondary index, join | Not started |
+| C1 | `Transaction` (atomic multi-key commits), `Snapshot`, snapshot-scoped `get`, `keys`; writer serialization; isolation design note | **Done** (`reports/milestones/C1.md`) |
+| C2 | Secondary index, index-nested-loop join | Not started |
 | D | Benchmark campaign | Not started |
 | E | Write-ahead log (optional bonus) | Not started |
 
 **What works:** `put`, `get`, `erase` and `set_reclaim_batch` under four synchronization
 policies: the three Part A lock policies and `rcu` (Part B), where reads take no lock, every
 write publishes an immutable version with one atomic pointer swap, and replaced versions are
-freed by epoch-based reclamation on a background thread.
+freed by epoch-based reclamation on a background thread. Since C1: `Transaction` on every
+build (one publication for all staged writes on `rcu`; one lock hold with undo on the
+baselines), and on the `rcu` build `Snapshot`, `acquire_snapshot`, snapshot-scoped `get` and
+`keys`.
 
-**What does not yet:** everything from Part C is an inert declaration (`Transaction::commit`
-and `create_index` return `false`, `index_get` returns 0, snapshots pin nothing). There is no
-durability. Part D's benchmark campaign has not been run.
+**What does not yet:** the secondary index (`create_index` returns `false`, `index_get`
+returns 0) and the join (Part C.2). `acquire_snapshot` throws `std::logic_error` on the
+lock-based baselines, which have no versions to pin: use the `rcu` build for snapshots. There
+is no durability. Part D's benchmark campaign has not been run.
 
 ## Design of the Part A store
 
@@ -134,6 +139,10 @@ Tests (`ctest`, 47 per build mode):
 | `versioned_alloc_failure_test` | Every allocation of each write fails in turn: nothing published, arena rolled back, content equals the model, counts consistent |
 | `versioned_interleaving_test` | Deterministic schedules with pause points: reader parked across 3051 publications, writer parked before/after the root swap, plus a bounded atomic-visibility stress |
 | `kvstore_test_rcu`, `concurrent_lock_test_rcu`, `smoke_test_rcu`, `reference_workload_link_test_rcu`, `driver_rcu` | The variant-generic tests against the `rcu` build |
+| `transaction_test_{single,global_lock,rwlock,rcu}` | Part C.1 `Transaction` through the public API: staging invisible, values copied, last write wins, 1/4/16/100 keys in one publication with one clone per partition, large and empty values, empty commit, commit once, abandoned, invalid put, randomized against a model |
+| `snapshot_test_{single,global_lock,rwlock,rcu}` | Part C.1 `Snapshot`: state at acquisition, buffer contracts, move semantics, wrong store rejected, `keys()` through collisions/resizing/tombstone rebuilds/updates/deletions, 3000 publications under one snapshot in epoch / stop-the-world / disabled modes with no chunk freed and no ID reused, threads, slot reuse, shutdown. Lock variants: acquisition must throw |
+| `txn_failure_test_{single,rcu}` | Every allocation between constructing a `Transaction` and the end of `commit()` fails in turn: all or nothing, counts valid, earlier snapshot intact, no leak |
+| `txn_concurrency_test` | Writer parked before and after the root swap (none, then all, for 1/4/16/100 keys); `acquire_snapshot` parked at each pin step; atomicity stress through snapshots; four writer threads serialized; snapshots released during cleaning |
 | `bench_validate_concurrent_rcu*` (6), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build: default, paced, batch 8, single-thread, reclamation disabled, stop-the-world; the memory guard must invalidate a run |
 | `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
 | `bench_validate_*` (7), `bench_rejects_concurrent_single` | Each harness runs briefly and must pass its own validity checks; the harness must refuse to run the unsynchronized variant concurrently |
@@ -172,6 +181,38 @@ place, an RCU write copies the segment it touches and the directory. A differenc
 for example, `rwlock` and `rcu` compares two whole designs and is not the cost of the lock
 alone (`docs/decisions.md` D-038). Machine conditions also differed between milestones; only
 numbers taken in one session are comparable (D-046).
+
+## Part C.1: transactions and snapshots
+
+- **Design note (isolation level, write skew, durability):** `docs/transactions.md`
+- **Compliance checklist:** `docs/part_c_compliance.md`
+- **Milestone report:** `reports/milestones/C1.md`
+- **Part B → Part C source diff so far:** `results/diffs/part_b_to_part_c1.diff`, or
+  `git diff part-b-audited part-c-transactions -- src include`
+
+```cpp
+Transaction t(store);                    // stage: copied, invisible
+t.put(1, &a, sizeof(a));
+t.put(2, &b, sizeof(b));
+bool ok = t.commit();                    // all in one publication, or nothing
+
+KVStore::Snapshot snap = store.acquire_snapshot();   // rcu build
+store.get(snap, 1, &a, sizeof(a));       // always the version pinned above
+size_t n = store.keys(snap, keys, max);  // its keys, each once
+```
+
+A transaction of any size is one atomic pointer swap. Ordinary `get` calls each see the
+latest version at their own instant, so two of them may straddle a commit; reading several
+keys of one version needs one `Snapshot`. Writes from several threads are serialized by an
+internal writer mutex (readers never take it). There is no conflict detection and no
+durability: `docs/transactions.md` says exactly what isolation that is and is not.
+
+```bash
+build/release/transaction_test_rcu       # semantics; also _single, _global_lock, _rwlock
+build/release/snapshot_test_rcu          # lifetime, moves, keys(), all reclamation modes
+build/release/txn_failure_test_rcu       # every allocation of a commit failing in turn
+build/release/txn_concurrency_test       # none-then-all, atomicity stress, serialized writers
+```
 
 ## Part A results and how to reproduce them
 

@@ -195,8 +195,8 @@ gates to it as the milestone lands.
   numbers with release numbers.
 - Tests use `NOVA_CHECK` (always evaluated, independent of `NDEBUG`), never bare `assert`.
 - Git: milestone work happens on a branch; tags mark accepted checkpoints (`a0-bootstrap`,
-  `part-a-core`, `part-a-final`, `part-b-publication`, `part-b-final`, `part-c-transactions`,
-  `part-c-final`, `part-d-final`, `part-e-bonus`). Never amend or erase earlier checkpoint
+  `part-a-core`, `part-a-final`, `part-b-publication`, `part-b-final`, `part-b-audited`,
+  `part-c-transactions`, `part-c-final`, `part-d-final`, `part-e-bonus`). Never amend or erase earlier checkpoint
   history; the Part A→B and B→C diffs are exported from the tags.
 
 ### Known environment limitations (re-check with `scripts/env_info.sh`)
@@ -221,14 +221,17 @@ gates to it as the milestone lands.
   `reports/milestones/B2.md`, tag `part-b-final`, branch `part-b/rcu`. Part B README
   `reports/part_b_readme.md`; design and proof `docs/reclamation.md`; checklist
   `docs/part_b_compliance.md`; diff `results/diffs/part_a_to_part_b.diff`.
-- **Post-B2 source audit: done** — `reports/milestones/B2_audit.md`. It changed source after
-  the tag: the reclaim-batch setting is now the literal private member
-  `KVStore::reclaim_batch_` in `kvstore.h` (D-047), and reads during thread teardown get a
-  fresh reader slot (D-048). `part-b-final` (304a8ac) was **not** moved and predates both;
-  which tag marks the audited state is open (O-17).
-- **Next: C1** (Transaction, public Snapshot on the existing `VersionedStore::Pin`). Requires
-  user approval. Part C is still inert declarations. C1 must first make the stop-the-world
-  comparator pin-aware (D-049, O-16).
+- **Post-B2 source audit: done** — `reports/milestones/B2_audit.md`; corrections D-047
+  (private `KVStore::reclaim_batch_` in `kvstore.h`) and D-048 (reader-slot teardown).
+  **`part-b-audited` (87d38aa) is the Part B baseline** for all diffs; `part-b-final`
+  (304a8ac) predates the corrections and is kept unmoved (D-050).
+- **C1 (Transaction, Snapshot, snapshot `get`, `keys`): complete** —
+  `reports/milestones/C1.md`, tag `part-c-transactions`, branch `part-c/transactions`. Design
+  note `docs/transactions.md`; checklist `docs/part_c_compliance.md`; interim diff
+  `results/diffs/part_b_to_part_c1.diff`.
+- **Next: C2** (secondary index, `index_get`, index-nested-loop join, final B→C diff and
+  Part C README). Requires user approval. `create_index`/`index_get` are still stubs that
+  report "no index".
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
@@ -253,9 +256,8 @@ Part B rules (D-031…D-046, `docs/versioning.md`, `docs/reclamation.md`):
   the single-threaded `fail_nth_allocation`. A thread must never announce in a slot it has
   returned (thread teardown: `thread_slot_late`).
 - The reclaim batch has ONE copy: `KVStore::reclaim_batch_`; the engine reads it through a
-  pointer. `results/diffs/part_a_to_part_b.diff` must equal
-  `git diff part-a-final HEAD -- src include` (gate `part_b_artifacts`): regenerate it with
-  any change under `src/` or `include/` until Part C starts.
+  pointer. `results/diffs/part_a_to_part_b.diff` is frozen: it equals
+  `git diff part-a-final part-b-audited -- src include` (gate `part_b_artifacts`).
 - Chunks: one count (`refs`), one freeing rule (the decrement to zero). Never add a
   check-then-free. Segments: `owners`; no increment from zero.
 - The writer never waits for the cleaner or a grace period; the cleaner never waits for a
@@ -265,6 +267,30 @@ Part B rules (D-031…D-046, `docs/versioning.md`, `docs/reclamation.md`):
 - Keep `versioned_alloc_failure_test`, the deterministic schedules in `reclamation_test` and
   the mutation checks (`results/B1/mutation_check.md`, `results/B2/mutation_check.md`) in
   mind when changing the engine: a change that makes a schedule vacuous is a regression.
+
+Part C rules (D-050…D-056, `docs/transactions.md`):
+
+- A transaction is ONE call to `VersionedStore::commit`: one root swap, each touched
+  partition cloned once. Never publish per key. `Transaction::put` copies at once and reports
+  problems only through `commit()` returning `false`; a `Transaction` commits once.
+- `put`, `erase` and `commit` hold `writer_mutex_` for their whole duration. No read path
+  (`get`, `acquire_snapshot`, snapshot `get`, `keys`) may ever take it. Do not describe this
+  as concurrent writing.
+- A `Snapshot` is one `VersionedStore::Pin`; the handle's `void*` is the `ReaderSlot*` and the
+  version is in `ReaderSlot::token`. A move never writes the slot. **Every destruction of a
+  retired version outside the destructor must pass the epoch test `[C6]`, in every
+  reclamation mode** (the stop-the-world comparator included).
+- `Snapshot` exists on the `rcu` build only; the lock baselines throw from
+  `acquire_snapshot()`. `Transaction` exists on all four builds (baselines: one lock hold with
+  undo).
+- Isolation is stated as "atomic, serialized commits with snapshot-consistent reads": no
+  conflict detection, not serializable, not full SI for read-then-write clients, no
+  durability. Do not strengthen these claims. Two stores are two snapshots (O-1 stays open).
+- Keep the three properties apart in tests: point-read linearizability (plain `get`),
+  atomic publication and stable snapshots (both only through ONE `Snapshot`).
+- Run the test suite serially (`ctest` without `-j`): `reclamation_stress_test` has coverage
+  assertions that need the cleaner to get CPU (D-056).
+- Mutation records: `results/C1/mutation_check.md` (20/20).
 
 Measurement rules (D-024…D-026, D-029, D-046): never label supplied-generator runs as
 concurrent (they are preload-only); active-writer numbers come from

@@ -65,8 +65,10 @@ object no other thread can reach yet.
 
 A long-lived **pin** (`VersionedStore::acquire_pin`) is a reader whose `[P5]` is postponed: it
 owns a dedicated slot, performs `[P1]–[P4]` once, and keeps the slot announcing that epoch
-until `release_pin`. Moving a pin copies a pointer pair; no slot is written. This is the
-internal basis for the Part C `Snapshot`.
+until `release_pin`. Moving a pin copies a pointer pair; no slot is written. The public
+`KVStore::Snapshot` (Part C.1, `docs/transactions.md`) is exactly one pin: its handle holds
+the slot's address, and the slot's owner-private word (`ReaderSlot::token`, never read by the
+collector) holds the version.
 
 ## 3. Reader slots
 
@@ -140,8 +142,12 @@ waits for that. Memory is finite, so eventually an allocation fails; the write t
 unlimited successful writes under an indefinitely stalled reader.
 
 **Comparator modes** (for Part D.2; not for normal use): `Disabled` retires versions and
-never destroys them; `StopTheWorld` has every reader take a shared lock, and the cleaner take
-it exclusively and free the whole queue at once.
+never destroys them. `StopTheWorld` has every `get` and every snapshot-scoped call take a
+shared lock for its duration; the cleaner takes it exclusively (freezing all of them), makes
+two gated epoch advances, and frees every queue entry the eligibility rule `[C6]` allows, with
+no batch limit and no work budget. With no long-lived pin that is the whole queue at once.
+With one, the entries it may need stay: a pin holds no lock between calls, so the lock alone
+proves nothing about it (decision D-049, fixed in C1).
 
 ---
 
@@ -151,8 +157,9 @@ it exclusively and free the whole queue at once.
 
 - "Before/after" means the order of `seq_cst` operations in their single total order, which
   is consistent with each thread's program order.
-- **A1.** One writer thread calls `put`/`erase`/`commit` (the assignment's assumption; not
-  enforced).
+- **A1.** One writer at a time executes `put`/`erase`/`commit`. Since milestone C1 this is
+  enforced by `VersionedStore::writer_mutex_`, held for the whole of each of them; "the
+  writer" below means whichever thread holds it. No reader takes that mutex.
 - **A2.** At most one reclamation pass runs at a time (`pass_running_`,
   `versioned_store.cpp: reclaim_pass`).
 - **A3.** A slot is used by one participant at a time, and that participant performs one
@@ -370,15 +377,15 @@ pushes change the head and make the CAS fail, and the pop retries.
 
 ### 5.11 What is not proved
 
-- The argument is not machine-checked and relies on A1–A4; A1 and A4 are the caller's
-  obligations and are not enforced.
+- The argument is not machine-checked and relies on A1–A4. A1 is enforced by the writer
+  mutex since C1; A4 (no reader, snapshot or writer while the store is destroyed) is the
+  caller's obligation and is not enforced.
 - No progress or bounded-memory claim is made beyond: if every participant eventually unpins
   and the cleaner keeps running, every retired version is eventually destroyed.
 - Correctness under orderings weaker than `seq_cst` is not claimed; none are used on protocol
   operations.
-- The `StopTheWorld` comparator excludes readers by a shared lock held for the duration of a
-  `get`. A long-lived pin holds no such lock, so that comparator must not be combined with
-  pins (it is not, anywhere); it has to be made pin-aware before the Part C `Snapshot` exists
-  (decision D-049).
+- (Resolved in C1.) The `StopTheWorld` comparator used to free the whole queue under its
+  lock without consulting long-lived pins. It now frees only by `[C6]`; every destruction of a
+  version outside the destructor goes through that one test, in every mode.
 - Reader-side cost is not addressed here (two `seq_cst` stores per `get`); see the milestone
   report for measurements.

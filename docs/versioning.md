@@ -178,7 +178,6 @@ live Versions, Segments and Chunks and the tests assert all three return to zero
   and touches about 255 owner counters; measured figures are in `reports/milestones/B1.md`.
 - `erase` now needs memory for a replacement version, so it returns `false` both for an absent
   key and for an allocation failure (with the store unchanged in either case).
-- Exactly one writer thread is assumed; a second concurrent writer is undefined behaviour and
-  is not detected.
-- `set_reclaim_batch`, `Transaction`, `Snapshot`, `create_index`, `index_get`, `keys` are
-  still inert.
+- (B1 state; superseded.) Exactly one writer thread was assumed. Since C1 writes are
+  serialized by a writer mutex, and `Transaction`, `Snapshot` and `keys` are implemented
+  (`docs/transactions.md`); `create_index` and `index_get` remain for C2.

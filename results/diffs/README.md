@@ -1,22 +1,18 @@
-# Part A -> Part B source diff
+# Source diffs between parts
 
-Generated with:
+Scope of both: the store's sources (`src/`, `include/`). Tests, drivers, benchmarks, scripts
+and documents changed as well; see `git diff --stat <tag> <tag>`.
+`scripts/verify_all.sh` fails if either file is stale.
 
-    git diff part-a-final HEAD -- src include > part_a_to_part_b.diff
+## Part A -> Part B: `part_a_to_part_b.diff`
 
-on branch `part-b/rcu` at the commit that carries the post-B2 audit corrections (decisions
-D-047 and D-048). `part-a-final` = 3444f23.
+    git diff part-a-final part-b-audited -- src include
 
-History of this file: it was first generated at `b699af9` and was identical to
-`git diff part-a-final part-b-final -- src include` (19 files, 2541 insertions, 26
-deletions). The audit then changed `include/kvstore.h` (the private reclaim-batch member) and
-`src/epoch.*`, `src/versioned_store.*`, `src/kvstore*.{h,cpp}`, `src/config.h`, so the file was
-regenerated. The tag `part-b-final` was not moved and still names the pre-audit commit
-`304a8ac`. `scripts/verify_all.sh` (gate `part_b_artifacts`) fails if this file differs from
-`git diff part-a-final HEAD -- src include`.
-
-Scope: the store's sources (`src/`, `include/`). Tests, drivers, benchmarks, scripts and
-documents changed as well; see `git diff --stat part-a-final HEAD`.
+`part-a-final` = 3444f23. `part-b-audited` = 87d38aa is the Part B baseline (decision D-050):
+B2 plus the two corrections of the post-B2 audit (the private reclaim-batch member in
+`kvstore.h`; reader-slot teardown). The earlier tag `part-b-final` (304a8ac) predates those
+corrections and is kept unchanged; the diff against it was 19 files, 2541 insertions, 26
+deletions.
 
 ```
  include/kvstore.h       |   7 +
@@ -40,4 +36,23 @@ documents changed as well; see `git diff --stat part-a-final HEAD`.
  src/versioned_store.cpp | 767 ++++++++++++++++++++++++++++++++++++++++++++++++
  src/versioned_store.h   | 293 ++++++++++++++++++
  20 files changed, 2631 insertions(+), 27 deletions(-)
+```
+
+## Part B -> Part C, state at milestone C1: `part_b_to_part_c1.diff`
+
+    git diff part-b-audited part-c-transactions -- src include
+
+Interim: Part C.1 only (transactions, snapshots, `keys()`, the pin-aware stop-the-world
+comparator, writer serialization). The diff the assignment asks for, Part B against the
+complete Part C, is exported at the end of milestone C2.
+
+```
+ src/epoch.h             |   4 +
+ src/kvstore.cpp         | 299 +++++++++++++++++++++++++++++++++++++++---------
+ src/kvstore_impl.h      |   6 +
+ src/staged_writes.cpp   |  72 ++++++++++++
+ src/staged_writes.h     |  52 +++++++++
+ src/versioned_store.cpp |  72 ++++++++++--
+ src/versioned_store.h   |  23 +++-
+ 7 files changed, 467 insertions(+), 61 deletions(-)
 ```

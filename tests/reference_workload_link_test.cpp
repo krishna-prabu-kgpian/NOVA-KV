@@ -45,10 +45,12 @@ void run(const std::string& label, const WorkloadConfig& cfg, bool with_instrume
     NOVA_CHECK(res.p50_us <= res.p99_us);
     NOVA_CHECK(res.p99_us <= res.p999_us);
 
-    // With plain puts (Part A path) the generator's writer must have left every
-    // trade in the store, readable and intact. The Transaction path is Part C
-    // and is only link-checked here.
-    if (!cfg.use_txn) {
+    // The generator's writer must have left every trade in the store, readable
+    // and intact: with plain puts (Part A path) and, since milestone C1, with
+    // Transactions of any size (the generator ignores commit()'s result, so
+    // this is where a non-working Transaction would show). The instrument
+    // index probe (use_join) is Part C.2 and is only link-checked here.
+    {
         int wrong = 0;
         for (int i = 0; i < cfg.m; i++) {
             for (int j = 0; j < cfg.n; j++) {
@@ -90,6 +92,16 @@ int main() {
     txn_join.txn_size = 4;
     txn_join.use_join = true;
     run("link/txn+join", txn_join, true);
+
+    // Transactions of several sizes, including one that does not divide the
+    // number of trades (the generator's final commit carries the remainder) and
+    // one that does (its final commit is empty).
+    for (int size : {1, 7, 16, 200}) {
+        WorkloadConfig txn = tiny_config();
+        txn.use_txn = true;
+        txn.txn_size = size;
+        run("link/txn size " + std::to_string(size), txn, false);
+    }
 
     return nova_test::finish("reference_workload_link_test");
 }

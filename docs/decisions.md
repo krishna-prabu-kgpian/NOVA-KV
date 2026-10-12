@@ -597,6 +597,87 @@ public (C1), `stw_pass` must respect pins (for example: under the exclusive lock
 entries the epoch rule allows, which is still an unbounded whole-list sweep that stops all
 `get` calls) or `acquire_snapshot` must be defined for that mode.
 
+## D-050 — `part-b-audited` is the Part B baseline (ACCEPTED, 2026-10-12, user decision)
+
+Annotated tag `part-b-audited` on `87d38aa` (verified source `81917be`). `part-b-final`
+(`304a8ac`) is kept, unmoved. Part C branches from `part-b-audited`
+(`part-c/transactions`), and the Part A → Part B and Part B → Part C diffs are taken against
+it. Closes O-17.
+
+## D-051 — Stop-the-world comparator frees by the epoch rule (ACCEPTED, C1; closes D-049 / O-16)
+
+Fixed before any public Snapshot code was written. `stw_pass` still freezes every reader with
+the exclusive lock and still sweeps the whole list without batch or budget, but it frees an
+entry only if `[C6]` holds, after two gated advances made under the freeze. Short readers are
+frozen out, so only long-lived pins can hold an entry back. Snapshot-scoped `get`/`keys` take
+the shared lock per call in that mode, so the comparator freezes them too. Regression:
+`reclamation_test::test_pin_protected_in_mode` (epoch, stop-the-world, disabled); its output
+against the old code is `results/C1/stw_pin_reproducer_before_fix.txt` (pinned values
+overwritten, 3000 versions and their chunks freed under the pin).
+
+## D-052 — Transaction semantics (ACCEPTED, C1)
+
+Appendix A fixes the signatures; these points it leaves open:
+
+- Staging copies at `put()` (blueprint §4.4). Allocation through `alloc_bytes`
+  (`src/staged_writes.*`), so staging failures are injectable.
+- `put()` returns `void`: a put that cannot be staged (no memory, null value with a length,
+  length above `kMaxValueBytes`) marks the transaction failed and `commit()` returns `false`
+  with nothing published, as the user specified.
+- Last write to a key wins.
+- First `commit()` of an empty transaction: `true`, no publication (the supplied generator
+  does this). Any later `commit()`: `false`, no publication. `put()` after `commit()`: ignored.
+  The supplied generator constructs a new `Transaction` per batch, so one commit per object is
+  compatible with it.
+- No `erase` in a transaction (not in Appendix A).
+
+## D-053 — Writes are serialized by a writer mutex (ACCEPTED, C1; user direction "prefer a writer-only serialization mechanism")
+
+Audit of `put` / `erase` / `Transaction::commit` running simultaneously: all three end in
+`VersionedStore::commit`, whose writer state (`latest_`, `queue_tail_`, the arena's writable
+chunk and commit marks, the popping side of the chunk-ID pool, the writer counters) is
+unsynchronized by design. Two at once would corrupt it (demonstrated by mutation C19: crash).
+`writer_mutex_` is now held for the whole of `put`, `erase` (including its presence check)
+and `commit`. Claim made: concurrent calls are safe and are executed one at a time. Claim
+**not** made: concurrent writing, or isolation between clients that read and then write
+(`docs/transactions.md` §5). Readers never take the mutex. Assumption A1 of the reclamation
+argument is thereby enforced rather than assumed. With `CleanerMode::Inline` the passes run
+inside the mutex; that mode is for single-threaded tests.
+
+## D-054 — Snapshot representation and failure policy (ACCEPTED, C1)
+
+- One pin per snapshot. The handle's `void* pin_` is the `ReaderSlot*`; the version lives in
+  the slot (`ReaderSlot::token`, owner-private, 8 bytes of the slot's existing cache line).
+  No allocation per snapshot beyond slot blocks; the public header is unchanged.
+- `acquire_snapshot()` throws `std::bad_alloc` if no slot can be had (never an unprotected
+  handle; blueprint §15 asks for a tested policy).
+- Wrong store or moved-from handle: `get` → `false`, `keys` → `0`, nothing dereferenced.
+- A snapshot outliving its store is the caller's error (blueprint §2.2), not detected.
+- `keys()` order is unspecified but repeatable; no total, no continuation (not in the API).
+
+## D-055 — C1 on the lock-based baselines (ACCEPTED, C1)
+
+`Transaction` **is** implemented for `single` / `global_lock` / `rwlock`: one exclusive lock
+hold, undo on failure, because the supplied workload uses `Transaction` with whichever store
+it is linked against and ignores `commit()`'s result. This adds a function to the baseline
+library and changes no existing one; `put`/`get`/`erase` are byte-identical to
+`part-a-final`, and Part A's measurements used no transactions.
+`Snapshot` is **not** implemented there: `acquire_snapshot()` throws `std::logic_error`
+(reason in `docs/transactions.md` §3.5). Previously it returned an inert handle. The intended
+build for snapshots, `keys()` and the Part C.2 join is `nova_kv_rcu`.
+
+## D-056 — A load-dependent assertion in `reclamation_stress_test` (RECORDED, C1)
+
+`reclamation_stress_test` asserts that chunk IDs were recycled and the epoch advanced more
+than 100 times *during* its run. On a heavily oversubscribed machine the background cleaner
+may not get enough CPU while the writer finishes its fixed number of writes, and those two
+coverage assertions fail. Reproduced with the unmodified `part-b-audited` code under 12
+busy-looping processes plus four parallel copies; never seen in a serial run (every
+verification run is serial). The correctness assertions of that test (no torn read, no stale
+read, pins consistent, backlog drains, counts validate) do not depend on load and did not
+fail. Not changed: an attempt to pace the test made no difference under that load and was
+reverted. Run the suite serially, as `scripts/verify_all.sh` does.
+
 ---
 
 ## Open items carried forward
@@ -615,8 +696,9 @@ entries the epoch rule allows, which is still an unbounded whole-list sweep that
 | O-12 | RESOLVED (D-040, D-043) | — | — |
 | O-13 | RESOLVED: no backlog limit; allocation failure fails the write cleanly (D-040) | — | — |
 | O-15 | RESOLVED: the member is declared in `kvstore.h` (D-047) | — | — |
-| O-16 | Stop-the-world comparator must be made pin-aware before `Snapshot` is public (D-049) | C1 implementation | C1 gate |
-| O-17 | Tag `part-b-final` (304a8ac) predates the audit corrections (D-047, D-048). Tags are never moved; which tag should mark the audited Part B state, and which the B→C diff starts from | User | Export of the B→C diff |
+| O-16 | RESOLVED in C1 (D-051) | — | — |
+| O-17 | RESOLVED: tag `part-b-audited` (D-050) | — | — |
+| O-18 | `keys()` cannot report a total or continue; the C2 join must size its buffer from what it knows about the table, or an internal count must be exposed to the join benchmark | C2 design | Nothing in C1 |
 | O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

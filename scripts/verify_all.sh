@@ -148,12 +148,41 @@ run_gate part_b_artifacts yes sh -c '
     done
     grep -q "void set_reclaim_batch(int n);" include/kvstore.h || { echo "MISSING  set_reclaim_batch declaration"; status=1; }
     grep -q "std::atomic<int> reclaim_batch_;" include/kvstore.h || { echo "MISSING  private reclaim-batch member in kvstore.h"; status=1; }
-    if git diff part-a-final HEAD -- src include | cmp -s - results/diffs/part_a_to_part_b.diff; then
-        echo "ok       Part A -> Part B diff matches the sources at HEAD"
+    git rev-parse --verify --quiet part-b-audited^{commit} >/dev/null || { echo "MISSING  tag part-b-audited"; status=1; }
+    if git diff part-a-final part-b-audited -- src include | cmp -s - results/diffs/part_a_to_part_b.diff; then
+        echo "ok       Part A -> Part B diff matches: git diff part-a-final part-b-audited -- src include"
     else
-        echo "STALE    results/diffs/part_a_to_part_b.diff differs from: git diff part-a-final HEAD -- src include"; status=1
+        echo "STALE    results/diffs/part_a_to_part_b.diff differs from: git diff part-a-final part-b-audited -- src include"; status=1
     fi
     git rev-parse --verify --quiet part-b-publication^{commit} >/dev/null || { echo "MISSING  tag part-b-publication"; status=1; }
+    exit $status'
+
+# ---- Part C.1 deliverables (milestone C1) ---------------------------------------
+run_gate part_c1_artifacts yes sh -c '
+    status=0
+    for f in src/staged_writes.cpp src/staged_writes.h tests/transaction_test.cpp tests/snapshot_test.cpp \
+             tests/txn_failure_test.cpp tests/txn_concurrency_test.cpp docs/transactions.md \
+             docs/part_c_compliance.md results/diffs/part_b_to_part_c1.diff; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    grep -q "write skew" docs/transactions.md || grep -q "Write skew" docs/transactions.md || { echo "MISSING  write-skew explanation"; status=1; }
+    grep -q "Durability" docs/transactions.md || { echo "MISSING  durability statement"; status=1; }
+    # Every tag that is a checkpoint so far still names the commit it was created on.
+    for pair in a0-bootstrap:2ef5f19 part-a-core:80bc092 part-a-final:3444f23 part-b-publication:2d9c02c \
+                part-b-final:304a8ac part-b-audited:87d38aa; do
+        tag=${pair%%:*}; want=${pair##*:}
+        have=$(git rev-parse --short=7 "$tag^{commit}" 2>/dev/null)
+        if [ "$have" = "$want" ]; then echo "ok       tag $tag = $want"; else echo "MOVED    tag $tag: $have, expected $want"; status=1; fi
+    done
+    # The interim Part B -> Part C diff is current. It is frozen at the tag
+    # part-c-transactions once that exists; before that it must match HEAD.
+    base=HEAD
+    git rev-parse --verify --quiet part-c-transactions^{commit} >/dev/null && base=part-c-transactions
+    if git diff part-b-audited "$base" -- src include | cmp -s - results/diffs/part_b_to_part_c1.diff; then
+        echo "ok       Part B -> Part C.1 diff matches: git diff part-b-audited $base -- src include"
+    else
+        echo "STALE    results/diffs/part_b_to_part_c1.diff differs from: git diff part-b-audited $base -- src include"; status=1
+    fi
     exit $status'
 
 # ---- Informational (do not affect the verdict) ------------------------------
@@ -170,7 +199,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1, A2, B1, B2"
+    echo "- milestones covered: A0, A1, A2, B1, B2, C1"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"
