@@ -5,5 +5,5 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$NOVA_ROOT"
 echo "# git_sha: $(git rev-parse HEAD)"
-echo "# git_dirty: $([ -n "$(git status --porcelain)" ] && echo yes || echo no)"
+echo "# git_dirty: $(nova_git_dirty)"
 git ls-files -z | LC_ALL=C sort -z | xargs -0 sha256sum

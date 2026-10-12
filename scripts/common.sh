@@ -17,3 +17,13 @@ nova_resolve_cmake() {
     NOVA_CTEST="$(dirname "$NOVA_CMAKE")/ctest"
     [ -x "$NOVA_CTEST" ] || NOVA_CTEST="$(command -v ctest)"
 }
+
+# Prints yes/no. Verification evidence written by verify_all.sh for the commit
+# under test does not count as a modification of that commit.
+nova_git_dirty() {
+    if [ -n "$(git -C "$NOVA_ROOT" status --porcelain -- . ':!results/verification' 2>/dev/null)" ]; then
+        echo yes
+    else
+        echo no
+    fi
+}

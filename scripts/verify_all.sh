@@ -20,7 +20,7 @@ cd "$NOVA_ROOT"
 
 JOBS="${JOBS:-$(nproc)}"
 SHA="$(git rev-parse --short=12 HEAD 2>/dev/null || echo nogit)"
-[ -n "$(git status --porcelain 2>/dev/null)" ] && SHA="${SHA}-dirty"
+[ "$(nova_git_dirty)" = yes ] && SHA="${SHA}-dirty"
 OUT="results/verification/${SHA}"
 LOGS="$OUT/logs"
 BUILD_ROOT="build/verify"

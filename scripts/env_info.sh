@@ -10,7 +10,7 @@ probe() { "$@" 2>&1 || echo "(unavailable: '$*' exited $?)"; }
 
 echo "captured_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "git_sha: $(git rev-parse HEAD 2>/dev/null || echo none)"
-echo "git_dirty: $([ -n "$(git status --porcelain 2>/dev/null)" ] && echo yes || echo no)"
+echo "git_dirty: $(nova_git_dirty)"
 
 section "kernel / OS";          probe uname -a; probe grep -E '^(NAME|VERSION)=' /etc/os-release
 section "CPU";                  probe lscpu
