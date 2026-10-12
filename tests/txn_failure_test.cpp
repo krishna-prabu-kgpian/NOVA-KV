@@ -64,7 +64,7 @@ bool store_equals(const KVStore& s, const Model& model, long key_limit) {
         } else {
             const Bytes& v = it->second;
             if (!s.get(k, buf.data(), v.size())) return false;
-            if (std::memcmp(buf.data(), v.data(), v.size()) != 0) return false;
+            if (!v.empty() && std::memcmp(buf.data(), v.data(), v.size()) != 0) return false;
             if (!v.empty() && s.get(k, buf.data(), v.size() - 1)) return false;
         }
     }
@@ -80,7 +80,7 @@ bool snapshot_equals(const KVStore& s, const KVStore::Snapshot& snap, const Mode
         } else {
             const Bytes& v = it->second;
             if (!s.get(snap, k, buf.data(), v.size())) return false;
-            if (std::memcmp(buf.data(), v.data(), v.size()) != 0) return false;
+            if (!v.empty() && std::memcmp(buf.data(), v.data(), v.size()) != 0) return false;
         }
     }
     std::vector<long> keys(model.size() + 8);

@@ -45,13 +45,14 @@ bool put(KVStore& s, long key, const Bytes& v) { return s.put(key, v.data(), v.s
 bool holds(const KVStore& s, long key, const Bytes& expect) {
     Bytes buf(expect.size() + 8, 0xCD);
     return s.get(key, buf.data(), expect.size()) &&
-           std::memcmp(buf.data(), expect.data(), expect.size()) == 0 && buf[expect.size()] == 0xCD;
+           (expect.empty() || std::memcmp(buf.data(), expect.data(), expect.size()) == 0) &&
+           buf[expect.size()] == 0xCD;
 }
 
 bool snap_holds(const KVStore& s, const KVStore::Snapshot& snap, long key, const Bytes& expect) {
     Bytes buf(expect.size() + 8, 0xCD);
     if (!s.get(snap, key, buf.data(), expect.size())) return false;
-    if (std::memcmp(buf.data(), expect.data(), expect.size()) != 0) return false;
+    if (!expect.empty() && std::memcmp(buf.data(), expect.data(), expect.size()) != 0) return false;
     if (buf[expect.size()] != 0xCD) return false;
     if (!expect.empty() && s.get(snap, key, buf.data(), expect.size() - 1)) return false;  // exact length
     return true;

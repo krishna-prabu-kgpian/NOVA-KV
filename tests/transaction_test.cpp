@@ -44,7 +44,8 @@ void stage(Transaction& t, long key, const Bytes& v) { t.put(key, v.data(), v.si
 bool holds(const KVStore& s, long key, const Bytes& expect) {
     Bytes buf(expect.size() + 8, 0xCD);
     if (!s.get(key, buf.data(), expect.size())) return false;
-    if (std::memcmp(buf.data(), expect.data(), expect.size()) != 0) return false;
+    // (An empty vector's data() may be null, which memcmp must not be given.)
+    if (!expect.empty() && std::memcmp(buf.data(), expect.data(), expect.size()) != 0) return false;
     if (buf[expect.size()] != 0xCD) return false;                       // nothing beyond the value
     if (!expect.empty() && s.get(key, buf.data(), expect.size() - 1)) return false;  // exact length
     return true;

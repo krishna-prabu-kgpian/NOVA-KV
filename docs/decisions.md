@@ -666,17 +666,29 @@ library and changes no existing one; `put`/`get`/`erase` are byte-identical to
 (reason in `docs/transactions.md` §3.5). Previously it returned an inert handle. The intended
 build for snapshots, `keys()` and the Part C.2 join is `nova_kv_rcu`.
 
-## D-056 — A load-dependent assertion in `reclamation_stress_test` (RECORDED, C1)
+## D-056 — Scheduling-dependent coverage assertions in `reclamation_stress_test` (C1; one threshold changed, disclosed)
 
-`reclamation_stress_test` asserts that chunk IDs were recycled and the epoch advanced more
-than 100 times *during* its run. On a heavily oversubscribed machine the background cleaner
-may not get enough CPU while the writer finishes its fixed number of writes, and those two
-coverage assertions fail. Reproduced with the unmodified `part-b-audited` code under 12
-busy-looping processes plus four parallel copies; never seen in a serial run (every
-verification run is serial). The correctness assertions of that test (no torn read, no stale
-read, pins consistent, backlog drains, counts validate) do not depend on load and did not
-fail. Not changed: an attempt to pace the test made no difference under that load and was
-reverted. Run the suite serially, as `scripts/verify_all.sh` does.
+`reclamation_stress_test` (a Part B test) asserted, besides its correctness checks, that
+during the run the epoch advanced more than 100 times and more than 50 chunk IDs were reused.
+Both are coverage statements whose values depend on scheduling: while the test's pinning
+thread holds a pin the epoch can advance at most once more (Lemma B), so the number of
+advances is about two per pin cycle.
+
+- The first C1 verification run failed in the release stage on `advance_successes > 100`, and
+  so did the clean-clone run. Measured afterwards, 100 sub-runs each, release build, same
+  machine state: **`part-b-audited` (unmodified Part B): min 58, 10th percentile 141, median
+  233; C1: min 113, 10th percentile 160, median 223.** The distribution is the same, and the
+  Part B code itself goes below 100. It is a marginal threshold in the test, not a change in
+  the store; the earlier verification runs passed by chance on that line.
+- Changed: the floor is now 10 (still asserts that grace periods completed while readers,
+  pins and the writer were running; the actual count is printed). **This is a change to an
+  existing test's expectation and is recorded here for that reason.** No correctness
+  assertion of the test was touched: no torn read, no stale read, pins consistent, backlog
+  drains to zero, reclaimed == published, per-pass maximum ≤ batch, counts validate.
+- Not changed: `ids_reused > 50` (serial runs observe 580–740). It does fail when the
+  machine is heavily oversubscribed (reproduced on unmodified Part B code with 12 busy
+  processes plus four parallel copies), because the cleaner then gets too little CPU before
+  the writer has finished. Run the suite serially, as `scripts/verify_all.sh` does.
 
 ---
 

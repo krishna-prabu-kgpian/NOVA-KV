@@ -231,7 +231,12 @@ void stress_readers_writer_cleaner(int batch) {
     NOVA_CHECK(st.reclaim_max_versions_in_pass <= static_cast<std::uint64_t>(batch));
     NOVA_CHECK(st.arena.chunks_freed > 100 && st.arena.ids_reused > 50);  // IDs recycled under readers
     NOVA_CHECK(st.epoch.slots_owned == 0);
-    NOVA_CHECK(st.epoch.advance_successes > 100);
+    // Coverage, not correctness: the epoch really moved while everyone was
+    // running. The number of advances is bounded by about two per cycle of the
+    // pinning thread (bounded overtaking), i.e. by scheduling, so only a small
+    // floor is asserted; the count is printed below. (The former floor of 100
+    // was missed by about 1 sub-run in 70 on an idle machine: decision D-056.)
+    NOVA_CHECK(st.epoch.advance_successes > 10);
     const char* err = s.validate();
     if (err != nullptr) std::fprintf(stderr, "invariant violated: %s\n", err);
     NOVA_CHECK(err == nullptr);
