@@ -1,0 +1,94 @@
+# gate: tsan_ctest
+# started_utc: 2026-10-12T10:55:22Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: /usr/bin/ctest --test-dir build/verify/tsan --output-on-failure
+
+Test project /home/overmind/Documents/DOCS/assignment2/NOVA-KV/build/verify/tsan
+      Start  1: api_conformance_test
+ 1/41 Test  #1: api_conformance_test .............................   Passed    0.01 sec
+      Start  2: hash_segment_test
+ 2/41 Test  #2: hash_segment_test ................................   Passed    0.11 sec
+      Start  3: arena_test
+ 3/41 Test  #3: arena_test .......................................   Passed    0.04 sec
+      Start  4: alloc_failure_test
+ 4/41 Test  #4: alloc_failure_test ...............................   Passed    0.13 sec
+      Start  5: pinned_arena_test
+ 5/41 Test  #5: pinned_arena_test ................................   Passed    0.10 sec
+      Start  6: cow_segment_test
+ 6/41 Test  #6: cow_segment_test .................................   Passed    0.01 sec
+      Start  7: versioned_store_test
+ 7/41 Test  #7: versioned_store_test .............................   Passed   12.11 sec
+      Start  8: versioned_alloc_failure_test
+ 8/41 Test  #8: versioned_alloc_failure_test .....................   Passed    1.14 sec
+      Start  9: versioned_interleaving_test
+ 9/41 Test  #9: versioned_interleaving_test ......................   Passed    1.35 sec
+      Start 10: kvstore_test_single
+10/41 Test #10: kvstore_test_single ..............................   Passed    3.43 sec
+      Start 11: smoke_test_single
+11/41 Test #11: smoke_test_single ................................   Passed    0.01 sec
+      Start 12: reference_workload_link_test_single
+12/41 Test #12: reference_workload_link_test_single ..............   Passed    8.04 sec
+      Start 13: kvstore_test_global_lock
+13/41 Test #13: kvstore_test_global_lock .........................   Passed    4.76 sec
+      Start 14: concurrent_lock_test_global_lock
+14/41 Test #14: concurrent_lock_test_global_lock .................   Passed    0.28 sec
+      Start 15: smoke_test_global_lock
+15/41 Test #15: smoke_test_global_lock ...........................   Passed    0.01 sec
+      Start 16: reference_workload_link_test_global_lock
+16/41 Test #16: reference_workload_link_test_global_lock .........   Passed    3.34 sec
+      Start 17: kvstore_test_rwlock
+17/41 Test #17: kvstore_test_rwlock ..............................   Passed    4.81 sec
+      Start 18: concurrent_lock_test_rwlock
+18/41 Test #18: concurrent_lock_test_rwlock ......................   Passed    0.38 sec
+      Start 19: smoke_test_rwlock
+19/41 Test #19: smoke_test_rwlock ................................   Passed    0.01 sec
+      Start 20: reference_workload_link_test_rwlock
+20/41 Test #20: reference_workload_link_test_rwlock ..............   Passed    3.69 sec
+      Start 21: kvstore_test_rcu
+21/41 Test #21: kvstore_test_rcu .................................   Passed   63.19 sec
+      Start 22: concurrent_lock_test_rcu
+22/41 Test #22: concurrent_lock_test_rcu .........................   Passed    2.69 sec
+      Start 23: smoke_test_rcu
+23/41 Test #23: smoke_test_rcu ...................................   Passed    0.01 sec
+      Start 24: reference_workload_link_test_rcu
+24/41 Test #24: reference_workload_link_test_rcu .................   Passed    6.27 sec
+      Start 25: driver_single_thread
+25/41 Test #25: driver_single_thread .............................   Passed    2.02 sec
+      Start 26: driver_global_lock
+26/41 Test #26: driver_global_lock ...............................   Passed    1.54 sec
+      Start 27: driver_rwlock
+27/41 Test #27: driver_rwlock ....................................   Passed    1.83 sec
+      Start 28: driver_rcu
+28/41 Test #28: driver_rcu .......................................   Passed    3.13 sec
+      Start 29: bench_histogram_test
+29/41 Test #29: bench_histogram_test .............................   Passed    0.09 sec
+      Start 30: bench_validate_concurrent_global_lock
+30/41 Test #30: bench_validate_concurrent_global_lock ............   Passed    0.63 sec
+      Start 31: bench_validate_concurrent_rwlock
+31/41 Test #31: bench_validate_concurrent_rwlock .................   Passed    0.65 sec
+      Start 32: bench_validate_concurrent_rwlock_paced
+32/41 Test #32: bench_validate_concurrent_rwlock_paced ...........   Passed    0.64 sec
+      Start 33: bench_validate_concurrent_reference_keys
+33/41 Test #33: bench_validate_concurrent_reference_keys .........   Passed    0.53 sec
+      Start 34: bench_validate_concurrent_single_readonly
+34/41 Test #34: bench_validate_concurrent_single_readonly ........   Passed    0.48 sec
+      Start 35: bench_validate_concurrent_single_inline_writer
+35/41 Test #35: bench_validate_concurrent_single_inline_writer ...   Passed    0.47 sec
+      Start 36: bench_validate_concurrent_rcu
+36/41 Test #36: bench_validate_concurrent_rcu ....................   Passed    1.24 sec
+      Start 37: bench_validate_concurrent_rcu_paced
+37/41 Test #37: bench_validate_concurrent_rcu_paced ..............   Passed    1.06 sec
+      Start 38: bench_validate_concurrent_rcu_inline_writer
+38/41 Test #38: bench_validate_concurrent_rcu_inline_writer ......   Passed    0.92 sec
+      Start 39: bench_rcu_retain_limit_invalidates_run
+39/41 Test #39: bench_rcu_retain_limit_invalidates_run ...........   Passed    1.16 sec
+      Start 40: bench_validate_layout
+40/41 Test #40: bench_validate_layout ............................   Passed    1.04 sec
+      Start 41: bench_rejects_concurrent_single
+41/41 Test #41: bench_rejects_concurrent_single ..................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 41
+
+Total Test time (real) = 133.41 sec
+
+# exit_status: 0
