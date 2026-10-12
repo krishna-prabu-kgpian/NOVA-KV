@@ -1,0 +1,19 @@
+# started on Mon Oct 12 13:27:39 2026
+
+
+ Performance counter stats for 'build/release/concurrent_bench_rwlock --readers 2 --duration 3 --warmup 0.5 --reader-cpus 0,2 --seed 3 --run-id rwlock_writer_max_r2_rep3 --git-sha fe9ba2d9c2a4 --scenario writer_max --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/rwlock_writer_max_r2_rep3.csv --writer on --writer-cpu 15':
+
+          4,366.23 msec task-clock                                                            
+     8,262,916,577      cycles                                                                
+    14,635,971,725      instructions                                                          
+       836,303,473      cache-references                                                      
+        46,279,693      cache-misses                                                          
+         1,536,563      context-switches                                                      
+                 3      cpu-migrations                                                        
+
+       3.515884523 seconds time elapsed
+
+       0.421699000 seconds user
+       4.160086000 seconds sys
+
+

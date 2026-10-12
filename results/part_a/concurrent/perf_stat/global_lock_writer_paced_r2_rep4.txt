@@ -1,0 +1,19 @@
+# started on Mon Oct 12 13:28:18 2026
+
+
+ Performance counter stats for 'build/release/concurrent_bench_global_lock --readers 2 --duration 3 --warmup 0.5 --reader-cpus 0,2 --seed 4 --run-id global_lock_writer_paced_r2_rep4 --git-sha fe9ba2d9c2a4 --scenario writer_paced --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/global_lock_writer_paced_r2_rep4.csv --writer on --writer-cpu 15 --writer-rate 10000':
+
+          9,777.07 msec task-clock                                                            
+    40,880,043,638      cycles                                                                
+    73,232,458,075      instructions                                                          
+       588,960,156      cache-references                                                      
+       103,993,259      cache-misses                                                          
+           389,453      context-switches                                                      
+                 3      cpu-migrations                                                        
+
+       3.517406810 seconds time elapsed
+
+       4.706124000 seconds user
+       5.088250000 seconds sys
+
+

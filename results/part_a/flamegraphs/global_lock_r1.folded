@@ -1,0 +1,104 @@
+concurrent_benc;_dl_start_user;_dl_start;_dl_sysdep_start;dl_main;_dl_receive_error;version_check_doit;_dl_check_all_versions;_dl_check_map_versions 340929
+concurrent_benc;__GI___clone3;start_thread;[kernel] 16992
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35] 1663965656
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];clock_gettime@@GLIBC_2.17 79591196
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];clock_gettime@plt 8510244
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put 1271320355
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__GI___lll_lock_wait 243011325
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__GI___lll_lock_wait;[kernel] 1977676574
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__GI___lll_lock_wake 92727414
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__GI___lll_lock_wake;[kernel] 3761651989
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;_int_free_chunk;__madvise;[kernel] 1853429
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;[kernel] 3178869
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;memcpy@plt 5092126
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__memmove_avx512_unaligned_erms 128634493
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;__memmove_avx512_unaligned_erms;[kernel] 27491862
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;nova::Arena::append 102971705
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;nova::Arena::append;nova::Arena::new_chunk;__libc_malloc2;__mprotect;[kernel] 1659907
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;nova::HashSegment::prepare_upsert 286699930
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;nova::HashSegment::prepare_upsert;[kernel] 3181387
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;pthread_mutex_lock@@GLIBC_2.2.5 463456049
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;pthread_mutex_lock@@GLIBC_2.2.5;[kernel] 1792652
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];KVStore::put;pthread_mutex_unlock@@GLIBC_2.2.5 544597681
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];nova::Arena::append 11531577
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];nova::Arena::release 218256492
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];nova::HashSegment::commit_upsert 208190433
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];nova::HashSegment::prepare_upsert 1744605
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];pthread_mutex_lock@@GLIBC_2.2.5 192576841
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];pthread_mutex_lock@@GLIBC_2.2.5;[kernel] 1784970
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];pthread_mutex_unlock@@GLIBC_2.2.5 82895354
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];pthread_mutex_unlock@plt 17662008
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];pthread_setaffinity_np@@GLIBC_2.34;[kernel] 1814
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk 76442985
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__printf_buffer 14330666
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__printf_buffer_done 16571160
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal 114829787
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;_itoa_word 142227023
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer 815213788
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;[kernel] 1793677
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;memcpy@@GLIBC_2.14@plt 4644954
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;__memmove_avx512_unaligned_erms 224378648
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;__memset_avx512_unaligned 13481188
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;__memset_avx512_unaligned_erms 35127097
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;memset@plt 9765725
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer_pad_1 11691648
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;__printf_buffer_pad_1 90033130
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer;__printf_buffer_write 231753425
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__printf_buffer_write 32828272
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__strchrnul_evex 176315114
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__snprintf_chk;__vsnprintf_internal;__strchrnul_ifunc@plt 3730120
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now 127540708
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17 33273503
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17;[[vdso]] 2761954480
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17;[[vdso]];[kernel] 8032592
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now;[kernel] 1730676
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::chrono::_V2::steady_clock::now;[[vdso]] 34661560
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void 1023771449
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;clock_gettime@@GLIBC_2.17 37445193
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;clock_gettime@plt 9811563
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;[kernel] 2349462
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get 806882939
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;__GI___lll_lock_wait 1167093751
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;__GI___lll_lock_wait;[kernel] 2732941644
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;__GI___lll_lock_wake 70294832
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;__GI___lll_lock_wake;[kernel] 5708807429
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;pthread_mutex_lock@@GLIBC_2.2.5 2201700112
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;pthread_mutex_unlock@@GLIBC_2.2.5 2460823212
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;KVStore::get;pthread_mutex_unlock@@GLIBC_2.2.5;[kernel] 2463913
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;__memmove_avx512_unaligned_erms 568461352
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;.plt 5709
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;pthread_mutex_lock@@GLIBC_2.2.5 1246242863
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;pthread_mutex_lock@@GLIBC_2.2.5;[kernel] 2633366
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;pthread_mutex_unlock@@GLIBC_2.2.5 171605321
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;pthread_setaffinity_np@@GLIBC_2.34;[kernel] 432
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now 55105565
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17 9106723
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17;[[vdso]] 7050263635
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now;clock_gettime@@GLIBC_2.17;[[vdso]];[kernel] 12298962
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now;[[vdso]] 185290874
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;std::chrono::_V2::steady_clock::now;__vdso_clock_gettime 7376395
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];std::thread::_State_impl<std::thread::_Invoker<std::tuple<void ;[unknown];[unknown];[[vdso]];[kernel] 2316402
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];tcache_free_init;__libc_malloc2;arena_get2;__munmap;[kernel] 2327262
+concurrent_benc;__GI___clone3;start_thread;[libstdc++.so.6.0.35];__vsnprintf_internal 33941768
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;bench::Args::get[abi:cxx11] 1652814
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;fopen@@GLIBC_2.2.5;_IO_file_fopen@@GLIBC_2.2.5;_IO_file_open;__GI___libc_open;__syscall_cancel_arch_end;[kernel] 1417782
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::~KVStore;_int_free_chunk;__madvise;[kernel] 2849547
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::~KVStore;nova::Arena::~Arena;_int_free_chunk;__madvise;[kernel] 2614507
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::put 3300356
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::put;__memmove_avx512_unaligned_erms 1503557
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::put;nova::HashSegment::prepare_upsert 1621406
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;KVStore::put;nova::HashSegment::prepare_upsert;__memset_avx512_unaligned_erms;[kernel] 3310173
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;nova::Arena::chunk 1527609
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;NovaKvInspector::validate 3118941
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal 1662185
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal;_itoa_word 1419473
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal;__printf_buffer 4729668
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal;__printf_buffer;__memset_avx512_unaligned_erms 1679589
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal;__printf_buffer;__printf_buffer_pad_1 1481186
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;__snprintf_chk;__vsnprintf_internal;__strchrnul_evex 3209506
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;main;[unknown];pthread_create@GLIBC_2.2.5;create_thread;__GI___clone3;[kernel] 5219
+concurrent_benc;_start;__libc_start_main@@GLIBC_2.34;__libc_start_call_main;__snprintf_chk 1601765
+concurrent_benc;[unknown];[kernel] 20496
+concurrent_benc;[unknown];KVStore::put;__GI___lll_lock_wake;[kernel] 1655039
+concurrent_benc;[unknown];[unknown];__GI___lll_lock_wake;[kernel] 1515630
+perf-exec;[unknown];[kernel] 1658

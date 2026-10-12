@@ -1,0 +1,400 @@
+=================================================
+            Trace Event Information              
+=================================================
+  Total records                     :      42068
+  Locked Load/Store Operations      :        298
+  Load Operations                   :      10882
+  Loads - uncacheable               :          0
+  Loads - IO                        :          0
+  Loads - Miss                      :          0
+  Loads - no mapping                :       3853
+  Load Fill Buffer Hit              :          0
+  Load L1D hit                      :       6634
+  Load L2D hit                      :         66
+  Load LLC hit                      :        328
+  Load Local HITM                   :        302
+  Load Remote HITM                  :          0
+  Load Remote HIT                   :          0
+  Load Local DRAM                   :          1
+  Load Remote DRAM                  :          0
+  Load MESI State Exclusive         :          1
+  Load MESI State Shared            :          0
+  Load LLC Misses                   :          1
+  Load access blocked by data       :          0
+  Load access blocked by address    :          0
+  Load HIT Local Peer               :          0
+  Load HIT Remote Peer              :          0
+  LLC Misses to Local DRAM          :      100.0%
+  LLC Misses to Remote DRAM         :        0.0%
+  LLC Misses to Remote cache (HIT)  :        0.0%
+  LLC Misses to Remote cache (HITM) :        0.0%
+  Store Operations                  :       4202
+  Store - uncacheable               :          2
+  Store - no mapping                :        400
+  Store L1D Hit                     :       3762
+  Store L1D Miss                    :          0
+  Store No available memory level   :         18
+  No Page Map Rejects               :       4091
+  Unable to parse data source       :      26984
+
+=================================================
+    Global Shared Cache Line Event Information   
+=================================================
+  Total Shared Cache Lines          :         33
+  Load HITs on shared lines         :        739
+  Fill Buffer Hits on shared lines  :          0
+  L1D hits on shared lines          :        414
+  L2D hits on shared lines          :          2
+  LLC hits on shared lines          :        323
+  Load hits on peer cache or nodes  :          0
+  Locked Access on shared lines     :        297
+  Blocked Access on shared lines    :          0
+  Store HITs on shared lines        :        163
+  Store L1D hits on shared lines    :        142
+  Store No available memory level   :         13
+  Total Merged records              :        465
+
+=================================================
+                 c2c details                     
+=================================================
+  Events                            : ibs_op/ldlat=0/
+  Cachelines sort on                : Total HITMs
+  Cacheline data grouping           : offset,iaddr
+
+=================================================
+           Shared Data Cache Line Table          
+=================================================
+#
+#        ----------- Cacheline ----------      Tot  ------- Load Hitm -------    Total    Total    Total  --------- Stores --------  ----- Core Load Hit -----  - LLC Load Hit --  - RMT Load Hit --  --- Load Dram ----
+# Index             Address  Node  PA cnt     Hitm    Total  LclHitm  RmtHitm  records    Loads   Stores    L1Hit   L1Miss      N/A       FB       L1       L2    LclHit  LclHitm    RmtHit  RmtHitm       Lcl       Rmt
+# .....  ..................  ....  ......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  ........  .......  ........  .......  ........  ........
+#
+      0  0xffff88f84c886840     0      87   34.77%      105      105        0      142      134        9        5        0        3        0       21        1         7      105         0        0         0         0
+      1      0x61564d475bc0     0     168   25.83%       78       78        0      321      288       40       28        0        5        0      209        0         1       78         0        0         0         0
+      2      0x61564d479440     0      15   19.21%       58       58        0       80       80        0        0        0        0        0       22        0         0       58         0        0         0         0
+      3  0xffff88ff7e2333c0     0       1    4.97%       15       15        0       32       26        6        5        0        1        0        7        0         4       15         0        0         0         0
+      4      0x61564d475bc0     0       1    2.98%        9        9        0        9        9        0        0        0        0        0        0        0         0        9         0        0         0         0
+      5  0xffff88ff7e9b33c0     0       1    2.65%        8        8        0       27       23        4        4        0        0        0        7        1         7        8         0        0         0         0
+      6  0xffff88fabe7e0000     0      28    0.66%        2        2        0       32       28        4        2        0        2        0       26        0         0        2         0        0         0         0
+      7  0xffff88ff7e234980     0       1    0.66%        2        2        0        2        2        0        0        0        0        0        0        0         0        2         0        0         0         0
+      8  0xffff88fbcfdeb100     0      23    0.33%        1        1        0       31       30        1        1        0        0        0       29        0         0        1         0        0         0         0
+      9  0xffff88ff7e233380     0       5    0.33%        1        1        0        6        5        1        1        0        0        0        2        0         2        1         0        0         0         0
+     10  0xffff88ff7e9b4980     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     11  0xffffd1418ec7b980     0      18    0.33%        1        1        0       20        7       13       13        0        0        0        6        0         0        1         0        0         0         0
+     12  0xffffd1418ec7b9c0     0      18    0.33%        1        1        0       23       16        7        7        0        0        0       15        0         0        1         0        0         0         0
+     13  0xffffd1418ec7bb40     0      36    0.33%        1        1        0       39       17       22       22        0        0        0       16        0         0        1         0        0         0         0
+     14  0xffffd1418ec7bc40     0      25    0.33%        1        1        0       28        8       20       19        0        1        0        7        0         0        1         0        0         0         0
+     15  0xffffd1418ec7bc80     0      20    0.33%        1        1        0       23        9       14       13        0        1        0        8        0         0        1         0        0         0         0
+     16  0xffffd1418eff3c00     0      39    0.33%        1        1        0       41       19       22       22        0        0        0       18        0         0        1         0        0         0         0
+     17      0x723f54499400     0       1    0.33%        1        1        0       22       22        0        0        0        0        0       21        0         0        1         0        0         0         0
+     18      0x61564d51e540     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     19      0x61564d540780     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     20      0x61564d617880     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     21      0x61564d6b9580     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     22      0x61564d7df180     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     23      0x61564d804500     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     24      0x61564d8ab840     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     25      0x61564d8b4080     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     26      0x61564d8e36c0     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     27      0x61564d9c6100     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     28      0x61564dc55500     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     29      0x723f4c260dc0     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     30      0x723f4c551c40     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     31      0x723f4d67da40     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+     32      0x723f4d69e900     0       1    0.33%        1        1        0        1        1        0        0        0        0        0        0        0         0        1         0        0         0         0
+
+=================================================
+      Shared Cache Line Distribution Pareto      
+=================================================
+#
+#        ----- HITM -----  ------- Store Refs ------  --------- Data address ---------                      ---------- cycles ----------    Total       cpu                                    Shared                   
+#   Num  RmtHitm  LclHitm   L1 Hit  L1 Miss      N/A              Offset  Node  PA cnt        Code address  rmt hitm  lcl hitm      load  records       cnt                  Symbol            Object  Source:Line  Node
+# .....  .......  .......  .......  .......  .......  ..................  ....  ......  ..................  ........  ........  ........  .......  ........  ......................  ................  ...........  ....
+#
+  ----------------------------------------------------------------------
+      0        0      105        5        0        3  0xffff88f84c886840
+  ----------------------------------------------------------------------
+           0.00%   65.71%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb55999a9         0       119         0       69         2  [k] 0xffffffffb55999a9  [unknown]         ??:0          0
+           0.00%    6.67%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb559e291         0        84        58        9         2  [k] 0xffffffffb559e291  [unknown]         ??:0          0
+           0.00%    2.86%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb559996c         0        47         0        4         1  [k] 0xffffffffb559996c  [unknown]         ??:0          0
+           0.00%    9.52%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffb6732943         0        90        57       14         2  [k] 0xffffffffb6732943  [unknown]         ??:0          0
+           0.00%    4.76%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffb6732c8a         0        43         0        5         2  [k] 0xffffffffb6732c8a  [unknown]         ??:0          0
+           0.00%    0.95%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffb6732c62         0        68         0        1         1  [k] 0xffffffffb6732c62  [unknown]         ??:0          0
+           0.00%    0.95%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffb6732c6a         0       139         0        5         2  [k] 0xffffffffb6732c6a  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%   66.67%                 0x4     0       1  0xffffffffb6732ae9         0         0         0        3         2  [k] 0xffffffffb6732ae9  [unknown]         ??:0          0
+           0.00%    0.00%   80.00%    0.00%    0.00%                 0x4     0       1  0xffffffffb6732c96         0         0         0        4         2  [k] 0xffffffffb6732c96  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   33.33%                0x10     0       1  0xffffffffb66fd977         0         0         0        1         1  [k] 0xffffffffb66fd977  [unknown]         ??:0          0
+           0.00%    6.67%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffb5598a17         0        99        53       15         2  [k] 0xffffffffb5598a17  [unknown]         ??:0          0
+           0.00%    1.90%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffb5598855         0       134        16        9         2  [k] 0xffffffffb5598855  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      1        0       78       28        0        5      0x61564d475bc0
+  ----------------------------------------------------------------------
+           0.00%   43.59%    0.00%    0.00%    0.00%                0x30     0       1      0x723f53ea0b83         0       112         0      158         2  [.] __GI___lll_lock_wait        libc.so.6  lowlevellock.c:45           0
+           0.00%   37.18%    0.00%    0.00%    0.00%                0x30     0       1      0x723f53ea7956         0        87         0       37         2  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:48     0
+           0.00%    3.85%    0.00%    0.00%    0.00%                0x30     0       1      0x723f53ea933a         0       115         0        7         2  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:43   0
+           0.00%    2.56%    0.00%    0.00%    0.00%                0x38     0       1      0x723f53ea795c         0        87         0       23         2  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:88     0
+           0.00%    0.00%   64.29%    0.00%   40.00%                0x38     0       1      0x723f53ea7969         0         0         0       20         2  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:158    0
+           0.00%    0.00%   35.71%    0.00%   60.00%                0x38     0       1      0x723f53ea930c         0         0         0       13         2  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:60   0
+           0.00%    7.69%    0.00%    0.00%    0.00%                0x3c     0       1      0x723f53ea9308         0        58         0       12         2  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:63   0
+           0.00%    5.13%    0.00%    0.00%    0.00%                0x3c     0       1      0x723f53ea796c         0        89         0       43         2  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:160    0
+
+  ----------------------------------------------------------------------
+      2        0       58        0        0        0      0x61564d479440
+  ----------------------------------------------------------------------
+           0.00%   89.66%    0.00%    0.00%    0.00%                0x28     0       1      0x61563c3110c1         0        45         0       68         1  [.] nova::Arena::release(nova:  concurrent_bench_global_lock  arena.cpp:140   0
+           0.00%    6.90%    0.00%    0.00%    0.00%                0x28     0       1      0x61563c310fad         0        39         0        4         1  [.] nova::Arena::append(void c  concurrent_bench_global_lock  arena.cpp:132   0
+           0.00%    1.72%    0.00%    0.00%    0.00%                0x30     0       1      0x61563c310327         0       116         0        3         1  [.] KVStore::get(long, void*,   concurrent_bench_global_lock  arena.h:74      0
+           0.00%    1.72%    0.00%    0.00%    0.00%                0x30     0       1      0x61563c3110b8         0         8         0        5         1  [.] nova::Arena::release(nova:  concurrent_bench_global_lock  arena.cpp:139   0
+
+  ----------------------------------------------------------------------
+      3        0       15        5        0        1  0xffff88ff7e2333c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffb6732c8a         0        46        18       25         2  [k] 0xffffffffb6732c8a  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%    0.00%                 0x8     0       1  0xffffffffb6732ae9         0         0         0        1         1  [k] 0xffffffffb6732ae9  [unknown]         ??:0          0
+           0.00%    0.00%   80.00%    0.00%  100.00%                 0x8     0       1  0xffffffffb6732c96         0         0         0        5         1  [k] 0xffffffffb6732c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      4        0        9        0        0        0      0x61564d475bc0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x30     0       1  0xffffffffb559ee38         0       111         0        9         2  [k] 0xffffffffb559ee38  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      5        0        8        4        0        0  0xffff88ff7e9b33c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffb6732c8a         0        81        38       21         2  [k] 0xffffffffb6732c8a  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffb6732c96         0         0         0        4         2  [k] 0xffffffffb6732c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      6        0        2        2        0        2  0xffff88fabe7e0000
+  ----------------------------------------------------------------------
+           0.00%    0.00%  100.00%    0.00%    0.00%                0x18     0       1  0xffffffffb54a8958         0         0         0        2         1  [k] 0xffffffffb54a8958  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffb54a9195         0        38         0        2         1  [k] 0xffffffffb54a9195  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x38     0       1  0xffffffffb55a0ca6         0         0         0        2         1  [k] 0xffffffffb55a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      7        0        2        0        0        0  0xffff88ff7e234980
+  ----------------------------------------------------------------------
+           0.00%   50.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb55a0ca3         0        80         0        1         1  [k] 0xffffffffb55a0ca3  [unknown]         ??:0          0
+           0.00%   50.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb55a0cac         0        81         0        1         1  [k] 0xffffffffb55a0cac  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      8        0        1        1        0        0  0xffff88fbcfdeb100
+  ----------------------------------------------------------------------
+           0.00%    0.00%  100.00%    0.00%    0.00%                0x18     0       1  0xffffffffb54a8958         0         0         0        1         1  [k] 0xffffffffb54a8958  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffb54a9195         0        70         0        1         1  [k] 0xffffffffb54a9195  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      9        0        1        1        0        0  0xffff88ff7e233380
+  ----------------------------------------------------------------------
+           0.00%    0.00%  100.00%    0.00%    0.00%                0x18     0       1  0xffffffffb6727755         0         0         0        1         1  [k] 0xffffffffb6727755  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffb54a3daf         0        43         0        1         1  [k] 0xffffffffb54a3daf  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     10        0        1        0        0        0  0xffff88ff7e9b4980
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb55a0cac         0       117         0        1         1  [k] 0xffffffffb55a0cac  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     11        0        1       13        0        0  0xffffd1418ec7b980
+  ----------------------------------------------------------------------
+           0.00%    0.00%    7.69%    0.00%    0.00%                 0x8     0       1  0xffffffffb559f033         0         0         0        1         1  [k] 0xffffffffb559f033  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                 0x8     0       1  0xffffffffb5752a35         0         0         0        1         1  [k] 0xffffffffb5752a35  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffb559e351         0        87         0        1         1  [k] 0xffffffffb559e351  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x10     0       1  0xffffffffb5754c15         0         0         0        1         1  [k] 0xffffffffb5754c15  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x20     0       1  0xffffffffb559edcc         0         0         0        1         1  [k] 0xffffffffb559edcc  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x20     0       1  0xffffffffb559ee15         0         0         0        1         1  [k] 0xffffffffb559ee15  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x20     0       1  0xffffffffb559efb3         0         0         0        1         1  [k] 0xffffffffb559efb3  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x20     0       1  0xffffffffb67275a8         0         0         0        1         1  [k] 0xffffffffb67275a8  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x28     0       1  0xffffffffb54baae0         0         0         0        1         1  [k] 0xffffffffb54baae0  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x28     0       1  0xffffffffb559edbd         0         0         0        1         1  [k] 0xffffffffb559edbd  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x30     0       1  0xffffffffb5598d76         0         0         0        1         1  [k] 0xffffffffb5598d76  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x30     0       1  0xffffffffb559ee07         0         0         0        1         1  [k] 0xffffffffb559ee07  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb5599973         0         0         0        1         1  [k] 0xffffffffb5599973  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb559efd5         0         0         0        1         1  [k] 0xffffffffb559efd5  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     12        0        1        7        0        0  0xffffd1418ec7b9c0
+  ----------------------------------------------------------------------
+           0.00%    0.00%   14.29%    0.00%    0.00%                 0x0     0       1  0xffffffffb559ef58         0         0         0        1         1  [k] 0xffffffffb559ef58  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                 0x8     0       1  0xffffffffb549fb52         0         0         0        1         1  [k] 0xffffffffb549fb52  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                 0x8     0       1  0xffffffffb55999d5         0         0         0        1         1  [k] 0xffffffffb55999d5  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                 0x8     0       1  0xffffffffb6727710         0         0         0        1         1  [k] 0xffffffffb6727710  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                0x10     0       1  0xffffffffb54ae614         0         0         0        1         1  [k] 0xffffffffb54ae614  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                0x10     0       1  0xffffffffb54c2215         0         0         0        1         1  [k] 0xffffffffb54c2215  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                0x10     0       1  0xffffffffb5598d6c         0         0         0        1         1  [k] 0xffffffffb5598d6c  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffb559e35d         0        81         0        1         1  [k] 0xffffffffb559e35d  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     13        0        1       22        0        0  0xffffd1418ec7bb40
+  ----------------------------------------------------------------------
+           0.00%    0.00%   13.64%    0.00%    0.00%                 0x8     0       1  0xffffffffb5346b14         0         0         0        3         1  [k] 0xffffffffb5346b14  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb54bc095         0         0         0        1         1  [k] 0xffffffffb54bc095  [unknown]         ??:0          0
+           0.00%    0.00%    9.09%    0.00%    0.00%                 0x8     0       1  0xffffffffb559e0e5         0         0         0        2         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb559f033         0         0         0        1         1  [k] 0xffffffffb559f033  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb559f0f5         0         0         0        1         1  [k] 0xffffffffb559f0f5  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb55989b0         0         0         0        1         1  [k] 0xffffffffb55989b0  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb559b146         0         0         0        1         1  [k] 0xffffffffb559b146  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb559e209         0         0         0        1         1  [k] 0xffffffffb559e209  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb5754c15         0         0         0        1         1  [k] 0xffffffffb5754c15  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x20     0       1  0xffffffffb54f0070         0         0         0        1         1  [k] 0xffffffffb54f0070  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x20     0       1  0xffffffffb55989a9         0         0         0        1         1  [k] 0xffffffffb55989a9  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x20     0       1  0xffffffffb559f0fb         0         0         0        1         1  [k] 0xffffffffb559f0fb  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffb559e33e         0        80         0        1         1  [k] 0xffffffffb559e33e  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x28     0       1  0xffffffffb549e316         0         0         0        1         1  [k] 0xffffffffb549e316  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x28     0       1  0xffffffffb55989ae         0         0         0        1         1  [k] 0xffffffffb55989ae  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x28     0       1  0xffffffffb5598a23         0         0         0        1         1  [k] 0xffffffffb5598a23  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x30     0       1  0xffffffffb5599a01         0         0         0        1         1  [k] 0xffffffffb5599a01  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x30     0       1  0xffffffffb559f0fb         0         0         0        1         1  [k] 0xffffffffb559f0fb  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x38     0       1  0xffffffffb559e0f3         0         0         0        1         1  [k] 0xffffffffb559e0f3  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x38     0       1  0xffffffffb559f0f5         0         0         0        1         1  [k] 0xffffffffb559f0f5  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     14        0        1       19        0        1  0xffffd1418ec7bc40
+  ----------------------------------------------------------------------
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffb5598d82         0         0         0        1         1  [k] 0xffffffffb5598d82  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffb559b146         0         0         0        1         1  [k] 0xffffffffb559b146  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffb559e215         0         0         0        1         1  [k] 0xffffffffb559e215  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffb55989b3         0         0         0        1         1  [k] 0xffffffffb55989b3  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffb559e0e5         0         0         0        1         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffb559f110         0         0         0        1         1  [k] 0xffffffffb559f110  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffb559e2fc         0        85         0        1         1  [k] 0xffffffffb559e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffb5348589         0         0         0        1         1  [k] 0xffffffffb5348589  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffb53ef5fe         0         0         0        1         1  [k] 0xffffffffb53ef5fe  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffb55989b3         0         0         0        1         1  [k] 0xffffffffb55989b3  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffb559ab87         0         0         0        1         1  [k] 0xffffffffb559ab87  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffb5762087         0         0         0        1         1  [k] 0xffffffffb5762087  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffb5348589         0         0         0        1         1  [k] 0xffffffffb5348589  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffb55989b3         0         0         0        1         1  [k] 0xffffffffb55989b3  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffb559e2e7         0         0         0        1         1  [k] 0xffffffffb559e2e7  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffb559f110         0         0         0        1         1  [k] 0xffffffffb559f110  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffb5346c00         0         0         0        1         1  [k] 0xffffffffb5346c00  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffb559ef9b         0         0         0        1         1  [k] 0xffffffffb559ef9b  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffb55989b3         0         0         0        1         1  [k] 0xffffffffb55989b3  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x38     0       1  0xffffffffb5598a23         0         0         0        1         1  [k] 0xffffffffb5598a23  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffb6717b60         0         0         0        1         1  [k] 0xffffffffb6717b60  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     15        0        1       13        0        1  0xffffd1418ec7bc80
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb559e839         0        36         0        1         1  [k] 0xffffffffb559e839  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                 0x0     0       1  0xffffffffb5598d82         0         0         0        1         1  [k] 0xffffffffb5598d82  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                 0x8     0       1  0xffffffffb5348589         0         0         0        1         1  [k] 0xffffffffb5348589  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x18     0       1  0xffffffffb559e0e5         0         0         0        1         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x18     0       1  0xffffffffb559f033         0         0         0        1         1  [k] 0xffffffffb559f033  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x20     0       1  0xffffffffb559ef9b         0         0         0        1         1  [k] 0xffffffffb559ef9b  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x28     0       1  0xffffffffb559e0f3         0         0         0        1         1  [k] 0xffffffffb559e0f3  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x30     0       1  0xffffffffb5597cf5         0         0         0        1         1  [k] 0xffffffffb5597cf5  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x30     0       1  0xffffffffb559e2a4         0         0         0        1         1  [k] 0xffffffffb559e2a4  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb55989a5         0         0         0        1         1  [k] 0xffffffffb55989a5  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb55989b3         0         0         0        1         1  [k] 0xffffffffb55989b3  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb559b109         0         0         0        1         1  [k] 0xffffffffb559b109  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb559e0e5         0         0         0        1         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb559edc7         0         0         0        1         1  [k] 0xffffffffb559edc7  [unknown]         ??:0          0
+           0.00%    0.00%    7.69%    0.00%    0.00%                0x38     0       1  0xffffffffb559efd5         0         0         0        1         1  [k] 0xffffffffb559efd5  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     16        0        1       22        0        0  0xffffd1418eff3c00
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffb559e2fc         0       117         0        1         1  [k] 0xffffffffb559e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x0     0       1  0xffffffffb559b10b         0         0         0        1         1  [k] 0xffffffffb559b10b  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb5346b14         0         0         0        1         1  [k] 0xffffffffb5346b14  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb559b138         0         0         0        1         1  [k] 0xffffffffb559b138  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb559b211         0         0         0        1         1  [k] 0xffffffffb559b211  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                 0x8     0       1  0xffffffffb559e0e5         0         0         0        1         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb53ef5f5         0         0         0        1         1  [k] 0xffffffffb53ef5f5  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb5599977         0         0         0        1         1  [k] 0xffffffffb5599977  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb559e0ee         0         0         0        1         1  [k] 0xffffffffb559e0ee  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x10     0       1  0xffffffffb559e243         0         0         0        1         1  [k] 0xffffffffb559e243  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x18     0       1  0xffffffffb559e24b         0         0         0        1         1  [k] 0xffffffffb559e24b  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x18     0       1  0xffffffffb6732215         0         0         0        1         1  [k] 0xffffffffb6732215  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x20     0       1  0xffffffffb559ee07         0         0         0        1         1  [k] 0xffffffffb559ee07  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x20     0       1  0xffffffffb559ef33         0         0         0        1         1  [k] 0xffffffffb559ef33  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x28     0       1  0xffffffffb559e0e5         0         0         0        1         1  [k] 0xffffffffb559e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x28     0       1  0xffffffffb559e24b         0         0         0        1         1  [k] 0xffffffffb559e24b  [unknown]         ??:0          0
+           0.00%    0.00%    9.09%    0.00%    0.00%                0x28     0       1  0xffffffffb579860e         0         0         0        2         1  [k] 0xffffffffb579860e  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x30     0       1  0xffffffffb54a8845         0         0         0        1         1  [k] 0xffffffffb54a8845  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x30     0       1  0xffffffffb5599977         0         0         0        1         1  [k] 0xffffffffb5599977  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x30     0       1  0xffffffffb559b10b         0         0         0        1         1  [k] 0xffffffffb559b10b  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x38     0       1  0xffffffffb549c7f6         0         0         0        1         1  [k] 0xffffffffb549c7f6  [unknown]         ??:0          0
+           0.00%    0.00%    4.55%    0.00%    0.00%                0x38     0       1  0xffffffffb5599965         0         0         0        1         1  [k] 0xffffffffb5599965  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     17        0        1        0        0        0      0x723f54499400
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x30     0       1      0x723f542a7d24         0        75         0       22         2  [.] clock_gettime@plt  libstdc++.so.6.0.35  clock_gettime@plt+4   0
+
+  ----------------------------------------------------------------------
+     18        0        1        0        0        0      0x61564d51e540
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1      0x61563c31089d         0        40         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:74   0
+
+  ----------------------------------------------------------------------
+     19        0        1        0        0        0      0x61564d540780
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x14     0       1      0x61563c310890         0        38         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:69   0
+
+  ----------------------------------------------------------------------
+     20        0        1        0        0        0      0x61564d617880
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1      0x61563c3109a0         0        44         0        1         1  [.] nova::HashSegment::commit_  concurrent_bench_global_lock  hash_segment.cpp:130   0
+
+  ----------------------------------------------------------------------
+     21        0        1        0        0        0      0x61564d6b9580
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x30     0       1      0x61563c31089d         0        40         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:74   0
+
+  ----------------------------------------------------------------------
+     22        0        1        0        0        0      0x61564d7df180
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1      0x61563c31089d         0        39         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:74   0
+
+  ----------------------------------------------------------------------
+     23        0        1        0        0        0      0x61564d804500
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x1c     0       1      0x61563c310890         0        46         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:69   0
+
+  ----------------------------------------------------------------------
+     24        0        1        0        0        0      0x61564d8ab840
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x20     0       1      0x61563c3109a0         0        41         0        1         1  [.] nova::HashSegment::commit_  concurrent_bench_global_lock  hash_segment.cpp:130   0
+
+  ----------------------------------------------------------------------
+     25        0        1        0        0        0      0x61564d8b4080
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x18     0       1      0x61563c3109a7         0        47         0        1         1  [.] nova::HashSegment::commit_  concurrent_bench_global_lock  hash_segment.cpp:130   0
+
+  ----------------------------------------------------------------------
+     26        0        1        0        0        0      0x61564d8e36c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x10     0       1      0x61563c31089d         0        45         0        1         1  [.] nova::HashSegment::prepare  concurrent_bench_global_lock  hash_segment.cpp:74   0
+
+  ----------------------------------------------------------------------
+     27        0        1        0        0        0      0x61564d9c6100
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x24     0       1      0x61563c31032f         0        47         0        1         1  [.] KVStore::get(long, void*,   concurrent_bench_global_lock  arena.h:75    0
+
+  ----------------------------------------------------------------------
+     28        0        1        0        0        0      0x61564dc55500
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x2c     0       1      0x61563c3110c5         0         8         0        1         1  [.] nova::Arena::release(nova:  concurrent_bench_global_lock  arena.cpp:141   0
+
+  ----------------------------------------------------------------------
+     29        0        1        0        0        0      0x723f4c260dc0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x24     0       1      0x723f53fb0bdb         0        56         0        1         1  [.] __memmove_avx512_unaligned  libc.so.6  memmove-vec-unaligned-erms.S:3   0
+
+  ----------------------------------------------------------------------
+     30        0        1        0        0        0      0x723f4c551c40
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0xc     0       1      0x61563c3110c5         0        13         0        1         1  [.] nova::Arena::release(nova:  concurrent_bench_global_lock  arena.cpp:141   0
+
+  ----------------------------------------------------------------------
+     31        0        1        0        0        0      0x723f4d67da40
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x24     0       1      0x723f53fb0bd5         0        43         0        1         1  [.] __memmove_avx512_unaligned  libc.so.6  memmove-vec-unaligned-erms.S:3   0
+
+  ----------------------------------------------------------------------
+     32        0        1        0        0        0      0x723f4d69e900
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x4     0       1      0x723f53fb0bdb         0        46         0        1         1  [.] __memmove_avx512_unaligned  libc.so.6  memmove-vec-unaligned-erms.S:3   0

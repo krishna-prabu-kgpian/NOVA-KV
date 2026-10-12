@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations -o results/part_a/concurrent/perf_stat/rwlock_writer_max_r2_rep1.txt -- build/release/concurrent_bench_rwlock --readers 2 --duration 3 --warmup 0.5 --reader-cpus 0,2 --seed 1 --run-id rwlock_writer_max_r2_rep1 --git-sha fe9ba2d9c2a4 --scenario writer_max --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/rwlock_writer_max_r2_rep1.csv --writer on --writer-cpu 15
+rwlock       scenario=writer_max readers=2 writer=thread_max keys=hit seconds=3.000
+  store lock object at 0x5f1acd5d7cb0, 56 bytes (cache lines 0x5f1acd5d7c80..0x5f1acd5d7cc0)
+  reads : ops=2523760 rps=841228 hits=2523760 misses=0 corrupt=0
+  read latency ns: p50=80 p99=8960 p999=29440 max=3431024 mean=2351.5
+  writes: ok=398390 failed=0 rps=132793 p50=6528 p99=18944 max=3434990 ns
+# exit_status: 0

@@ -1,0 +1,7 @@
+git_sha: fe9ba2d9c2a4
+build_dir: build/release
+compile flags (from build/release/compile_commands.json, kvstore.cpp of the rwlock variant):
+  /usr/bin/c++ -DNOVA_KV_SYNC_MODE=NOVA_KV_SYNC_RWLOCK -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/include -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/src -O3 -g -DNDEBUG -std=c++17 -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror -o CMakeFiles/nova_kv_rwlock.dir/src/kvstore.cpp.o -c /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/kvstore.cpp
+reps=5 duration_s=3 warmup_s=0.5 reference_duration_s=2
+reader_cpus=0,2,4,6,1,3,5,7 writer_cpu=15 paced_writer_rate=10000
+perf_events=task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations perf_record_freq_hz=1999

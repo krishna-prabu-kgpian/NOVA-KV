@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations -o results/part_a/concurrent/perf_stat/global_lock_writer_paced_r1_rep4.txt -- build/release/concurrent_bench_global_lock --readers 1 --duration 3 --warmup 0.5 --reader-cpus 0 --seed 4 --run-id global_lock_writer_paced_r1_rep4 --git-sha fe9ba2d9c2a4 --scenario writer_paced --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/global_lock_writer_paced_r1_rep4.csv --writer on --writer-cpu 15 --writer-rate 10000
+global_lock  scenario=writer_paced readers=1 writer=thread_paced keys=hit seconds=3.000
+  store lock object at 0x5b7dd6e08c90, 40 bytes (cache lines 0x5b7dd6e08c80..0x5b7dd6e08c80)
+  reads : ops=51174606 rps=17057749 hits=51174606 misses=0 corrupt=0
+  read latency ns: p50=31 p99=70 p999=230 max=30540 mean=37.9
+  writes: ok=29999 failed=0 rps=9999 p50=211 p99=2176 max=31081 ns
+# exit_status: 0

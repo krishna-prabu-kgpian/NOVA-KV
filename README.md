@@ -9,7 +9,7 @@ A single-node, in-memory key-value store with RCU reads, built for
 |---|---|---|
 | A0 | Build system, public API, reference workload import, verification scripts | **Done** (`reports/milestones/A0.md`) |
 | A1 | Baseline `KVStore` (own hash table + value arena) with single / global-lock / rwlock variants, tests, drivers | **Done** (`reports/milestones/A1.md`) |
-| A2 | Storage-layout microbenchmark, lock profiling, Part A report | Not started |
+| A2 | Active-writer benchmark, lock profiling (perf stat, flame graphs, perf c2c), NSM/DSM/PAX microbenchmark, Part A report | **Done** (`reports/milestones/A2.md`) — Part A complete |
 | B1–B2 | RCU version roots, epoch-based reclamation | Not started |
 | C1–C2 | Transactions, snapshots, secondary index, join | Not started |
 | D | Benchmark campaign | Not started |
@@ -21,7 +21,7 @@ A single-node, in-memory key-value store with RCU reads, built for
 `include/kvstore.h` only so the supplied workload generator compiles unchanged; they are inert
 and never report success (`Transaction::commit` and `create_index` return `false`, `index_get`
 returns 0, snapshots pin nothing, `set_reclaim_batch` does nothing). There is no RCU, no
-reclamation protocol and no durability. No benchmark or profiling results exist yet.
+reclamation protocol and no durability.
 
 ## Design of the Part A store
 
@@ -105,8 +105,10 @@ environment description and a source manifest to `results/verification/<git-sha>
 | `nova_kv_single_testhooks` | Test-only build with allocation-failure injection compiled in |
 | `nova_workload` | The instructor's `workload_gen.cpp`, compiled unmodified |
 | `single_thread`, `global_lock`, `rwlock` | Part A drivers: `<driver> [num_readers] [duration_sec]` (defaults 8 and 5; `single_thread` always uses 1 reader) |
+| `concurrent_bench_{single,global_lock,rwlock}` | Project benchmark with a writer active during the measured window (`benchmarks/concurrent_bench.cpp`) |
+| `layout_bench` | NSM / DSM / PAX microbenchmark (`benchmarks/layout_bench.cpp`) |
 
-Tests (`ctest`, 18 per build mode):
+Tests (`ctest`, 27 per build mode):
 
 | Test | What it checks |
 |---|---|
@@ -119,10 +121,41 @@ Tests (`ctest`, 18 per build mode):
 | `smoke_test_<variant>` | Empty-store behaviour, handle lifecycles, variant wiring |
 | `reference_workload_link_test_<variant>` | Unmodified generator links and runs; every trade it loaded with plain puts is read back intact |
 | `driver_<name>` | Each driver runs end to end for 1 second |
+| `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
+| `bench_validate_*` (7), `bench_rejects_concurrent_single` | Each harness runs briefly and must pass its own validity checks; the harness must refuse to run the unsynchronized variant concurrently |
 
 The drivers and the reference workload print throughput figures. With the supplied generator
 those are **preload-only** (no writer runs while readers are measured) and the ctest runs last
 one second in whatever build mode is being tested; they are functional checks, not results.
+
+## Part A results and how to reproduce them
+
+- **Report (4 pages):** `reports/part_a_report.pdf` (source `reports/part_a_report.src.md`).
+- **Requirement-by-requirement checklist:** `docs/part_a_compliance.md`.
+- **Raw data and profiles:** `results/part_a/`
+
+| Path under `results/part_a/` | Content |
+|---|---|
+| `environment.txt`, `campaign_config.txt`, `conditions.log` | Machine, toolchain, exact compile command, run parameters, power source and governor at each stage |
+| `concurrent/runs.csv`, `concurrent/hist/`, `concurrent/perf_stat/`, `concurrent/stdout/` | Active-writer benchmark: one row, one latency histogram and one `perf stat` output per run (90 runs) |
+| `reference/` | Unmodified supplied generator, **preload-only** (45 runs) |
+| `layout/runs.csv`, `layout/perf_stat/` | NSM / DSM / PAX microbenchmark and its hardware counters |
+| `flamegraphs/` | 8 flame graphs (`.svg`), folded stacks, compressed `perf script` output, exact commands |
+| `c2c/` | `perf c2c` cache-line contention reports, 8 configurations |
+| `summary/`, `figures/` | Tables and figures generated from the above by `scripts/aggregate_part_a.py` |
+
+```bash
+scripts/bootstrap_tools.sh --profiling          # FlameGraph (pinned commit), matplotlib, cairosvg
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release && cmake --build build/release -j
+scripts/run_part_a.sh all                       # about 11 minutes; rewrites results/part_a/
+scripts/build_part_a_report.sh                  # aggregate, render the PDF, check page limits
+scripts/check_part_a_artifacts.sh               # every Part A deliverable present?
+```
+
+`run_part_a.sh` needs `perf` usable without root (`kernel.perf_event_paranoid <= 1`) and pins
+threads to the CPU numbering of the development machine; set `READER_CPUS` / `WRITER_CPU` for
+another machine. The report needs `pandoc` and `xelatex`. Re-running produces new measurements;
+the committed files are the ones the report was written from.
 
 ## Repository layout
 
@@ -132,7 +165,7 @@ src/                   store implementation
 supplied/              instructor workload generator (see supplied/PROVENANCE.md)
 tests/                 tests
 drivers/               single_thread / global_lock / rwlock drivers (rcu from Part B)
-benchmarks/            benchmark harnesses (from A2)
+benchmarks/            benchmark harnesses: concurrent_bench, layout_bench
 scripts/               verification and environment scripts
 docs/                  assignment_contract.md, decisions.md
 reports/milestones/    one report per milestone

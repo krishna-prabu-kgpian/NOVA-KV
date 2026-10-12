@@ -1,0 +1,19 @@
+# started on Mon Oct 12 13:32:23 2026
+
+
+ Performance counter stats for 'build/release/layout_bench --records 100000 --ops 4000000 --reps 20 --cpu 0 --layout nsm --pattern none':
+
+             36.46 msec task-clock                                                            
+       182,799,700      cycles                                                                
+       443,946,023      instructions                                                          
+         4,671,198      cache-references                                                      
+           657,152      cache-misses                                                          
+                 1      context-switches                                                      
+                 1      cpu-migrations                                                        
+
+       0.037110743 seconds time elapsed
+
+       0.029114000 seconds user
+       0.008031000 seconds sys
+
+

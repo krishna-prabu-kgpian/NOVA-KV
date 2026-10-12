@@ -52,12 +52,14 @@ def write_csv(name, header, rows):
     return path
 
 
-def write_md(name, header, rows, align=None):
+def write_md(name, header, rows, align=None, widths=None):
+    """`widths` are relative column widths (pandoc reads them from the dashes)."""
     path = os.path.join(SUMMARY, name)
     align = align or ["l"] + ["r"] * (len(header) - 1)
+    widths = widths or [3] * len(header)
     with open(path, "w") as f:
         f.write("| " + " | ".join(header) + " |\n")
-        f.write("|" + "|".join("---" if a == "l" else "---:" for a in align) + "|\n")
+        f.write("|" + "|".join("-" * w + ("" if a == "l" else ":") for a, w in zip(align, widths)) + "|\n")
         for r in rows:
             f.write("| " + " | ".join(str(c) for c in r) + " |\n")
     return path
@@ -411,15 +413,19 @@ def aggregate_flamegraphs():
 
 
 # --------------------------------------------------------------------------- perf c2c
+C2C_ROW = re.compile(r"^\s+(\d+)\s+(0x[0-9a-f]+)\s+\d+\s+\d+\s+([\d\.]+)%\s+(\d+)\s", re.M)
+
+
 def aggregate_c2c():
     files = sorted(glob.glob(os.path.join(OUT, "c2c", "*.c2c-report.txt")))
     if not files:
         print("no perf c2c reports; skipping")
         return None
     header = ["config", "lock_cachelines", "sampled_loads", "load_hitm_total",
-              "shared_cache_lines", "top_line_address", "top_line_hitm", "top_line_hitm_pct",
-              "top_line_is_store_lock", "locked_ops_on_shared_lines"]
-    rows = []
+              "shared_cache_lines", "hitm_on_store_lock_lines", "hitm_on_store_lock_lines_pct",
+              "hitm_on_kernel_lines", "hitm_on_kernel_lines_pct", "hitm_on_other_user_lines_pct",
+              "top_line_address", "top_line_hitm_pct", "top_line_is_store_lock"]
+    rows, table = [], {}
 
     def field(text, label):
         m = re.search(r"^\s*" + re.escape(label) + r"\s*:\s*(\d+)", text, re.M)
@@ -431,29 +437,79 @@ def aggregate_c2c():
         log = open(os.path.join(OUT, "c2c", config + ".record.log"), errors="replace").read()
         m = re.search(r"store lock object at 0x[0-9a-f]+, \d+ bytes \(cache lines (0x[0-9a-f]+)\.\.(0x[0-9a-f]+)\)", log)
         lock_lo, lock_hi = (int(m.group(1), 16), int(m.group(2), 16)) if m else (0, -1)
-        lock_line = f"{m.group(1)}..{m.group(2)}" if m else ""
-        hitm = field(text, "Load Local HITM") + field(text, "Load Remote HITM")
-        top_addr, top_hitm, top_pct = "", 0, 0.0
-        # First data row of the "Shared Data Cache Line Table".
-        m = re.search(r"^\s+0\s+(0x[0-9a-f]+)\s+\d+\s+\d+\s+([\d\.]+)%\s+(\d+)", text, re.M)
-        if m:
-            top_addr, top_pct, top_hitm = m.group(1), float(m.group(2)), int(m.group(3))
-        rows.append([config, lock_line, field(text, "Load Operations"), hitm,
-                     field(text, "Total Shared Cache Lines"), top_addr, top_hitm, top_pct,
-                     "yes" if (top_addr and lock_lo <= int(top_addr, 16) <= lock_hi) else "no",
-                     field(text, "Locked Access on shared lines")])
+        lock_lines = f"{m.group(1)}..{m.group(2)}" if m else ""
+        # Rows of the "Shared Data Cache Line Table": index, line address, HITM count.
+        start = text.find("Shared Data Cache Line Table")
+        end = text.find("Shared Cache Line Distribution Pareto")
+        lines = [(int(a, 16), int(h)) for _, a, _, h in C2C_ROW.findall(text[start:end])]
+        total = sum(h for _, h in lines)
+        on_lock = sum(h for a, h in lines if lock_lo <= a <= lock_hi)
+        on_kernel = sum(h for a, h in lines if a >= 0xffff800000000000)
+        pct = lambda x: round(100.0 * x / total, 1) if total else 0.0
+        top = max(lines, key=lambda x: x[1]) if lines else (0, 0)
+        row = [config, lock_lines, field(text, "Load Operations"),
+               field(text, "Load Local HITM") + field(text, "Load Remote HITM"), len(lines),
+               on_lock, pct(on_lock), on_kernel, pct(on_kernel), pct(total - on_lock - on_kernel),
+               hex(top[0]), pct(top[1]), "yes" if lock_lo <= top[0] <= lock_hi else "no"]
+        rows.append(row)
+        table[config] = dict(zip(header, row))
     order = {"global_lock": 0, "rwlock": 1}
     rows.sort(key=lambda r: (order.get(r[0].rsplit("_r", 1)[0], 9), int(r[0].rsplit("_r", 1)[1])))
     write_csv("c2c_summary.csv", header, rows)
+    return table
+
+
+# --------------------------------------------------------------------------- report tables
+def report_tables(conc, ref, flame, c2c):
+    """Two compact tables for the PDF report, built only from the summaries."""
+    if not conc:
+        return
     md = []
-    for r in rows:
-        variant, readers = r[0].rsplit("_r", 1)
-        md.append([variant.replace("_", "\\_"), readers, fmt_int(r[2]), fmt_int(r[3]), r[4],
-                   f"{r[7]:.1f}", r[8]])
-    write_md("table_c2c.md", ["variant", "readers", "sampled loads", "HITM loads",
-                              "contended lines", "top line: % of HITM", "top line is the store lock"],
-             md, ["l"] + ["r"] * 6)
-    return rows
+    for variant in ("global_lock", "rwlock"):
+        for readers in (1, 2, 4, 8):
+            a = conc.get((variant, "writer_max", readers))
+            b = conc.get((variant, "writer_paced", readers))
+            if not a or not b:
+                continue
+            r = ref.get(({"global_lock": "global_lock", "rwlock": "rwlock"}[variant], readers)) if ref else None
+            md.append([variant.replace("_", "\\_"), readers,
+                       fmt_m(a["read_rps_median"]),
+                       f"{fmt_m(a['read_rps_min'])}–{fmt_m(a['read_rps_max'])}",
+                       fmt_int(a["write_rps_median"]), fmt_us(a["p50_ns_median"]),
+                       fmt_us(a["p99_ns_median"]), fmt_us(a["p999_ns_median"]),
+                       fmt_int(a["max_ns_worst"] / 1000.0),
+                       fmt_m(b["read_rps_median"]), fmt_int(b["write_rps_median"]),
+                       fmt_us(b["p99_ns_median"]),
+                       fmt_m(r["rps_median"]) if r else "n/a"])
+    write_md("report_table_throughput.md",
+             ["variant", "R", "read M/s", "min–max", "writes/s", "p50 µs", "p99 µs", "p99.9 µs",
+              "max µs", "paced: read M/s", "paced: writes/s", "paced: p99 µs", "preload-only M/s"],
+             md, ["l"] + ["r"] * 12, [11, 3, 7, 12, 9, 6, 6, 7, 6, 8, 8, 7, 9])
+
+    md = []
+    for variant in ("global_lock", "rwlock"):
+        for readers in (1, 2, 4, 8):
+            a = conc.get((variant, "writer_max", readers))
+            f = flame.get(f"{variant}_r{readers}") if flame else None
+            c = c2c.get(f"{variant}_r{readers}") if c2c else None
+            if not a or not f:
+                continue
+            md.append([variant.replace("_", "\\_"), readers, f"{a['cpus_utilized_median']:.2f}",
+                       f"{a['ipc_median']:.2f}", f"{a['cache_miss_pct_median']:.0f}",
+                       fmt_int(a["cycles_per_op_median"]),
+                       fmt_int(a["context_switches_per_s_median"]),
+                       f"{f['lock acquire %']:.0f}", f"{f['lock release %']:.0f}",
+                       f"{f['lock acquire in kernel %'] + f['lock release in kernel %']:.0f}",
+                       f"{f['store: index + copy %']:.1f}",
+                       f"{f['harness: clock %'] + f['harness: record build %'] + f['harness: loop %']:.0f}",
+                       fmt_int(c["load_hitm_total"]) if c else "n/a",
+                       f"{c['hitm_on_store_lock_lines_pct']:.0f}" if c else "n/a",
+                       f"{c['hitm_on_kernel_lines_pct']:.0f}" if c else "n/a"])
+    write_md("report_table_evidence.md",
+             ["variant", "R", "CPUs used", "IPC", "cache-miss %", "cycles/op", "ctx-sw/s",
+              "lock acq. %", "lock rel. %", "in kernel %", "store %", "harness %",
+              "HITM loads", "on lock line %", "on kernel lines %"],
+             md, ["l"] + ["r"] * 14)
 
 
 # --------------------------------------------------------------------------- figures
@@ -470,10 +526,10 @@ def make_figures(conc, layout):
     colors = {"global_lock": "#b5492c", "rwlock": "#2c6fb5", "single": "#555555"}
 
     if conc:
-        fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.25))
+        fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.45))
         readers = sorted({k[2] for k in conc if k[1] == "writer_max"})
-        for ax, scenario, title in ((axes[0], "writer_max", "Read throughput, writer unthrottled"),
-                                    (axes[1], "writer_paced", "Read throughput, writer 10k updates/s")):
+        for ax, scenario, title in ((axes[0], "writer_max", "Reads, unthrottled writer"),
+                                    (axes[1], "writer_paced", "Reads, writer paced at 10k/s")):
             for variant in ("global_lock", "rwlock"):
                 pts = [conc[(variant, scenario, r)] for r in readers if (variant, scenario, r) in conc]
                 y = [p["read_rps_median"] / 1e6 for p in pts]
@@ -491,7 +547,6 @@ def make_figures(conc, layout):
             ax.set_ylabel("million gets / s (all readers)")
             ax.set_ylim(bottom=0)
             ax.set_title(title)
-            ax.legend(frameon=False)
         ax = axes[2]
         for variant in ("global_lock", "rwlock"):
             pts = [conc[(variant, "writer_max", r)] for r in readers if (variant, "writer_max", r) in conc]
@@ -503,9 +558,10 @@ def make_figures(conc, layout):
         ax.set_xlabel("reader threads")
         ax.set_ylabel("million puts / s (writer)")
         ax.set_ylim(bottom=0)
-        ax.set_title("Writer throughput, writer unthrottled")
-        ax.legend(frameon=False)
-        fig.tight_layout()
+        ax.set_title("Writer, unthrottled")
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False)
+        fig.tight_layout(rect=(0, 0.09, 1, 1))
         for ext in ("pdf", "png"):
             fig.savefig(os.path.join(FIGURES, f"fig_scaling.{ext}"), dpi=200)
         plt.close(fig)
@@ -549,10 +605,11 @@ def make_figures(conc, layout):
 
 def main():
     conc = aggregate_concurrent()
-    aggregate_reference()
+    ref = aggregate_reference()
     layout = aggregate_layout()
-    aggregate_flamegraphs()
-    aggregate_c2c()
+    flame = aggregate_flamegraphs()
+    c2c = aggregate_c2c()
+    report_tables(conc, ref, flame, c2c)
     make_figures(conc, layout)
     print("summary written to", os.path.relpath(SUMMARY, ROOT), "and", os.path.relpath(FIGURES, ROOT))
 

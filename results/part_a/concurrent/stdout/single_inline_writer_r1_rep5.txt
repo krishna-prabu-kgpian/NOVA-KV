@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations -o results/part_a/concurrent/perf_stat/single_inline_writer_r1_rep5.txt -- build/release/concurrent_bench_single --readers 1 --duration 3 --warmup 0.5 --reader-cpus 0 --seed 5 --run-id single_inline_writer_r1_rep5 --git-sha fe9ba2d9c2a4 --scenario inline_writer --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/single_inline_writer_r1_rep5.csv --writer inline:100
+single       scenario=inline_writer readers=1 writer=inline_same_thread keys=hit seconds=3.000
+  store lock object at 0x5d9e64c1ccc0, 1 bytes (cache lines 0x5d9e64c1ccc0..0x5d9e64c1ccc0)
+  reads : ops=53824675 rps=17940964 hits=53824675 misses=0 corrupt=0
+  read latency ns: p50=30 p99=150 p999=291 max=32544 mean=34.3
+  writes: ok=538247 failed=0 rps=179410 p50=0 p99=0 max=0 ns
+# exit_status: 0

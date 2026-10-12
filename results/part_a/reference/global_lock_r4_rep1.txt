@@ -1,0 +1,3 @@
+# command: taskset -c 0,2,4,6,1,3,5,7 build/release/global_lock 4 2
+global_lock    ops=29228427  rps=14614214   p50=0.1    us p99=2.0    us p999=4.5    us
+# exit_status: 0

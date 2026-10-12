@@ -1,0 +1,21 @@
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+global_lock  scenario=writer_max_profiled readers=4 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x5d19e74c9ca0, 40 bytes (cache lines 0x5d19e74c9c80..0x5d19e74c9cc0)
+  reads : ops=43493254 rps=8698507 hits=43493254 misses=0 corrupt=0
+  read latency ns: p50=150 p99=3936 p999=7296 max=291368 mean=432.8
+  writes: ok=6860513 failed=0 rps=1372080 p50=361 p99=4096 max=283370 ns
+[ perf record: Woken up 27 times to write data ]
+[ perf record: Captured and wrote 7.144 MB build/perf_data/global_lock_r4.data (48486 samples) ]

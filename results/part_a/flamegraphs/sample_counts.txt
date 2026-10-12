@@ -1,0 +1,8 @@
+global_lock_r1: 20542 samples, 41999679018 cycles
+global_lock_r2: 29574 samples, 58186138907 cycles
+global_lock_r4: 48486 samples, 98943087182 cycles
+global_lock_r8: 91724 samples, 172069577630 cycles
+rwlock_r1: 15093 samples, 13643531651 cycles
+rwlock_r2: 22006 samples, 20109318287 cycles
+rwlock_r4: 37870 samples, 39402578368 cycles
+rwlock_r8: 86112 samples, 175290764597 cycles

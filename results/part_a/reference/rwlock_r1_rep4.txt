@@ -1,0 +1,3 @@
+# command: taskset -c 0,2,4,6,1,3,5,7 build/release/rwlock 1 2
+rwlock         ops=30572108  rps=15286054   p50=0.0    us p99=0.1    us p999=0.2    us
+# exit_status: 0

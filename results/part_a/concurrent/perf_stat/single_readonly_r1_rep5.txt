@@ -1,0 +1,19 @@
+# started on Mon Oct 12 13:30:08 2026
+
+
+ Performance counter stats for 'build/release/concurrent_bench_single --readers 1 --duration 3 --warmup 0.5 --reader-cpus 0 --seed 5 --run-id single_readonly_r1_rep5 --git-sha fe9ba2d9c2a4 --scenario readonly --csv results/part_a/concurrent/runs.csv --hist results/part_a/concurrent/hist/single_readonly_r1_rep5.csv --writer off':
+
+          3,511.98 msec task-clock                                                            
+    17,674,393,206      cycles                                                                
+    23,268,798,201      instructions                                                          
+       269,181,664      cache-references                                                      
+        37,686,538      cache-misses                                                          
+                34      context-switches                                                      
+                 2      cpu-migrations                                                        
+
+       3.512332630 seconds time elapsed
+
+       3.507930000 seconds user
+       0.005001000 seconds sys
+
+

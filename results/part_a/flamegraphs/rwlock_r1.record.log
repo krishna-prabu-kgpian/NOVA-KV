@@ -1,0 +1,21 @@
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rwlock       scenario=writer_max_profiled readers=1 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x5e461b489cb0, 56 bytes (cache lines 0x5e461b489c80..0x5e461b489cc0)
+  reads : ops=1282961 rps=256588 hits=1282961 misses=0 corrupt=0
+  read latency ns: p50=3360 p99=11520 p999=26880 max=2085976 mean=3873.1
+  writes: ok=1264956 failed=0 rps=252987 p50=3232 p99=12672 max=2085907 ns
+[ perf record: Woken up 10 times to write data ]
+[ perf record: Captured and wrote 2.606 MB build/perf_data/rwlock_r1.data (15093 samples) ]

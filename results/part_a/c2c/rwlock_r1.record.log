@@ -1,0 +1,23 @@
+# command: perf c2c record -o build/perf_data/rwlock_r1.c2c.data -- build/release/concurrent_bench_rwlock --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --writer on --writer-cpu 15
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rwlock       scenario=writer_max_c2c readers=1 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x6493e6ff0bf0, 56 bytes (cache lines 0x6493e6ff0bc0..0x6493e6ff0c00)
+  reads : ops=1298115 rps=259619 hits=1298115 misses=0 corrupt=0
+  read latency ns: p50=3296 p99=13696 p999=26880 max=1890105 mean=3827.3
+  writes: ok=1270416 failed=0 rps=254079 p50=3200 p99=14464 max=1887341 ns
+[ perf record: Woken up 12 times to write data ]
+[ perf record: Captured and wrote 2.876 MB build/perf_data/rwlock_r1.c2c.data (36985 samples) ]
+# exit_status: 0

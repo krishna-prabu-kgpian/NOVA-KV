@@ -41,7 +41,7 @@ verification run recorded in `reports/milestones/A2.md`.
 | C2 | `perf stat` against both `global_lock` and `rwlock` (p. 3) | `results/part_a/concurrent/perf_stat/{global_lock,rwlock}_writer_max_r{1,2,4,8}_rep{1..5}.txt` (40 files), plus the paced-writer set | `scripts/check_part_a_artifacts.sh` | PASS |
 | C3 | `perf record` + `perf script` for both, at 1/2/4/8 readers (p. 3) | `results/part_a/flamegraphs/<variant>_r<N>.perf-script.txt.xz` (8 files) | `scripts/check_part_a_artifacts.sh` | PASS |
 | C4 | Flame graphs with Brendan Gregg's `stackcollapse-perf.pl` and `flamegraph.pl`, both variants × 1/2/4/8 (p. 3) | `results/part_a/flamegraphs/<variant>_r<N>.svg` and `.folded` (8 each); commands in `COMMANDS.txt` | `scripts/check_part_a_artifacts.sh` | PASS |
-| C5 | Identify where the 8-core runs lose time: lock acquisition vs cache-line bouncing, pointing to the flame graph and the cache-miss counters "instead of asserting" (p. 3) | `reports/part_a_report.pdf` §3–§4; `results/part_a/summary/flamegraph_breakdown.csv`, `concurrent_summary.csv` | read by a human | PASS, with the stated limit that cache-line bouncing is inferred from counters and cycle attribution, not shown by a coherence-event tool |
+| C5 | Identify where the 8-core runs lose time: lock acquisition vs cache-line bouncing, pointing to the flame graph and the cache-miss counters "instead of asserting" (p. 3) | `reports/part_a_report.pdf` §3–§4; `results/part_a/summary/flamegraph_breakdown.csv`, `concurrent_summary.csv` | read by a human | PASS. Lock waiting: flame-graph cycle shares and context-switch counts. Cache-line bouncing: IPC / cache-miss counters plus `perf c2c` HITM reports (`results/part_a/c2c/`, `summary/c2c_summary.csv`) that locate the contended line at the lock's address |
 
 ## D. Storage-layout design note
 
@@ -79,6 +79,7 @@ items.
 - All three layouts are measured (two were required), at two table sizes and six access
   patterns, with hardware counters.
 - A second writer setting (paced at 10,000 updates/s) besides the unthrottled writer.
+- `perf c2c` cache-line contention reports for all 8 profiled configurations.
 - Preload-only runs of the unmodified generator, kept separate and labelled as such.
 
 ## Known gaps and caveats
@@ -89,6 +90,8 @@ items.
   numbers are preload-only and are reported as such.
 - Kernel frames in the flame graphs have no symbol names (`kptr_restrict = 1`); see
   `results/part_a/flamegraphs/COMMANDS.txt`.
-- `perf c2c` / HITM evidence for cache-line bouncing was not collected.
-- Measurements were taken on a laptop on battery power with the `powersave` governor, on a CPU
-  with four fast and four slower cores; see `results/part_a/environment.txt`.
+- `perf c2c` sampled a few hundred to a few thousand HITM loads per configuration, from one 5-second run each; the shares are indicative, not tight estimates.
+- Measurements were taken on a laptop (AC power, `performance` governor, see
+  `results/part_a/conditions.log`) whose CPU has four fast and four slower cores, with a
+  desktop session running; see `results/part_a/environment.txt`. A first campaign taken partly
+  on battery was discarded (decision D-029).

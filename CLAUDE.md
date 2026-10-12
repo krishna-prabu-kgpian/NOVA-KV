@@ -152,9 +152,8 @@ results/               evidence: verification/<sha>/, <milestone>/, raw/, figure
 
 ### Build and test
 
-`cmake` is not installed system-wide on the development machine. `scripts/bootstrap_tools.sh`
-installs a project-local one into `.tools/venv` (git-ignored); the scripts find it
-automatically. For manual commands either put `.tools/venv/bin` on `PATH` or call it directly.
+The scripts use a system `cmake` if there is one (there is, since A2) and otherwise the
+project-local one that `scripts/bootstrap_tools.sh` installs into `.tools/venv` (git-ignored).
 
 ```bash
 scripts/bootstrap_tools.sh                      # once, only if cmake is missing
@@ -202,25 +201,36 @@ gates to it as the milestone lands.
 
 ### Known environment limitations (re-check with `scripts/env_info.sh`)
 
-- `kernel.perf_event_paranoid = 4`: unprivileged `perf stat` / `perf record` do not work.
-  Part A2 and Part D profiling are BLOCKED until the user lowers it (needs root) or runs the
-  capture scripts with sufficient privileges. Never substitute invented counters.
-- Brendan Gregg's FlameGraph scripts are not installed.
+- `kernel.perf_event_paranoid = 1` (set by the user): `perf stat`, `perf record` and
+  `perf c2c` work unprivileged. `kernel.kptr_restrict = 1`: kernel frames have no symbols.
+- Clear `DEBUGINFOD_URLS` for perf, or `perf script` takes minutes on network lookups.
+- FlameGraph scripts, matplotlib and cairosvg are project-local
+  (`scripts/bootstrap_tools.sh --profiling`); cmake, pandoc and xelatex are system packages.
 - No `clang++`; GCC 15.2 is the only compiler.
-- CPU governor is `powersave` with frequency boost enabled; record this with every benchmark.
-- The machine has 8 physical cores / 16 logical CPUs (AMD Ryzen AI 7 350).
+- Governor and power source are under the user's control and have varied
+  (`powersave`/battery, `performance`/AC); record them with every benchmark.
+- AMD Ryzen AI 7 350: 8 cores / 16 logical CPUs; cores 0,2,4,6 reach 5.09 GHz, cores 1,3,5,7
+  3.51 GHz; logical CPU N+8 is the SMT sibling of N.
 
 ## Current status
 
 - **A0 (bootstrap): complete** — `reports/milestones/A0.md`, tag `a0-bootstrap`.
 - **A1 (baseline store): complete** — `reports/milestones/A1.md`, tag `part-a-core`.
-  `put`/`get`/`erase` work on a segmented linear-probing index + chunked value arena, mutated
-  in place under the variant's lock (decisions D-016…D-020). Parts B and C are still inert
-  declarations. No benchmark or profiling results exist.
-- **Next: A2** (layout microbenchmark, lock profiling at 1/2/4/8 readers with an active
-  writer, Part A report). Requires user approval, and profiling needs the perf/FlameGraph
-  blockers resolved with the user's explicit permission (D-013).
+- **A2 (Part A benchmarks, profiling, layout note, report): complete** —
+  `reports/milestones/A2.md`, tag `part-a-final`. Report `reports/part_a_report.pdf`,
+  checklist `docs/part_a_compliance.md`, raw data `results/part_a/`.
+- **Part A is complete. Next: B1** (immutable version roots and COW directory, reclamation
+  disabled). Requires user approval. Parts B and C are still inert declarations.
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
-kernel-setting changes without explicit permission D-013; do not merge into `main`, keep all
-milestone tags D-014; cross-store snapshot ambiguity stays open D-015.
+kernel-setting changes without explicit permission D-013/D-021; `perf_event_paranoid = 1` is
+accepted and not to be changed D-022; do not merge into `main`, keep all milestone tags D-014;
+cross-store snapshot ambiguity stays open D-015; **the A1 chunk-lifetime scheme must be
+redesigned in Part B to protect every retained version and snapshot D-023**.
+
+Measurement rules established in A2 (D-024…D-026, D-029): never label supplied-generator runs
+as concurrent (they are preload-only); active-writer numbers come from
+`benchmarks/concurrent_bench.cpp` via `scripts/run_part_a.sh`; every reported number must trace
+to a file under `results/`; check `conditions.log` and rerun a campaign whose power source or
+governor changed part-way; the machine has 4 fast + 4 slower cores and CPU pinning is part of
+the method.

@@ -1,0 +1,10 @@
+2026-10-12T13:24:57 stage=concurrent:start ac_online=1 governor=performance epp=performance loadavg=1.57 2.43 1.93
+2026-10-12T13:30:15 stage=concurrent:end ac_online=1 governor=performance epp=performance loadavg=3.46 3.25 2.45
+2026-10-12T13:30:15 stage=reference:start ac_online=1 governor=performance epp=performance loadavg=3.46 3.25 2.45
+2026-10-12T13:32:22 stage=reference:end ac_online=1 governor=performance epp=performance loadavg=2.93 3.01 2.45
+2026-10-12T13:32:22 stage=layout:start ac_online=1 governor=performance epp=performance loadavg=2.93 3.01 2.45
+2026-10-12T13:33:24 stage=layout:end ac_online=1 governor=performance epp=performance loadavg=1.71 2.64 2.36
+2026-10-12T13:33:24 stage=flamegraphs:start ac_online=1 governor=performance epp=performance loadavg=1.71 2.64 2.36
+2026-10-12T13:34:33 stage=flamegraphs:end ac_online=1 governor=performance epp=performance loadavg=2.66 2.72 2.41
+2026-10-12T13:34:33 stage=c2c:start ac_online=1 governor=performance epp=performance loadavg=2.66 2.72 2.41
+2026-10-12T13:35:19 stage=c2c:end ac_online=1 governor=performance epp=performance loadavg=3.33 2.86 2.47

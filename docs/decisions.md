@@ -308,6 +308,28 @@ know columns, so the benchmark compares layouts of the record itself, outside th
 Branch `part-a/final` starts at tag `part-a-core`. The completed Part A is tagged
 `part-a-final`. `a0-bootstrap` and `part-a-core` are preserved; nothing is merged into `main`.
 
+## D-028 — Record layout: NSM (ACCEPTED, A2, from measurements)
+
+The store keeps each value as one contiguous run of bytes (row-major, NSM). Basis:
+`results/part_a/summary/layout_summary.csv`. Whole-row point gets, the only read the Appendix A
+API offers, cost 8.98 ns (NSM) against 16.42 ns (DSM) and 14.26 ns (PAX) per row at 8,000,000
+records with independent accesses, and 5.49 against 13.35 and 11.40 ns with the workload's
+80/20 mix; the generic cache-miss event count per row is 1.25 against 5.18 and 4.65. DSM is
+faster for single-field reads and scans (0.21 vs 0.63 ns per value scanned), which the API
+cannot express. Revisit only if a column-projection or scan operation is added.
+
+Follow-up noted, not done: arena payloads are not cache-line aligned, so about half of the
+32-byte rows straddle two lines. Aligning chunk payloads to 64 bytes is a candidate
+optimization for Part B, to be measured before it is kept.
+
+## D-029 — First A2 campaign discarded (ACCEPTED, A2)
+
+The first full measurement campaign started on battery (`powersave` governor) and the power
+source changed to AC at an unrecorded moment during or after it. Its data was discarded
+unpublished and the whole campaign was rerun under one condition (AC, `performance` governor
+at every stage boundary, recorded in `results/part_a/conditions.log`). The governor and power
+source were changed by the user, not by the agent. Only the rerun is in the repository.
+
 ---
 
 ## Open items carried forward
@@ -318,5 +340,6 @@ Branch `part-a/final` starts at tag `part-a-core`. The completed Part A is tagge
 | O-2 | RESOLVED for user-space profiling: `perf_event_paranoid = 1` (set by the user, D-022). Remaining: `kptr_restrict = 1` hides kernel symbols (D-025) | User, if kernel symbol names are wanted (`sudo sysctl kernel.kptr_restrict=0`) | Nothing mandatory |
 | O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
+| O-7 | Part B must replace the A1 chunk lifetime scheme (D-023) | Part B design | B1/B2 |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
-| O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018) but not yet explicitly confirmed or measured | User / A2 measurements | Should be settled before B1 |
+| O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

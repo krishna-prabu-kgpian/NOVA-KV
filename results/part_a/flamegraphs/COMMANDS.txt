@@ -1,0 +1,19 @@
+FlameGraph: https://github.com/brendangregg/FlameGraph @ 41fee1f99f9276008b7cd112fca19dc3ea84ac32
+perf: perf version 7.0.12
+kptr_restrict: 1
+
+Per configuration <id> = <variant>_r<readers>:
+  perf record -F 1999 --call-graph fp -o build/perf_data/<id>.data -- build/release/concurrent_bench_<variant> --readers <R> --duration 5 --warmup 0.5 --reader-cpus <cpus> --writer on --writer-cpu 15
+  DEBUGINFOD_URLS= perf script --no-inline -i build/perf_data/<id>.data > <id>.perf-script.txt   (kept as <id>.perf-script.txt.xz)
+  sed -E 's/^(\s+)(ffffffff[0-9a-f]+) \[unknown\] \(\[unknown\]\)/\1\2 [kernel] ([kernel])/'   (label unresolved kernel frames)
+  stackcollapse-perf.pl | perl -pe 's/(\[kernel\];)+/[kernel];/g; s/(;\[kernel\])+ /;[kernel] /'  > <id>.folded
+  flamegraph.pl --width 1400 --countname cycles --title ... <id>.folded > <id>.svg
+
+Samples are taken on the cycles event, and stackcollapse-perf.pl weights each stack by
+its sample period, so box widths are shares of CPU cycles (on-CPU time only: a thread
+blocked in the kernel waiting for a lock consumes no cycles and is not sampled).
+
+kptr_restrict is nonzero, so kernel symbols are not available to an unprivileged
+perf: every kernel frame appears as an address with symbol [unknown]. The sed/perl
+steps only rename those frames to [kernel] and merge consecutive ones into a single
+frame; no sample is added, removed or reattributed. The raw perf script output is kept.

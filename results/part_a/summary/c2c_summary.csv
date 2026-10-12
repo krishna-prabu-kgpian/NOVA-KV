@@ -1,0 +1,9 @@
+config,lock_cachelines,sampled_loads,load_hitm_total,shared_cache_lines,hitm_on_store_lock_lines,hitm_on_store_lock_lines_pct,hitm_on_kernel_lines,hitm_on_kernel_lines_pct,hitm_on_other_user_lines_pct,top_line_address,top_line_hitm_pct,top_line_is_store_lock
+global_lock_r1,0x61564d475bc0..0x61564d475c00,10882,302,33,87,28.8,141,46.7,24.5,0xffff88f84c886840,34.8,no
+global_lock_r2,0x62a94b41abc0..0x62a94b41ac00,15052,640,41,185,28.9,396,61.9,9.2,0xffff88f84f5bc900,42.8,no
+global_lock_r4,0x612a579a7bc0..0x612a579a7c00,22368,1663,34,418,26.1,1150,71.7,2.2,0xffff88f968ccc280,49.8,no
+global_lock_r8,0x60d70aed3bc0..0x60d70aed3c00,37576,3482,41,402,12.3,2864,87.4,0.3,0xffff88fb72d2ee40,31.8,no
+rwlock_r1,0x6493e6ff0bc0..0x6493e6ff0c00,7641,100,43,22,22.0,71,71.0,7.0,0x6493e6ff0bc0,22.0,yes
+rwlock_r2,0x5cdf03859bc0..0x5cdf03859c00,12228,263,47,50,19.0,207,78.7,2.3,0xffff88f84ed3e100,54.0,no
+rwlock_r4,0x5a8c9f64bbc0..0x5a8c9f64bc00,21239,559,85,251,44.9,299,53.5,1.6,0x5a8c9f64bbc0,44.7,yes
+rwlock_r8,0x5ddc7b801bc0..0x5ddc7b801c00,42656,1093,27,735,70.2,312,29.8,0.0,0x5ddc7b801bc0,69.9,yes

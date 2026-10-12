@@ -13,7 +13,7 @@
 # mandatory gate blocks overall PASS exactly like FAIL does.
 #
 # Gates are added here as milestones land; expectations are never loosened to
-# hide a failure. Currently covered: A0, A1.
+# hide a failure. Currently covered: A0, A1, A2.
 set -u -o pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 cd "$NOVA_ROOT"
@@ -123,8 +123,15 @@ else
     verify_mode tsan       "-fsanitize=thread"          -DCMAKE_BUILD_TYPE=Debug -DNOVA_ENABLE_TSAN=ON
 fi
 
+# ---- Part A deliverables (milestone A2) ----------------------------------------
+# Presence of every Part A artifact, and the page limits of the rendered report
+# (<= 5 pages, design note <= 3), both read from the committed files.
+run_gate part_a_artifacts yes scripts/check_part_a_artifacts.sh
+run_gate part_a_report_pages yes scripts/check_part_a_report.sh
+
 # ---- Informational (do not affect the verdict) ------------------------------
-# Profiling is first needed in A2; A0 only records whether it will be possible.
+# Whether profiling can be re-run on this machine (the committed Part A profiles
+# do not depend on it).
 run_gate perf_stat_usable no perf stat -e task-clock -- true
 run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegraph.pl -a -x .tools/FlameGraph/stackcollapse-perf.pl || { command -v stackcollapse-perf.pl && command -v flamegraph.pl; }'
 
@@ -136,7 +143,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1"
+    echo "- milestones covered: A0, A1, A2"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"
