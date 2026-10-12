@@ -17,6 +17,26 @@ struct EpochDomain::SlotBlock {
     std::atomic<SlotBlock*> next{nullptr};
 };
 
+#ifdef NOVA_KV_TEST_HOOKS
+namespace {
+std::atomic<int> g_fail_slot_blocks{0};
+}
+namespace test_hooks {
+void fail_slot_block_allocations(int n) noexcept { g_fail_slot_blocks.store(n); }
+}  // namespace test_hooks
+#endif
+
+// The one place a slot block is allocated. nullptr on failure.
+EpochDomain::SlotBlock* EpochDomain::new_slot_block() noexcept {
+#ifdef NOVA_KV_TEST_HOOKS
+    int armed = g_fail_slot_blocks.load();
+    while (armed > 0) {
+        if (g_fail_slot_blocks.compare_exchange_weak(armed, armed - 1)) return nullptr;
+    }
+#endif
+    return new (std::nothrow) SlotBlock();
+}
+
 // ---- Which domains are alive ------------------------------------------------------
 //
 // A thread caches the slot it was given per domain. When the thread exits it
@@ -41,6 +61,12 @@ LiveDomains& live_domains() {
 
 }  // namespace
 
+namespace {
+// Set when this thread's EpochThreadCache has been destroyed. Trivially
+// destructible, so it stays readable for the rest of thread teardown.
+thread_local bool tl_cache_destroyed = false;
+}  // namespace
+
 // Every slot this thread holds, for all domains. Destroyed at thread exit.
 struct EpochThreadCache {
     struct Entry {
@@ -61,6 +87,11 @@ struct EpochThreadCache {
             }
             // Otherwise the domain is gone and took its slots with it.
         }
+        // The slots are no longer this thread's. Code that still runs on this
+        // thread (destructors of other thread_local or static objects) must
+        // not find one through the fast path, nor touch `entries` again.
+        tl_epoch_last = EpochTlsLast{0, nullptr};
+        tl_cache_destroyed = true;
     }
 };
 
@@ -70,7 +101,7 @@ thread_local EpochThreadCache tl_cache;
 
 EpochDomain::EpochDomain()
     : id_(live_domains().next_id.fetch_add(1)), epoch_(0), first_(nullptr) {
-    first_ = new (std::nothrow) SlotBlock();
+    first_ = new_slot_block();
     LiveDomains& reg = live_domains();
     std::lock_guard<std::mutex> lock(reg.mutex);
     reg.live.emplace_back(id_, this);
@@ -114,8 +145,9 @@ ReaderSlot* EpochDomain::acquire_slot() {
     // Every slot is taken: add a block. It is complete (all slots inactive)
     // before the store below makes it reachable, and the slot handed out is in
     // a block that is already linked when the caller first announces in it.
-    SlotBlock* block = new (std::nothrow) SlotBlock();
-    if (block == nullptr || last == nullptr) throw std::bad_alloc();
+    if (last == nullptr) throw std::bad_alloc();  // the domain has no first block (!ok())
+    SlotBlock* block = new_slot_block();
+    if (block == nullptr) throw std::bad_alloc();
     block->slots[0].owned.store(1, std::memory_order_relaxed);
     last->next.store(block, std::memory_order_seq_cst);                               // [R1] link
     registrations_.fetch_add(1, std::memory_order_relaxed);
@@ -127,7 +159,31 @@ void EpochDomain::release_slot(ReaderSlot* slot) noexcept {
     slot->owned.store(0, std::memory_order_seq_cst);
 }
 
+// A read during thread teardown, after this thread's cache was destroyed and
+// its slots handed back. The thread gets a slot of its own again (never the one
+// it returned, which may belong to someone else by now), remembered only in
+// tl_epoch_last. When such a thread turns to another domain the previous late
+// slot is handed back first; the last one stays owned (and inactive, so it never
+// holds the epoch back) until its domain is destroyed.
+ReaderSlot* EpochDomain::thread_slot_late() {
+    if (tl_epoch_last.domain_id != 0) {
+        LiveDomains& reg = live_domains();
+        std::lock_guard<std::mutex> lock(reg.mutex);
+        for (const auto& d : reg.live) {
+            if (d.first == tl_epoch_last.domain_id) {
+                d.second->release_slot(tl_epoch_last.slot);
+                break;
+            }
+        }
+        tl_epoch_last = EpochTlsLast{0, nullptr};
+    }
+    ReaderSlot* slot = acquire_slot();  // may throw: nothing recorded yet
+    tl_epoch_last = EpochTlsLast{id_, slot};
+    return slot;
+}
+
 ReaderSlot* EpochDomain::thread_slot_slow() {
+    if (tl_cache_destroyed) return thread_slot_late();
     for (const EpochThreadCache::Entry& e : tl_cache.entries) {
         if (e.domain_id == id_) {
             tl_epoch_last = EpochTlsLast{id_, e.slot};

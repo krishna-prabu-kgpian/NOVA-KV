@@ -83,12 +83,13 @@ StoreOptions default_store_options() noexcept {
 
 VersionedStore::VersionedStore() : VersionedStore(default_store_options()) {}
 
-VersionedStore::VersionedStore(const StoreOptions& options)
+VersionedStore::VersionedStore(const StoreOptions& options, std::atomic<int>* reclaim_batch)
     : options_(options),
       current_(nullptr),
       latest_(nullptr),
       queue_tail_(nullptr),
-      queue_head_(nullptr) {
+      queue_head_(nullptr),
+      reclaim_batch_(reclaim_batch != nullptr ? reclaim_batch : &own_reclaim_batch_) {
     if (!epochs_.ok()) return;
     // Readers never see a null root: an empty version exists from the start.
     void* raw = alloc_bytes(sizeof(Version), alignof(Version));
@@ -421,7 +422,7 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
 // ---- Reclamation ---------------------------------------------------------------------
 
 void VersionedStore::set_reclaim_batch(int n) noexcept {
-    reclaim_batch_.store(n <= 0 ? 1 : n, std::memory_order_seq_cst);
+    reclaim_batch_->store(n <= 0 ? 1 : n, std::memory_order_seq_cst);
 }
 
 void VersionedStore::set_reclaim_work_per_version(std::uint32_t units) noexcept {
@@ -482,7 +483,7 @@ bool VersionedStore::epoch_pass() noexcept {
 
     // (2) Destroy retired versions whose grace period has passed: at most
     // `batch` of them completely, oldest first, within the work budget.
-    const std::uint64_t batch = static_cast<std::uint64_t>(reclaim_batch_.load(std::memory_order_seq_cst));
+    const std::uint64_t batch = static_cast<std::uint64_t>(reclaim_batch_->load(std::memory_order_seq_cst));
     const std::uint64_t allowance = batch * work_per_version_.load(std::memory_order_seq_cst);
     std::uint64_t budget = allowance;
     std::uint64_t freed = 0;

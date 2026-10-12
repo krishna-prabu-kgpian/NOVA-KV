@@ -11,6 +11,7 @@
 // claim that the corresponding assignment part is implemented.
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <stddef.h>
 
@@ -77,6 +78,12 @@ private:
     friend class Transaction;
     friend struct NovaKvInspector;  // internal test/statistics access (src/inspect.h)
     struct Impl;
+
+    // Part B: how many retired versions one reclamation pass may completely
+    // free. Written by set_reclaim_batch() and read by every pass; atomic
+    // because the setter may be called while the cleaner runs. Declared before
+    // impl_ so that it exists before, and outlives, the engine that reads it.
+    std::atomic<int> reclaim_batch_;
     Impl* impl_;
 };
 

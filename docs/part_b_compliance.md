@@ -24,19 +24,19 @@ PARTIAL, FAIL, NOT RUN. Statuses were filled in from the verification run record
 | B1 | Old versions "can't be freed the instant they're unpublished"; implement epoch-based reclamation **or** hazard pointers | Epoch-based: `src/epoch.*`, `VersionedStore::epoch_pass` | `reclamation_test`, `epoch_test` | PASS |
 | B2 | "State which one you picked and why." | `reports/part_b_readme.md` ("Reclamation: epoch-based, and why") | read by a human | PASS |
 | B3 | "readers announce an epoch, and a version is freed once no reader is still in an older epoch" | announce + validate `[P1]–[P3]`; gated advance `[C1]–[C4]`; eligibility `[C6]` (two advances beyond the retirement tag) | `test_two_advances_required`; five reader-parked schedules; mutations (one advance, unconditional advance, root loaded before announcing) all detected | PASS |
-| B4 | "Add a private member controlling how many retired versions a reclamation pass frees at once" | `VersionedStore::reclaim_batch_` (private `std::atomic<int>`), reached through `KVStore`'s private `impl_` | see note 1 | PASS, see note 1 |
+| B4 | "Add a private member controlling how many retired versions a reclamation pass frees at once" | `KVStore::reclaim_batch_`, a private `std::atomic<int>` declared in `include/kvstore.h`; it is the variable every pass reads (the engine holds a pointer to it) | `kvstore_test_rcu::test_public_reclaim_batch_setter` (public API only); gate `part_b_artifacts` greps the declaration | PASS, see note 1 |
 | B5 | "plus a public setter, `void set_reclaim_batch(int n)`, declared alongside put/get/erase in kvstore.h and defined in kvstore.cpp" | `include/kvstore.h`; `src/kvstore.cpp` | `api_conformance_test` pins the signature | PASS |
 | B6 | "each call may free at most as many retired versions as the current reclaim-batch setting" | `epoch_pass`: `while (freed < batch)`; a version counts only when completely destroyed | `test_batch_limit` for 1, 8, 64, 256, 1024, 0, −5: maximum freed in any pass ≤ batch; stress test asserts the same under concurrency; mutation "batch not applied" detected | PASS |
 | B7 | "must never block a reader" | readers take no lock; the cleaner only reads their slots | no lock type in the `rcu` build's read path; TSan/stress | PASS |
 | B8 | "must never block ... the writer" | hand-over is one store into a pre-allocated node; no grace-period wait | writer-parked schedules; code | PASS |
 | B9 | "A stop-the-world sweep over the entire retire list does not satisfy this." | a pass stops at the first ineligible version, at the batch limit, or at the work budget; destruction of one version is resumable | `test_cleanup_interrupted_and_resumed` | PASS |
 
-Note 1. The assignment says "a private member". The store's state is behind a private
-implementation pointer (`KVStore::impl_`, decision D-006), so the batch size is a private data
-member of the implementation object `KVStore` privately owns, not a field spelled out in
-`kvstore.h`. It is not accessible to users of the class by any route but the setter. If the
-grader requires the member to appear literally in `kvstore.h`, that is a one-line change
-(move the atomic into `KVStore`); flagged here rather than assumed.
+Note 1. PDF p. 4, verbatim: "Add a private member controlling how many retired versions a
+reclamation pass frees at once, plus a public setter, `void set_reclaim_batch(int n)`, declared
+alongside put/get/erase in kvstore.h and defined in kvstore.cpp." Until the post-B2 audit the
+value lived in the private implementation object. The sentence asks for a private member of
+the class whose public setter it names, and that class is defined in `kvstore.h`, so the
+member is now declared there literally (decision D-047). No public signature changed.
 
 ## C. Appendix A.1 statement about single calls
 
@@ -66,7 +66,6 @@ Whether the marks are awarded is the grader's decision.
 
 ## Known gaps and caveats
 
-- Note 1 above (where the private member lives).
 - A1's interpretation: `rcu` is a fourth build of the same class rather than a replacement of
   the lock variants.
 - The safety argument (`docs/reclamation.md` §5) is a manual proof sketch.

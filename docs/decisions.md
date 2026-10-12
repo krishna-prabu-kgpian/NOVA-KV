@@ -552,6 +552,51 @@ therefore re-measures, in the same session, the B1 checkpoint (built from tag
 Earlier results are not altered and not used for ratios. perf was unavailable
 (`perf_event_paranoid = 4`), so no profile was taken.
 
+## D-047 — The reclaim-batch setting is a literal private member in `kvstore.h` (ACCEPTED, post-B2 audit, 2026-10-12)
+
+PDF p. 4: "Add a private member controlling how many retired versions a reclamation pass frees
+at once, plus a public setter, void set_reclaim_batch(int n), declared alongside put/get/erase
+in kvstore.h and defined in kvstore.cpp." The location clause grammatically belongs to the
+setter, but "a private member" next to a public setter of `KVStore` can only mean a member of
+`KVStore`, whose definition is `kvstore.h`. A field of the private implementation object is
+not a private member of that class. The user asked for the literal form if the PDF requires
+it. Done: `std::atomic<int> KVStore::reclaim_batch_` (default 64, `nova::kDefaultReclaimBatch`),
+declared before `impl_`. `VersionedStore` takes an optional pointer to the setting and loads
+it in every pass, so there is one copy, not a mirror; a `VersionedStore` built on its own
+(engine tests) uses its own atomic. The lock variants record the value and ignore it.
+`<atomic>` is now included by the public header. No public signature changed
+(`api_conformance_test`). Closes O-15 and supersedes the open question in D-006.
+
+## D-048 — Reads during thread teardown get a fresh slot (ACCEPTED, post-B2 audit; defect found and fixed)
+
+Found by reading `src/epoch.cpp` against assumption A3 of `docs/reclamation.md`, not by a
+test: `~EpochThreadCache` returned the thread's slots but left the fast-path entry
+(`tl_epoch_last`) pointing at one, and `thread_slot_slow` used the cache's vector after its
+destruction. A `get` from a destructor that runs later on the same thread (another
+`thread_local`, or a static on the main thread) would announce in a slot that may already
+belong to another participant, or corrupt memory. Reproduced deterministically
+(`results/B2_audit/late_read_reproducer_before_fix.txt`: abort, double free). Fix: the
+destructor clears the entry and sets a trivially destructible flag; later lookups go to
+`thread_slot_late` (fresh owned slot, previous late slot returned). Cost: at most one slot per
+such thread stays owned until its store is destroyed. Not reachable from the tests, drivers or
+benchmarks that existed; `part-b-final` (304a8ac) contains the defect.
+
+Same audit: slot blocks are allocated on reader threads and therefore not through
+`alloc_bytes`' single-threaded failure counter, so the `std::bad_alloc` path of `get` had no
+test. Added a thread-safe hook (`test_hooks::fail_slot_block_allocations`) and two tests; the
+path behaved as documented. A block leaked on that path when the domain had no first block;
+fixed.
+
+## D-049 — The stop-the-world comparator is not pin-aware (RECORDED, post-B2 audit; C1 prerequisite)
+
+`stw_pass` frees the whole retire list once it holds `stw_lock_` exclusively. Readers hold it
+shared for a whole `get`; a `VersionedStore::Pin` holds nothing. A pin in a `StopTheWorld`
+store could therefore outlive its version. No test, driver or benchmark combines them and the
+public API cannot create a pin yet, so nothing is unsafe today. Before `Snapshot` becomes
+public (C1), `stw_pass` must respect pins (for example: under the exclusive lock, free only
+entries the epoch rule allows, which is still an unbounded whole-list sweep that stops all
+`get` calls) or `acquire_snapshot` must be defined for that mode.
+
 ---
 
 ## Open items carried forward
@@ -569,7 +614,9 @@ Earlier results are not altered and not used for ratios. perf was unavailable
 | O-11 | RESOLVED: polling (D-040, D-043) | — | — |
 | O-12 | RESOLVED (D-040, D-043) | — | — |
 | O-13 | RESOLVED: no backlog limit; allocation failure fails the write cleanly (D-040) | — | — |
-| O-15 | Part B note 1: the reclaim-batch member lives in the private implementation object, not literally in `kvstore.h` (`docs/part_b_compliance.md`) | User, if the grader's wording must be met literally | Nothing |
+| O-15 | RESOLVED: the member is declared in `kvstore.h` (D-047) | — | — |
+| O-16 | Stop-the-world comparator must be made pin-aware before `Snapshot` is public (D-049) | C1 implementation | C1 gate |
+| O-17 | Tag `part-b-final` (304a8ac) predates the audit corrections (D-047, D-048). Tags are never moved; which tag should mark the audited Part B state, and which the B→C diff starts from | User | Export of the B→C diff |
 | O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

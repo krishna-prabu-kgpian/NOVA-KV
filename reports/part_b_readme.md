@@ -60,8 +60,9 @@ version that can reach it and its ID is recycled only after that.
 
 ## The tunable parameter: `void KVStore::set_reclaim_batch(int n)`
 
-Declared next to `put`/`get`/`erase` in `kvstore.h`, defined in `kvstore.cpp`; the value is a
-private member of the store (an atomic integer, default 64; `n <= 0` is treated as 1).
+Declared next to `put`/`get`/`erase` in `kvstore.h`, defined in `kvstore.cpp`. The value is
+the private member `KVStore::reclaim_batch_` in `kvstore.h` (a `std::atomic<int>`, default 64;
+`n <= 0` is treated as 1), and it is the variable each reclamation pass reads.
 
 **A reclamation pass** is: one attempt to advance the epoch, then freeing retired versions
 that have become eligible, oldest first. **One pass completely frees at most `n` versions.**

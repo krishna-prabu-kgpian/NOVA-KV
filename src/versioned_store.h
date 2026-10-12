@@ -125,7 +125,11 @@ struct VersionedStats {
 class VersionedStore {
 public:
     VersionedStore();                                  // default_store_options()
-    explicit VersionedStore(const StoreOptions& options);
+    // `reclaim_batch`, if given, is where the reclaim-batch setting is stored
+    // (KVStore's private member); it must already hold a positive value and
+    // must outlive the store. Without it the store keeps the setting itself.
+    explicit VersionedStore(const StoreOptions& options,
+                            std::atomic<int>* reclaim_batch = nullptr);
     ~VersionedStore();
     VersionedStore(const VersionedStore&) = delete;
     VersionedStore& operator=(const VersionedStore&) = delete;
@@ -169,7 +173,7 @@ public:
     // How many retired versions one pass may completely destroy. n <= 0 is
     // treated as 1. Any thread.
     void set_reclaim_batch(int n) noexcept;
-    int reclaim_batch() const noexcept { return reclaim_batch_.load(std::memory_order_seq_cst); }
+    int reclaim_batch() const noexcept { return reclaim_batch_->load(std::memory_order_seq_cst); }
     // Work units (directory entries visited + chunk references dropped) one
     // pass may spend per version of its batch. A version costing more is
     // finished in a later pass. Any thread.
@@ -275,7 +279,8 @@ private:
     std::atomic<std::uint64_t> cleaner_cpu_ns_{0};
 
     // ---- Configuration and the background thread ---------------------------------
-    std::atomic<int> reclaim_batch_{64};
+    std::atomic<int> own_reclaim_batch_{kDefaultReclaimBatch};  // used when none was supplied
+    std::atomic<int>* const reclaim_batch_;                     // the setting every pass reads
     std::atomic<std::uint32_t> work_per_version_{1024};
     std::atomic<bool> cleaner_stop_{false};
     std::thread cleaner_thread_;

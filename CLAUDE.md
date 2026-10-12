@@ -221,8 +221,14 @@ gates to it as the milestone lands.
   `reports/milestones/B2.md`, tag `part-b-final`, branch `part-b/rcu`. Part B README
   `reports/part_b_readme.md`; design and proof `docs/reclamation.md`; checklist
   `docs/part_b_compliance.md`; diff `results/diffs/part_a_to_part_b.diff`.
+- **Post-B2 source audit: done** — `reports/milestones/B2_audit.md`. It changed source after
+  the tag: the reclaim-batch setting is now the literal private member
+  `KVStore::reclaim_batch_` in `kvstore.h` (D-047), and reads during thread teardown get a
+  fresh reader slot (D-048). `part-b-final` (304a8ac) was **not** moved and predates both;
+  which tag marks the audited state is open (O-17).
 - **Next: C1** (Transaction, public Snapshot on the existing `VersionedStore::Pin`). Requires
-  user approval. Part C is still inert declarations.
+  user approval. Part C is still inert declarations. C1 must first make the stop-the-world
+  comparator pin-aware (D-049, O-16).
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
@@ -242,7 +248,14 @@ Part B rules (D-031…D-046, `docs/versioning.md`, `docs/reclamation.md`):
   `docs/reclamation.md` refers to: keep code and document in step, and re-argue §5 before
   changing any of them or weakening an ordering.
 - Readers: no lock, no allocation after a thread's first read, no shared write except their
-  own slot. Never make `get` return `false` for lack of a resource.
+  own slot. Never make `get` return `false` for lack of a resource. Slot blocks are allocated
+  on reader threads: inject their failure with `test_hooks::fail_slot_block_allocations`, not
+  the single-threaded `fail_nth_allocation`. A thread must never announce in a slot it has
+  returned (thread teardown: `thread_slot_late`).
+- The reclaim batch has ONE copy: `KVStore::reclaim_batch_`; the engine reads it through a
+  pointer. `results/diffs/part_a_to_part_b.diff` must equal
+  `git diff part-a-final HEAD -- src include` (gate `part_b_artifacts`): regenerate it with
+  any change under `src/` or `include/` until Part C starts.
 - Chunks: one count (`refs`), one freeing rule (the decrement to zero). Never add a
   check-then-free. Segments: `owners`; no increment from zero.
 - The writer never waits for the cleaner or a grace period; the cleaner never waits for a

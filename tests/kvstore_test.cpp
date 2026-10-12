@@ -436,6 +436,47 @@ void test_independent_stores() {
     NOVA_CHECK(holds(b, 1, pattern(8, 2)));
 }
 
+// Part B, through the public API only: KVStore::set_reclaim_batch(n) sets the
+// private member KVStore::reclaim_batch_, and that member is what a reclamation
+// pass obeys. 3000 versions are retired with nobody running passes, then passes
+// are run by hand; no pass may completely free more than the batch.
+void test_public_reclaim_batch_setter() {
+    if (!NovaKvInspector::is_versioned()) {
+        KVStore s;  // lock-based baselines: accepted, no effect
+        s.set_reclaim_batch(8);
+        s.set_reclaim_batch(0);
+        NOVA_CHECK(put(s, 1, pattern(8, 1)) && holds(s, 1, pattern(8, 1)));
+        return;
+    }
+    NovaKvInspector::set_default_rcu_options(0, 1);  // manual passes
+    {
+        KVStore fresh;
+        NOVA_CHECK(NovaKvInspector::stats(fresh).reclaim_batch == 64);  // the default
+    }
+    const int settings[] = {1, 8, 64, 256, 1024, 0, -5};
+    for (int n : settings) {
+        const std::uint64_t effective = n <= 0 ? 1u : static_cast<std::uint64_t>(n);
+        KVStore s;
+        s.set_reclaim_batch(n);
+        NOVA_CHECK(NovaKvInspector::stats(s).reclaim_batch == static_cast<int>(effective));
+        // Every put retires the version it replaces (the first one, the initial empty version).
+        for (int i = 0; i < 3000; ++i) NOVA_CHECK(put(s, i % 50, pattern(24, static_cast<unsigned>(i))));
+        NOVA_CHECK(NovaKvInspector::backlog(s) == 3000);
+        NOVA_CHECK(NovaKvInspector::settle(s));
+        const NovaKvStats st = NovaKvInspector::stats(s);
+        NOVA_CHECK(NovaKvInspector::backlog(s) == 0);
+        NOVA_CHECK(st.reclaim_max_versions_in_pass == effective);  // reached, never exceeded
+        check_valid(s);
+        // Changing the setting on a live store takes effect for later passes.
+        s.set_reclaim_batch(2);
+        for (int i = 0; i < 100; ++i) NOVA_CHECK(put(s, i % 50, pattern(24, static_cast<unsigned>(i))));
+        const std::uint64_t passes_before = NovaKvInspector::stats(s).reclaim_passes;
+        NOVA_CHECK(NovaKvInspector::settle(s));
+        NOVA_CHECK(NovaKvInspector::stats(s).reclaim_passes - passes_before >= 50);  // 100 versions, at most 2 per pass
+    }
+    NovaKvInspector::set_default_rcu_options(0, 2);
+}
+
 }  // namespace
 
 int main() {
@@ -460,5 +501,6 @@ int main() {
     test_randomized_against_reference_model(42, 150000);
     test_randomized_single_partition(7, 120000);
     test_independent_stores();
+    test_public_reclaim_batch_setter();
     return nova_test::finish("kvstore_test");
 }

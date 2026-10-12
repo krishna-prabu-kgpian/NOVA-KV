@@ -1,0 +1,5 @@
+# epoch_test built from part-b-final (304a8ac) + the new test test_read_after_thread_cache_destroyed, BEFORE the fix
+$ build/verify/debug/epoch_test
+free(): double free detected in tcache 2
+/bin/bash: line 1: 785298 Aborted                    (core dumped) build/verify/debug/epoch_test 2>&1
+exit status: 134

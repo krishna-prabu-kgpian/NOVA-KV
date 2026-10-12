@@ -12,6 +12,9 @@
 
 // Part B: immutable published versions behind one atomic root pointer.
 struct KVStore::Impl {
+    // The engine reads the reclaim batch from KVStore's own private member.
+    explicit Impl(std::atomic<int>* reclaim_batch)
+        : store(nova::default_store_options(), reclaim_batch) {}
     nova::VersionedStore store;
 };
 

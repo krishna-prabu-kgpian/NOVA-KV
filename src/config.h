@@ -38,4 +38,7 @@ constexpr std::uint32_t kNoChunk = 0xFFFFFFFFu;
 
 constexpr std::size_t kCacheLine = 64;
 
+// Part B: reclaim batch of a store until KVStore::set_reclaim_batch() is called.
+constexpr int kDefaultReclaimBatch = 64;
+
 }  // namespace nova

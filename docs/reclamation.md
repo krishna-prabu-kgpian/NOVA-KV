@@ -85,6 +85,13 @@ internal basis for the Part C `Snapshot`.
   construction/destruction and thread exit) says which IDs are alive. The exit path returns a
   slot only if its store is still in the table; the store removes itself from the table before
   freeing its slots. A thread that outlives a store therefore never touches it.
+- **Reads during thread teardown.** Destructors of other `thread_local` or static objects may
+  still call `get` after the thread's slot cache has been destroyed and its slots returned.
+  The cache's destructor therefore clears the fast-path entry and sets a trivially
+  destructible flag; a later read on that thread registers again and gets a slot of its own
+  (`EpochDomain::thread_slot_late`), never the one it returned. When such a thread turns to
+  another store its late slot is returned first; the last one stays owned and inactive until
+  its store is destroyed (it cannot hold the epoch back).
 - A released slot is inactive and may be handed to another thread or pin.
 
 ## 4. Retirement, passes and budgets
@@ -102,7 +109,15 @@ fail.
    - the oldest remaining entry is not eligible.
 
 `void KVStore::set_reclaim_batch(int n)` sets `n` (values ≤ 0 are treated as 1). It takes
-effect at the next pass and never blocks a reader or the writer.
+effect at the next pass and never blocks a reader or the writer. `n` is stored in the private
+member `KVStore::reclaim_batch_` (`include/kvstore.h`, a `std::atomic<int>`, default 64); the
+engine is constructed with a pointer to that member and every pass loads it from there, so
+there is exactly one copy of the setting.
+
+**Two different budgets.** The *version-count budget* is `n`: the assignment's tunable, the
+number of retired versions one pass may completely free. The *work budget* is a separate,
+internal safeguard described next; it is not part of the assignment's API and is never what
+the README or the reports mean by "reclaim batch".
 
 **Work budget.** Destroying one version means visiting its 256 directory entries, and for
 each segment it was the last owner of, dropping that segment's chunk references and freeing
@@ -297,6 +312,15 @@ pushes change the head and make the CAS fail, and the pop retries.
 
 - A slot handed out by `acquire_slot` is in a linked block before the caller can announce in
   it (§5.2 step 4 depends on this). For a slot in a new block, `[R1]` precedes the return.
+- If a block cannot be allocated, `acquire_slot` throws before changing anything: no slot is
+  marked owned, nothing is linked, nothing is cached by the thread
+  (`thread_slot_slow` reserves its cache entry first, then acquires, then records).
+- **A3 after thread teardown.** A thread's fast-path entry (`tl_epoch_last`) is cleared by the
+  same destructor that returns its slots, and the flag `tl_cache_destroyed` routes every later
+  lookup on that thread to `thread_slot_late`, which never consults the destroyed cache. So a
+  thread never announces in a slot it has returned. (Found by the post-B2 source audit: before
+  this, a read from a later-running destructor reused the returned slot or touched the
+  destroyed cache; decision D-048.)
 - Only registration (under `registration_mutex_`) sets `owned`; release clears it after
   storing `INACTIVE`. A free slot is inactive, so the collector ignores it. If a slot is
   re-issued, the new owner's announcements are simply later critical sections in the same
@@ -341,6 +365,8 @@ pushes change the head and make the CAS fail, and the pop retries.
 | I13 | A thread exits (returning its slot) while the store is being destroyed, or after | live-domain table | `epoch_test::test_thread_outlives_domain` |
 | I14 | Store destroyed with a backlog and the cleaner mid-pass | stop and join first, then release on one thread | `repeated_init_and_shutdown` |
 | I15 | A long-lived pin is moved to another thread | the slot is not touched by a move | `test_long_lived_pin_moved_between_threads` |
+| I16 | A thread reads during its own teardown, after its slot cache was destroyed and its slot possibly re-issued to another participant | the fast-path entry is cleared with the cache; the late read registers a slot of its own | `epoch_test::test_read_after_thread_cache_destroyed` (aborted with a double free before the fix: `results/B2_audit/late_read_reproducer_before_fix.txt`) |
+| I17 | A slot block cannot be allocated on a thread's first read or for a pin | `std::bad_alloc` before any state changes; never a slot the collector cannot see, never `false` | `epoch_test::test_slot_block_allocation_failure`; `reclamation_test::test_get_when_no_reader_slot_can_be_allocated` |
 
 ### 5.11 What is not proved
 
@@ -350,5 +376,9 @@ pushes change the head and make the CAS fail, and the pop retries.
   and the cleaner keeps running, every retired version is eventually destroyed.
 - Correctness under orderings weaker than `seq_cst` is not claimed; none are used on protocol
   operations.
+- The `StopTheWorld` comparator excludes readers by a shared lock held for the duration of a
+  `get`. A long-lived pin holds no such lock, so that comparator must not be combined with
+  pins (it is not, anywhere); it has to be made pin-aware before the Part C `Snapshot` exists
+  (decision D-049).
 - Reader-side cost is not addressed here (two `seq_cst` stores per `get`); see the milestone
   report for measurements.

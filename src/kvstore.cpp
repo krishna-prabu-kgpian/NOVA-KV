@@ -34,7 +34,7 @@ const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
 
 // ---- Part B: RCU ------------------------------------------------------------------
 
-KVStore::KVStore() : impl_(new Impl()) {
+KVStore::KVStore() : reclaim_batch_(nova::kDefaultReclaimBatch), impl_(new Impl(&reclaim_batch_)) {
     if (!impl_->store.ok()) {  // initial version, queue or cleaner thread could not be created
         delete impl_;
         throw std::bad_alloc();
@@ -65,8 +65,10 @@ bool KVStore::erase(long key) { return impl_->store.erase(key); }
 // How many retired versions one reclamation pass may completely free. A pass
 // is one attempt to advance the reclamation epoch followed by the destruction
 // of versions whose grace period has passed. n <= 0 is treated as 1. Takes
-// effect from the next pass; never blocks a reader or the writer.
-void KVStore::set_reclaim_batch(int n) { impl_->store.set_reclaim_batch(n); }
+// effect from the next pass; never blocks a reader or the writer. The value is
+// kept in the private member reclaim_batch_ (kvstore.h), which is the variable
+// every reclamation pass reads.
+void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
 
 #else
 
@@ -77,7 +79,7 @@ using nova::ReadGuard;
 using nova::ValueRef;
 using nova::WriteGuard;
 
-KVStore::KVStore() : impl_(new Impl()) {}
+KVStore::KVStore() : reclaim_batch_(nova::kDefaultReclaimBatch), impl_(new Impl()) {}
 
 KVStore::~KVStore() { delete impl_; }
 
@@ -141,8 +143,9 @@ bool KVStore::erase(long key) {
     return true;
 }
 
-// The lock-based stores keep no retired versions: there is nothing to reclaim.
-void KVStore::set_reclaim_batch(int n) { (void)n; }
+// The lock-based baselines retire nothing, so there is nothing to reclaim: the
+// setting is recorded and has no effect.
+void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
 
 #endif  // NOVA_KV_SYNC_MODE
 

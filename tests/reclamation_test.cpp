@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <cstring>
 #include <mutex>
+#include <new>
 #include <thread>
 #include <vector>
 
@@ -549,6 +550,49 @@ void test_cleanup_interrupted_and_resumed() {
                 static_cast<unsigned long long>(st.reclaim_interrupted_versions));
 }
 
+// ---- 7b. get() when a reader slot cannot be allocated ------------------------------
+// The only resource a read can lack is a slot block on a thread's first read.
+// get() must then throw std::bad_alloc: never report a present key as absent,
+// never read unprotected. The store is unaffected and the read works afterwards.
+void test_get_when_no_reader_slot_can_be_allocated() {
+    VersionedStore s(kManual);
+    NOVA_CHECK(put(s, 7, pattern(100, 7)));
+    std::vector<VersionedStore::Pin> pins;
+    for (int i = 0; i < 32; ++i) pins.push_back(s.acquire_pin());  // every existing slot is taken
+    const std::uint64_t slots = s.stats().epoch.slots_total;
+    std::thread t([&]() {                                          // a thread with no slot yet
+        std::vector<unsigned char> out(100);
+        nova::test_hooks::fail_slot_block_allocations(1);
+        bool threw = false, returned = false, found = false;
+        try {
+            found = s.get(7, out.data(), out.size());
+            returned = true;
+        } catch (const std::bad_alloc&) {
+            threw = true;
+        }
+        NOVA_CHECK(threw && !returned && !found);
+        NOVA_CHECK(s.stats().epoch.slots_total == slots);          // nothing half-registered
+        NOVA_CHECK(s.get(7, out.data(), out.size()));              // memory is back
+        NOVA_CHECK(out == pattern(100, 7));
+    });
+    t.join();
+    // A pin cannot be had either, and likewise leaves nothing behind.
+    while (s.stats().epoch.slots_owned < s.stats().epoch.slots_total) pins.push_back(s.acquire_pin());
+    nova::test_hooks::fail_slot_block_allocations(1);              // the next pin needs a third block
+    bool threw = false;
+    try {
+        pins.push_back(s.acquire_pin());
+    } catch (const std::bad_alloc&) {
+        threw = true;
+    }
+    NOVA_CHECK(threw);
+    NOVA_CHECK(s.stats().epoch.slots_owned == pins.size());
+    for (VersionedStore::Pin& p : pins) s.release_pin(p);
+    NOVA_CHECK(put(s, 7, pattern(100, 8)));
+    NOVA_CHECK(s.drain());
+    NOVA_CHECK(s.validate() == nullptr);
+}
+
 // ---- 8. A long-lived pin (the Snapshot foundation) across threads -------------------
 void test_long_lived_pin_moved_between_threads() {
     VersionedStore s(kManual);
@@ -701,6 +745,7 @@ int main() {
     test_batch_limit(0);
     test_batch_limit(-5);
     test_cleanup_interrupted_and_resumed();
+    test_get_when_no_reader_slot_can_be_allocated();
     test_long_lived_pin_moved_between_threads();
     test_reader_slots_reused_after_thread_exit();
     test_comparator_modes();

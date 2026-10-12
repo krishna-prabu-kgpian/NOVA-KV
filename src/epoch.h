@@ -69,6 +69,15 @@ struct EpochTlsLast {
 };
 inline thread_local EpochTlsLast tl_epoch_last = {0, nullptr};
 
+#ifdef NOVA_KV_TEST_HOOKS
+namespace test_hooks {
+// Makes the next `n` slot-block allocations fail (thread-safe). Slot blocks are
+// allocated on reader threads, concurrently with the writer, so they do not go
+// through the single-threaded fail_nth_allocation() counter of alloc.h.
+void fail_slot_block_allocations(int n) noexcept;
+}  // namespace test_hooks
+#endif
+
 class EpochDomain {
 public:
     EpochDomain();
@@ -124,7 +133,9 @@ public:
 
 private:
     struct SlotBlock;
+    static SlotBlock* new_slot_block() noexcept;
     ReaderSlot* thread_slot_slow();
+    ReaderSlot* thread_slot_late();   // after this thread's slot cache was destroyed
     friend struct EpochThreadCache;
 
     const std::uint64_t id_;                  // unique for the life of the process

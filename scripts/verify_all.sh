@@ -147,6 +147,12 @@ run_gate part_b_artifacts yes sh -c '
         if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
     done
     grep -q "void set_reclaim_batch(int n);" include/kvstore.h || { echo "MISSING  set_reclaim_batch declaration"; status=1; }
+    grep -q "std::atomic<int> reclaim_batch_;" include/kvstore.h || { echo "MISSING  private reclaim-batch member in kvstore.h"; status=1; }
+    if git diff part-a-final HEAD -- src include | cmp -s - results/diffs/part_a_to_part_b.diff; then
+        echo "ok       Part A -> Part B diff matches the sources at HEAD"
+    else
+        echo "STALE    results/diffs/part_a_to_part_b.diff differs from: git diff part-a-final HEAD -- src include"; status=1
+    fi
     git rev-parse --verify --quiet part-b-publication^{commit} >/dev/null || { echo "MISSING  tag part-b-publication"; status=1; }
     exit $status'
 

@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <thread>
 #include <vector>
 
@@ -173,6 +174,122 @@ void test_thread_outlives_domain() {
     t2.join();
 }
 
+// A read made during thread teardown, AFTER this thread's slot cache has been
+// destroyed (here: from the destructor of a thread_local constructed before the
+// thread's first read, so destroyed after the cache). The slot the thread used
+// has been handed back and may already belong to someone else, so the late read
+// must not announce in it: it has to obtain a slot it owns (assumption A3 of
+// docs/reclamation.md).
+struct LateReader {
+    EpochDomain* domain = nullptr;
+    EpochDomain* other = nullptr;
+    ReaderSlot* first_slot = nullptr;
+    std::atomic<int>* ok = nullptr;
+    ~LateReader() {
+        if (domain == nullptr) return;
+        ReaderSlot* s = domain->thread_slot();
+        // Owned by this thread right now, and visible to the collector.
+        const bool owned = s->owned.load() == 1;
+        domain->pin(s);
+        const bool blocks = !domain->try_advance() || !domain->try_advance();
+        domain->unpin(s);
+        // A second store, late as well: must also get an owned slot, and going
+        // back to the first store must again give an owned slot.
+        ReaderSlot* o = other->thread_slot();
+        const bool owned_other = o->owned.load() == 1;
+        ReaderSlot* again = domain->thread_slot();
+        const bool owned_again = again->owned.load() == 1;
+        if (owned && blocks && owned_other && owned_again) ok->fetch_add(1);
+        (void)first_slot;
+    }
+};
+
+void test_read_after_thread_cache_destroyed() {
+    EpochDomain d, other;
+    std::atomic<int> ok{0};
+    const std::uint64_t owned_before = d.stats().slots_owned;
+    for (int i = 0; i < 20; ++i) {
+        std::thread t([&]() {
+            static thread_local LateReader late;  // constructed BEFORE the first read
+            late.domain = &d;
+            late.other = &other;
+            late.ok = &ok;
+            ReaderSlot* s = d.thread_slot();      // constructs the slot cache (destroyed first)
+            late.first_slot = s;
+            d.pin(s);
+            d.unpin(s);
+        });
+        t.join();
+    }
+    NOVA_CHECK(ok.load() == 20);
+    // Late slots are handed back when the thread moves to another store; at
+    // most one per thread stays owned (bounded, freed with the domain).
+    NOVA_CHECK(d.stats().slots_owned <= owned_before + 20);
+    NOVA_CHECK(d.stats().slots_active == 0);
+    // Nothing is left announcing: the epoch can still move.
+    NOVA_CHECK(d.try_advance());
+}
+
+// No slot block can be allocated: registration throws std::bad_alloc, leaves
+// the domain exactly as it was, and works again once memory is available. It
+// never hands out a slot the collector cannot see.
+void test_slot_block_allocation_failure() {
+    EpochDomain d;
+    std::vector<ReaderSlot*> held;
+    for (int i = 0; i < 32; ++i) held.push_back(d.acquire_slot());  // the first block is full
+    const nova::EpochStats before = d.stats();
+    NOVA_CHECK(before.slots_total == 32 && before.slots_owned == 32);
+
+    nova::test_hooks::fail_slot_block_allocations(2);
+    for (int attempt = 0; attempt < 2; ++attempt) {
+        bool threw = false;
+        try {
+            (void)d.acquire_slot();
+        } catch (const std::bad_alloc&) {
+            threw = true;
+        }
+        NOVA_CHECK(threw);
+    }
+    // The same for a thread's first read (thread_slot), on a new thread.
+    nova::test_hooks::fail_slot_block_allocations(1);
+    std::thread t([&]() {
+        bool threw = false;
+        try {
+            (void)d.thread_slot();
+        } catch (const std::bad_alloc&) {
+            threw = true;
+        }
+        NOVA_CHECK(threw);
+        ReaderSlot* s = d.thread_slot();  // memory is back: registered now
+        NOVA_CHECK(s != nullptr && s->owned.load() == 1);
+        d.pin(s);
+        d.unpin(s);
+    });
+    t.join();
+    const nova::EpochStats after = d.stats();
+    NOVA_CHECK(after.slots_total == 64);                       // exactly one block was added
+    NOVA_CHECK(after.registrations == before.registrations + 1);
+    NOVA_CHECK(after.slots_owned == 32);                       // the thread's slot came back at exit
+    NOVA_CHECK(after.slots_active == 0);
+    for (ReaderSlot* s : held) d.release_slot(s);
+    NOVA_CHECK(d.try_advance());
+
+    // A domain whose FIRST block could not be allocated reports !ok() and
+    // refuses registration instead of crashing.
+    nova::test_hooks::fail_slot_block_allocations(1);
+    {
+        EpochDomain broken;
+        NOVA_CHECK(!broken.ok());
+        bool threw = false;
+        try {
+            (void)broken.acquire_slot();
+        } catch (const std::bad_alloc&) {
+            threw = true;
+        }
+        NOVA_CHECK(threw);
+    }
+}
+
 // Registrations racing with scans. Whatever the timing, a participant that has
 // validated epoch e and is still pinned keeps the epoch at most at e + 1.
 void test_registration_races_with_scans() {
@@ -217,6 +334,8 @@ int main() {
     test_slots_expand_and_stay_put();
     test_thread_slots_and_reuse_after_exit();
     test_thread_outlives_domain();
+    test_read_after_thread_cache_destroyed();
+    test_slot_block_allocation_failure();
     test_registration_races_with_scans();
     return nova_test::finish("epoch_test");
 }

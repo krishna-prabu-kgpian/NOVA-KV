@@ -1,3 +1,28 @@
+diff --git a/include/kvstore.h b/include/kvstore.h
+index 5a38e26..3b14538 100644
+--- a/include/kvstore.h
++++ b/include/kvstore.h
+@@ -11,6 +11,7 @@
+ // claim that the corresponding assignment part is implemented.
+ #pragma once
+ 
++#include <atomic>
+ #include <cstddef>
+ #include <stddef.h>
+ 
+@@ -77,6 +78,12 @@ private:
+     friend class Transaction;
+     friend struct NovaKvInspector;  // internal test/statistics access (src/inspect.h)
+     struct Impl;
++
++    // Part B: how many retired versions one reclamation pass may completely
++    // free. Written by set_reclaim_batch() and read by every pass; atomic
++    // because the setter may be called while the cleaner runs. Declared before
++    // impl_ so that it exists before, and outlives, the engine that reads it.
++    std::atomic<int> reclaim_batch_;
+     Impl* impl_;
+ };
+ 
 diff --git a/src/alloc.cpp b/src/alloc.cpp
 index 75e9ec9..0b334c5 100644
 --- a/src/alloc.cpp
@@ -41,7 +66,7 @@ index 75e9ec9..0b334c5 100644
  #ifdef NOVA_KV_TEST_HOOKS
      const long call = g_calls++;
 diff --git a/src/config.h b/src/config.h
-index dc061b0..803bb50 100644
+index dc061b0..7c44d1b 100644
 --- a/src/config.h
 +++ b/src/config.h
 @@ -13,6 +13,9 @@ constexpr unsigned kPartitionBits = 8;
@@ -54,6 +79,14 @@ index dc061b0..803bb50 100644
  
  // Occupied slots (live + tombstones) may fill at most 7/10 of a segment.
  constexpr std::uint64_t kMaxLoadNum = 7;
+@@ -35,4 +38,7 @@ constexpr std::uint32_t kNoChunk = 0xFFFFFFFFu;
+ 
+ constexpr std::size_t kCacheLine = 64;
+ 
++// Part B: reclaim batch of a store until KVStore::set_reclaim_batch() is called.
++constexpr int kDefaultReclaimBatch = 64;
++
+ }  // namespace nova
 diff --git a/src/cow_segment.cpp b/src/cow_segment.cpp
 new file mode 100644
 index 0000000..4cdb8e5
@@ -321,10 +354,10 @@ index 0000000..4b03d9c
 +}  // namespace nova
 diff --git a/src/epoch.cpp b/src/epoch.cpp
 new file mode 100644
-index 0000000..938a9b4
+index 0000000..828f9dc
 --- /dev/null
 +++ b/src/epoch.cpp
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,245 @@
 +#include "epoch.h"
 +
 +#include <new>
@@ -343,6 +376,26 @@ index 0000000..938a9b4
 +    ReaderSlot slots[kSlotsPerBlock];
 +    std::atomic<SlotBlock*> next{nullptr};
 +};
++
++#ifdef NOVA_KV_TEST_HOOKS
++namespace {
++std::atomic<int> g_fail_slot_blocks{0};
++}
++namespace test_hooks {
++void fail_slot_block_allocations(int n) noexcept { g_fail_slot_blocks.store(n); }
++}  // namespace test_hooks
++#endif
++
++// The one place a slot block is allocated. nullptr on failure.
++EpochDomain::SlotBlock* EpochDomain::new_slot_block() noexcept {
++#ifdef NOVA_KV_TEST_HOOKS
++    int armed = g_fail_slot_blocks.load();
++    while (armed > 0) {
++        if (g_fail_slot_blocks.compare_exchange_weak(armed, armed - 1)) return nullptr;
++    }
++#endif
++    return new (std::nothrow) SlotBlock();
++}
 +
 +// ---- Which domains are alive ------------------------------------------------------
 +//
@@ -368,6 +421,12 @@ index 0000000..938a9b4
 +
 +}  // namespace
 +
++namespace {
++// Set when this thread's EpochThreadCache has been destroyed. Trivially
++// destructible, so it stays readable for the rest of thread teardown.
++thread_local bool tl_cache_destroyed = false;
++}  // namespace
++
 +// Every slot this thread holds, for all domains. Destroyed at thread exit.
 +struct EpochThreadCache {
 +    struct Entry {
@@ -388,6 +447,11 @@ index 0000000..938a9b4
 +            }
 +            // Otherwise the domain is gone and took its slots with it.
 +        }
++        // The slots are no longer this thread's. Code that still runs on this
++        // thread (destructors of other thread_local or static objects) must
++        // not find one through the fast path, nor touch `entries` again.
++        tl_epoch_last = EpochTlsLast{0, nullptr};
++        tl_cache_destroyed = true;
 +    }
 +};
 +
@@ -397,7 +461,7 @@ index 0000000..938a9b4
 +
 +EpochDomain::EpochDomain()
 +    : id_(live_domains().next_id.fetch_add(1)), epoch_(0), first_(nullptr) {
-+    first_ = new (std::nothrow) SlotBlock();
++    first_ = new_slot_block();
 +    LiveDomains& reg = live_domains();
 +    std::lock_guard<std::mutex> lock(reg.mutex);
 +    reg.live.emplace_back(id_, this);
@@ -441,8 +505,9 @@ index 0000000..938a9b4
 +    // Every slot is taken: add a block. It is complete (all slots inactive)
 +    // before the store below makes it reachable, and the slot handed out is in
 +    // a block that is already linked when the caller first announces in it.
-+    SlotBlock* block = new (std::nothrow) SlotBlock();
-+    if (block == nullptr || last == nullptr) throw std::bad_alloc();
++    if (last == nullptr) throw std::bad_alloc();  // the domain has no first block (!ok())
++    SlotBlock* block = new_slot_block();
++    if (block == nullptr) throw std::bad_alloc();
 +    block->slots[0].owned.store(1, std::memory_order_relaxed);
 +    last->next.store(block, std::memory_order_seq_cst);                               // [R1] link
 +    registrations_.fetch_add(1, std::memory_order_relaxed);
@@ -454,7 +519,31 @@ index 0000000..938a9b4
 +    slot->owned.store(0, std::memory_order_seq_cst);
 +}
 +
++// A read during thread teardown, after this thread's cache was destroyed and
++// its slots handed back. The thread gets a slot of its own again (never the one
++// it returned, which may belong to someone else by now), remembered only in
++// tl_epoch_last. When such a thread turns to another domain the previous late
++// slot is handed back first; the last one stays owned (and inactive, so it never
++// holds the epoch back) until its domain is destroyed.
++ReaderSlot* EpochDomain::thread_slot_late() {
++    if (tl_epoch_last.domain_id != 0) {
++        LiveDomains& reg = live_domains();
++        std::lock_guard<std::mutex> lock(reg.mutex);
++        for (const auto& d : reg.live) {
++            if (d.first == tl_epoch_last.domain_id) {
++                d.second->release_slot(tl_epoch_last.slot);
++                break;
++            }
++        }
++        tl_epoch_last = EpochTlsLast{0, nullptr};
++    }
++    ReaderSlot* slot = acquire_slot();  // may throw: nothing recorded yet
++    tl_epoch_last = EpochTlsLast{id_, slot};
++    return slot;
++}
++
 +ReaderSlot* EpochDomain::thread_slot_slow() {
++    if (tl_cache_destroyed) return thread_slot_late();
 +    for (const EpochThreadCache::Entry& e : tl_cache.entries) {
 +        if (e.domain_id == id_) {
 +            tl_epoch_last = EpochTlsLast{id_, e.slot};
@@ -516,10 +605,10 @@ index 0000000..938a9b4
 +}  // namespace nova
 diff --git a/src/epoch.h b/src/epoch.h
 new file mode 100644
-index 0000000..e34bb95
+index 0000000..934f199
 --- /dev/null
 +++ b/src/epoch.h
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,151 @@
 +// epoch.h -- epoch-based reclamation (EBR): the reader side and the epoch gate.
 +//
 +// Classical three-epoch scheme with GATED advancement, exactly the protocol of
@@ -591,6 +680,15 @@ index 0000000..e34bb95
 +};
 +inline thread_local EpochTlsLast tl_epoch_last = {0, nullptr};
 +
++#ifdef NOVA_KV_TEST_HOOKS
++namespace test_hooks {
++// Makes the next `n` slot-block allocations fail (thread-safe). Slot blocks are
++// allocated on reader threads, concurrently with the writer, so they do not go
++// through the single-threaded fail_nth_allocation() counter of alloc.h.
++void fail_slot_block_allocations(int n) noexcept;
++}  // namespace test_hooks
++#endif
++
 +class EpochDomain {
 +public:
 +    EpochDomain();
@@ -646,7 +744,9 @@ index 0000000..e34bb95
 +
 +private:
 +    struct SlotBlock;
++    static SlotBlock* new_slot_block() noexcept;
 +    ReaderSlot* thread_slot_slow();
++    ReaderSlot* thread_slot_late();   // after this thread's slot cache was destroyed
 +    friend struct EpochThreadCache;
 +
 +    const std::uint64_t id_;                  // unique for the life of the process
@@ -1022,7 +1122,7 @@ index 44c83dd..dce493b 100644
 +    static void set_reclaim_work_per_version(KVStore& store, unsigned units);
  };
 diff --git a/src/kvstore.cpp b/src/kvstore.cpp
-index 5b25e70..82de3b9 100644
+index 5b25e70..0629ff2 100644
 --- a/src/kvstore.cpp
 +++ b/src/kvstore.cpp
 @@ -1,14 +1,22 @@
@@ -1056,7 +1156,7 @@ index 5b25e70..82de3b9 100644
  #include "kvstore.h"
  
  #include "build_info.h"
-@@ -18,20 +26,61 @@
+@@ -18,20 +26,63 @@
  
  #include <cstdint>
  #include <cstring>
@@ -1068,7 +1168,7 @@ index 5b25e70..82de3b9 100644
 +
 +// ---- Part B: RCU ------------------------------------------------------------------
 +
-+KVStore::KVStore() : impl_(new Impl()) {
++KVStore::KVStore() : reclaim_batch_(nova::kDefaultReclaimBatch), impl_(new Impl(&reclaim_batch_)) {
 +    if (!impl_->store.ok()) {  // initial version, queue or cleaner thread could not be created
 +        delete impl_;
 +        throw std::bad_alloc();
@@ -1099,8 +1199,10 @@ index 5b25e70..82de3b9 100644
 +// How many retired versions one reclamation pass may completely free. A pass
 +// is one attempt to advance the reclamation epoch followed by the destruction
 +// of versions whose grace period has passed. n <= 0 is treated as 1. Takes
-+// effect from the next pass; never blocks a reader or the writer.
-+void KVStore::set_reclaim_batch(int n) { impl_->store.set_reclaim_batch(n); }
++// effect from the next pass; never blocks a reader or the writer. The value is
++// kept in the private member reclaim_batch_ (kvstore.h), which is the variable
++// every reclamation pass reads.
++void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
 +
 +#else
 +
@@ -1113,7 +1215,8 @@ index 5b25e70..82de3b9 100644
  
 -const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
 -
- KVStore::KVStore() : impl_(new Impl()) {}
+-KVStore::KVStore() : impl_(new Impl()) {}
++KVStore::KVStore() : reclaim_batch_(nova::kDefaultReclaimBatch), impl_(new Impl()) {}
  
  KVStore::~KVStore() { delete impl_; }
  
@@ -1122,25 +1225,25 @@ index 5b25e70..82de3b9 100644
  bool KVStore::put(long key, const void* value, size_t value_len) {
      if (value_len > nova::kMaxValueBytes) return false;
      if (value_len != 0 && value == nullptr) return false;
-@@ -92,10 +141,11 @@ bool KVStore::erase(long key) {
+@@ -92,9 +143,11 @@ bool KVStore::erase(long key) {
      return true;
  }
  
 -// ---- Part B (not implemented until B2) ----------------------------------------
--
-+// The lock-based stores keep no retired versions: there is nothing to reclaim.
- void KVStore::set_reclaim_batch(int n) { (void)n; }
++// The lock-based baselines retire nothing, so there is nothing to reclaim: the
++// setting is recorded and has no effect.
++void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
  
+-void KVStore::set_reclaim_batch(int n) { (void)n; }
 +#endif  // NOVA_KV_SYNC_MODE
-+
+ 
  // ---- Part C (not implemented until C1/C2) ----------------------------------
  
- bool KVStore::create_index(size_t field_offset, size_t field_len) {
 diff --git a/src/kvstore_impl.h b/src/kvstore_impl.h
-index 0a759bd..6bc46d1 100644
+index 0a759bd..34804b3 100644
 --- a/src/kvstore_impl.h
 +++ b/src/kvstore_impl.h
-@@ -4,13 +4,29 @@
+@@ -4,13 +4,32 @@
  
  #include "kvstore.h"
  
@@ -1152,6 +1255,9 @@ index 0a759bd..6bc46d1 100644
 +
 +// Part B: immutable published versions behind one atomic root pointer.
 +struct KVStore::Impl {
++    // The engine reads the reclaim batch from KVStore's own private member.
++    explicit Impl(std::atomic<int>* reclaim_batch)
++        : store(nova::default_store_options(), reclaim_batch) {}
 +    nova::VersionedStore store;
 +};
 +
@@ -1762,10 +1868,10 @@ index 0000000..bfdb8b8
 +}  // namespace nova
 diff --git a/src/versioned_store.cpp b/src/versioned_store.cpp
 new file mode 100644
-index 0000000..6fea2ee
+index 0000000..d58bbbf
 --- /dev/null
 +++ b/src/versioned_store.cpp
-@@ -0,0 +1,766 @@
+@@ -0,0 +1,767 @@
 +#include "versioned_store.h"
 +
 +#include "alloc.h"
@@ -1851,12 +1957,13 @@ index 0000000..6fea2ee
 +
 +VersionedStore::VersionedStore() : VersionedStore(default_store_options()) {}
 +
-+VersionedStore::VersionedStore(const StoreOptions& options)
++VersionedStore::VersionedStore(const StoreOptions& options, std::atomic<int>* reclaim_batch)
 +    : options_(options),
 +      current_(nullptr),
 +      latest_(nullptr),
 +      queue_tail_(nullptr),
-+      queue_head_(nullptr) {
++      queue_head_(nullptr),
++      reclaim_batch_(reclaim_batch != nullptr ? reclaim_batch : &own_reclaim_batch_) {
 +    if (!epochs_.ok()) return;
 +    // Readers never see a null root: an empty version exists from the start.
 +    void* raw = alloc_bytes(sizeof(Version), alignof(Version));
@@ -2189,7 +2296,7 @@ index 0000000..6fea2ee
 +// ---- Reclamation ---------------------------------------------------------------------
 +
 +void VersionedStore::set_reclaim_batch(int n) noexcept {
-+    reclaim_batch_.store(n <= 0 ? 1 : n, std::memory_order_seq_cst);
++    reclaim_batch_->store(n <= 0 ? 1 : n, std::memory_order_seq_cst);
 +}
 +
 +void VersionedStore::set_reclaim_work_per_version(std::uint32_t units) noexcept {
@@ -2250,7 +2357,7 @@ index 0000000..6fea2ee
 +
 +    // (2) Destroy retired versions whose grace period has passed: at most
 +    // `batch` of them completely, oldest first, within the work budget.
-+    const std::uint64_t batch = static_cast<std::uint64_t>(reclaim_batch_.load(std::memory_order_seq_cst));
++    const std::uint64_t batch = static_cast<std::uint64_t>(reclaim_batch_->load(std::memory_order_seq_cst));
 +    const std::uint64_t allowance = batch * work_per_version_.load(std::memory_order_seq_cst);
 +    std::uint64_t budget = allowance;
 +    std::uint64_t freed = 0;
@@ -2534,10 +2641,10 @@ index 0000000..6fea2ee
 +}  // namespace nova
 diff --git a/src/versioned_store.h b/src/versioned_store.h
 new file mode 100644
-index 0000000..908186e
+index 0000000..0f71aa7
 --- /dev/null
 +++ b/src/versioned_store.h
-@@ -0,0 +1,288 @@
+@@ -0,0 +1,293 @@
 +// versioned_store.h -- the Part B storage engine: immutable published versions,
 +// copy-on-write index, one atomic root pointer, epoch-based reclamation.
 +//
@@ -2665,7 +2772,11 @@ index 0000000..908186e
 +class VersionedStore {
 +public:
 +    VersionedStore();                                  // default_store_options()
-+    explicit VersionedStore(const StoreOptions& options);
++    // `reclaim_batch`, if given, is where the reclaim-batch setting is stored
++    // (KVStore's private member); it must already hold a positive value and
++    // must outlive the store. Without it the store keeps the setting itself.
++    explicit VersionedStore(const StoreOptions& options,
++                            std::atomic<int>* reclaim_batch = nullptr);
 +    ~VersionedStore();
 +    VersionedStore(const VersionedStore&) = delete;
 +    VersionedStore& operator=(const VersionedStore&) = delete;
@@ -2709,7 +2820,7 @@ index 0000000..908186e
 +    // How many retired versions one pass may completely destroy. n <= 0 is
 +    // treated as 1. Any thread.
 +    void set_reclaim_batch(int n) noexcept;
-+    int reclaim_batch() const noexcept { return reclaim_batch_.load(std::memory_order_seq_cst); }
++    int reclaim_batch() const noexcept { return reclaim_batch_->load(std::memory_order_seq_cst); }
 +    // Work units (directory entries visited + chunk references dropped) one
 +    // pass may spend per version of its batch. A version costing more is
 +    // finished in a later pass. Any thread.
@@ -2815,7 +2926,8 @@ index 0000000..908186e
 +    std::atomic<std::uint64_t> cleaner_cpu_ns_{0};
 +
 +    // ---- Configuration and the background thread ---------------------------------
-+    std::atomic<int> reclaim_batch_{64};
++    std::atomic<int> own_reclaim_batch_{kDefaultReclaimBatch};  // used when none was supplied
++    std::atomic<int>* const reclaim_batch_;                     // the setting every pass reads
 +    std::atomic<std::uint32_t> work_per_version_{1024};
 +    std::atomic<bool> cleaner_stop_{false};
 +    std::thread cleaner_thread_;
