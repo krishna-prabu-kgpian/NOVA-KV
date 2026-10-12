@@ -1,0 +1,19 @@
+% LaTeX preamble additions for the Part A report (used by scripts/build_part_a_report.sh).
+\usepackage{float}
+\floatplacement{figure}{H}
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize\setlength{\tabcolsep}{4pt}}
+\usepackage{caption}
+\captionsetup{font=footnotesize,skip=2pt}
+\setlength{\parskip}{2.5pt plus 1pt}
+\setlength{\parindent}{0pt}
+\setlength{\textfloatsep}{4pt}
+\setlength{\intextsep}{4pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titlespacing*{\subsection}{0pt}{4pt}{1pt}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.2em}
+\renewcommand{\arraystretch}{0.95}
+\setlength{\LTpre}{2pt}
+\setlength{\LTpost}{2pt}

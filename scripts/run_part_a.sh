@@ -9,6 +9,7 @@
 #   scripts/run_part_a.sh reference      supplied generator (preload-only) runs
 #   scripts/run_part_a.sh layout         NSM / DSM / PAX microbenchmark (+ perf stat)
 #   scripts/run_part_a.sh flamegraphs    `perf record` + flame graphs, 8 configs
+#   scripts/run_part_a.sh c2c            `perf c2c` cache-line contention reports, 8 configs
 #
 # Requirements: a Release build in build/release, perf usable without root,
 # .tools/FlameGraph (scripts/bootstrap_tools.sh --profiling).
@@ -215,15 +216,57 @@ stage_flamegraphs() {
 # fraction of a second. Symbols for our own binaries come from their -g build.
 export DEBUGINFOD_URLS=
 
+# perf c2c (cache-to-cache): samples memory accesses (AMD IBS / Intel PEBS) and
+# reports cache lines on which loads hit a line held Modified by another core
+# (HITM). This is the coherence-level evidence for cache-line bouncing that a
+# flame graph cannot give.
+stage_c2c() {
+    need_build
+    local dir="$OUT/c2c" tmp="build/perf_data"
+    rm -rf "$dir"; mkdir -p "$dir" "$tmp"
+    for variant in global_lock rwlock; do
+        for readers in $READER_COUNTS; do
+            local id="${variant}_r${readers}"
+            log "perf c2c: $id"
+            {
+                echo "# command: perf c2c record -o $tmp/$id.c2c.data -- $BUILD/concurrent_bench_${variant} --readers $readers --duration 5 --warmup $WARMUP --reader-cpus $(reader_cpus_for "$readers") --writer on --writer-cpu $WRITER_CPU"
+                perf c2c record -o "$tmp/$id.c2c.data" -- \
+                    "$BUILD/concurrent_bench_${variant}" --readers "$readers" --duration 5 --warmup "$WARMUP" \
+                    --reader-cpus "$(reader_cpus_for "$readers")" --writer on --writer-cpu "$WRITER_CPU" \
+                    --run-id "perf_c2c_$id" --git-sha "$GIT_SHA" --scenario writer_max_c2c
+                echo "# exit_status: $?"
+            } > "$dir/$id.record.log" 2>&1
+            grep -q '^# exit_status: 0' "$dir/$id.record.log" \
+                || { log "FAILED: perf c2c record $id"; FAILURES=$((FAILURES + 1)); continue; }
+            perf c2c report -i "$tmp/$id.c2c.data" --stdio > "$dir/$id.c2c-report.txt" 2> "$dir/$id.report.log" \
+                || { log "FAILED: perf c2c report $id"; FAILURES=$((FAILURES + 1)); }
+        done
+    done
+}
+
+# Power source, load and CPU frequency at a point in the campaign, so a change
+# of conditions between stages is visible in the record.
+conditions() {
+    {
+        printf '%s stage=%s ' "$(date +%Y-%m-%dT%H:%M:%S)" "$1"
+        printf 'ac_online=%s ' "$(cat /sys/class/power_supply/AC*/online 2>/dev/null | head -1)"
+        printf 'governor=%s epp=%s ' "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)" \
+            "$(cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null)"
+        printf 'loadavg=%s\n' "$(cut -d' ' -f1-3 /proc/loadavg)"
+    } >> "$OUT/conditions.log"
+}
+
 FAILURES=0
 stage="${1:-all}"
+mkdir -p "$OUT"
+run_stage() { conditions "$1:start"; "stage_$1"; conditions "$1:end"; }
 case "$stage" in
     env) stage_env ;;
-    concurrent) stage_env; stage_concurrent ;;
-    reference) stage_reference ;;
-    layout) stage_layout ;;
-    flamegraphs) stage_flamegraphs ;;
-    all) stage_env; stage_concurrent; stage_reference; stage_layout; stage_flamegraphs ;;
+    concurrent|reference|layout|flamegraphs|c2c) run_stage "$stage" ;;
+    all)
+        rm -f "$OUT/conditions.log"
+        stage_env
+        for st in concurrent reference layout flamegraphs c2c; do run_stage "$st"; done ;;
     *) die "unknown stage '$stage'" ;;
 esac
 log "stage '$stage' finished with $FAILURES failure(s)"

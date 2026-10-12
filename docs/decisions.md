@@ -209,6 +209,105 @@ always uses one reader thread: the store has no synchronization in that variant,
 multi-reader run would not be a valid single-threaded baseline (audit H17). With the supplied
 generator these are *preload-only* runs; the active-writer harness is A2.
 
+## D-021 — Tools for A2 (ACCEPTED, 2026-10-12, user decision)
+
+- Missing tools may be installed by a project-local or unprivileged method. No `sudo`, no
+  kernel-setting change without explicit approval.
+- FlameGraph comes from the official repository `https://github.com/brendangregg/FlameGraph`,
+  pinned to commit `41fee1f99f9276008b7cd112fca19dc3ea84ac32` (2024-10-21) in
+  `.tools/FlameGraph` (git-ignored). `matplotlib==3.10.9` and `cairosvg==2.9.1` are installed
+  into `.tools/venv`. Reproduce with `scripts/bootstrap_tools.sh --profiling`.
+- Found already installed by the user (system packages): cmake 4.x at `/usr/bin/cmake`, pandoc
+  3.7.0.2, TeX Live (`xelatex`), poppler (`pdfinfo`, `pdftotext`), perf 7.0.12.
+- If a required tool cannot be installed the problem is reported and alternatives are
+  investigated; profiling results are never fabricated.
+
+## D-022 — perf configuration (ACCEPTED, 2026-10-12, user decision)
+
+`kernel.perf_event_paranoid = 1` is the accepted setting and is not changed by the agent.
+`kernel.kptr_restrict = 1` (also not changed) hides kernel symbols from an unprivileged perf:
+kernel frames are resolved only as far as "in the kernel". See D-025.
+
+## D-023 — Part B chunk ownership must be redesigned (ACCEPTED, 2026-10-12, user decision)
+
+The A1 per-chunk entry count (D-017) is accepted **only** for the mutable, lock-protected
+Part A store. It is not sufficient for immutable RCU versions: when Part B begins, chunk
+ownership must be redesigned so that every retained version and every snapshot keeps the
+chunks it can reach alive (blueprint §3.4: one pin per distinct chunk per published segment,
+released only after the segment's owning version has passed its EBR grace period), and the
+reset-in-place of the writable chunk must be removed. Part B is not started in A2.
+
+## D-024 — A2 measurement method (ACCEPTED, A2)
+
+Two tracks, never mixed (blueprint §9.1):
+
+- **Reference / preload-only:** the unmodified supplied generator through
+  `drivers/{single_thread,global_lock,rwlock}`. No writer runs while readers are measured.
+- **Active writer:** `benchmarks/concurrent_bench.cpp`. Same schema, key layout, hot set and
+  80/20 read mix as the generator. Readers and one writer thread start on a barrier; 0.5 s
+  warm-up, then a 3 s measured window; the writer overwrites existing trades for the whole
+  window. Two writer settings are measured: `writer_max` (as fast as the lock lets it) and
+  `writer_paced` (10,000 updates/s). The random 20 % of reads uses keys that exist; a
+  `--keys reference` option reproduces the generator's mostly-missing formula.
+
+Choices that affect the numbers:
+
+- Each `get` is timed with two `steady_clock` reads (as the supplied generator does) and
+  recorded in a fixed-memory histogram (1 ns buckets below 1024 ns, ≤ 1.6 % wide above), with
+  the exact maximum kept separately. Percentiles use the generator's rank rule. The clock
+  reads are part of every measured operation in every configuration.
+- Throughput = completed `get` calls in the window ÷ measured wall-clock window. Loading and
+  warm-up are excluded.
+- The writer builds each record with `snprintf` like the generator's `make_trade`, i.e. it
+  does work outside the lock between updates.
+- Threads are pinned. Readers get one logical CPU per physical core, fast cores first
+  (`0,2,4,6,1,3,5,7`); the writer is on CPU 15, the SMT sibling of core 7. So the writer has
+  its own physical core for 1/2/4 readers and shares one with the eighth reader, and readers
+  5–8 run on the slower cores of this heterogeneous CPU. Scaling from 4 to 8 readers is
+  therefore not expected to be linear even without any lock.
+- 5 repetitions per configuration as separate processes, repetitions in the outer loop.
+  Summaries give the median with minimum and maximum; no run is discarded.
+- `perf stat` wraps each of those processes, so its counters include the 100,000-key load and
+  the warm-up in addition to the window.
+- The unsynchronized `single` variant is run with one thread only: read-only, and with the
+  same thread doing one update per 100 reads.
+- A run is rejected (nonzero exit) if a read returns a foreign record, if any expected key is
+  missing, if the writer made no successful update in the window, or if a thread could not be
+  pinned.
+
+## D-025 — Flame graphs (ACCEPTED, A2)
+
+`perf record -F 1999 --call-graph fp` on the `cycles` event (all binaries and Ubuntu's system
+libraries keep frame pointers), 5 s window, one capture per lock variant × reader count with
+the unthrottled writer. `stackcollapse-perf.pl` weights stacks by sample period, so widths are
+shares of CPU cycles. These are **on-CPU** profiles: a thread asleep in a futex consumes no
+cycles and is not sampled, so blocked time appears as lost throughput, not as width.
+
+Because `kptr_restrict = 1`, kernel frames have no symbols. The pipeline renames them to
+`[kernel]` and merges consecutive ones; no sample is added, dropped or moved, and the raw
+`perf script` output is kept (xz-compressed). `DEBUGINFOD_URLS` is cleared for perf because
+the network lookups made `perf script` take minutes.
+
+## D-026 — Layout microbenchmark design (ACCEPTED, A2)
+
+`benchmarks/layout_bench.cpp` builds NSM, DSM and PAX tables of the workload's 32-byte `Trade`
+from the same data and drives them with the same pre-generated access sequences. Records are
+addressed by record number in all three, so the hash index (identical for all layouts) is
+excluded and only the layout differs. PAX uses 4096-byte pages of 128 records with four
+1024-byte mini-pages. Two table sizes: 100,000 records (3.2 MiB, the workload's size, within
+L3) and 8,000,000 records (244 MiB, far beyond L3). Six access patterns; a checksum of all
+values read must be identical across layouts or the run fails. Repetitions are interleaved
+across layouts; a warm-up pass is discarded. Hardware counters per get are obtained by
+subtracting a setup-only run from a measured run.
+
+The generic store stays schema-agnostic (blueprint §8.4): it stores opaque bytes and cannot
+know columns, so the benchmark compares layouts of the record itself, outside the store.
+
+## D-027 — A2 Git (ACCEPTED, A2)
+
+Branch `part-a/final` starts at tag `part-a-core`. The completed Part A is tagged
+`part-a-final`. `a0-bootstrap` and `part-a-core` are preserved; nothing is merged into `main`.
+
 ---
 
 ## Open items carried forward
@@ -216,8 +315,8 @@ generator these are *preload-only* runs; the active-writer harness is A2.
 | ID | Item | Needed from | Blocks |
 |---|---|---|---|
 | O-1 | Exactly-one-Snapshot join across two `KVStore` instances (PDF p. 5 vs Appendix A two-table shape) | Instructor | Full PASS of C2 |
-| O-2 | `perf_event_paranoid = 4`: unprivileged `perf` is unusable on this machine. Deferred to A2 by D-013; no sudo/kernel change without explicit permission | User (root: `sudo sysctl kernel.perf_event_paranoid=1`, or run captures with privileges) | A2 profiling, D flame graphs |
-| O-3 | FlameGraph scripts (`stackcollapse-perf.pl`, `flamegraph.pl`) not installed. Deferred to A2 by D-013 | User approval to fetch github.com/brendangregg/FlameGraph | A2, D |
+| O-2 | RESOLVED for user-space profiling: `perf_event_paranoid = 1` (set by the user, D-022). Remaining: `kptr_restrict = 1` hides kernel symbols (D-025) | User, if kernel symbol names are wanted (`sudo sysctl kernel.kptr_restrict=0`) | Nothing mandatory |
+| O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018) but not yet explicitly confirmed or measured | User / A2 measurements | Should be settled before B1 |

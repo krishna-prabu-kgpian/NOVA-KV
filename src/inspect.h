@@ -24,6 +24,10 @@ struct NovaKvStats {
 struct NovaKvInspector {
     static NovaKvStats stats(const KVStore& store);
 
+    // Address of the store's lock object (meaningless for the `single`
+    // variant). Lets a profiler's cache-line report be matched to the lock.
+    static const void* lock_address(const KVStore& store);
+
     // Walks the whole store and checks its structural invariants: slot counts,
     // load bound, each key in its own partition and reachable exactly once
     // through its probe chain, every ValueRef in bounds of a live chunk, and

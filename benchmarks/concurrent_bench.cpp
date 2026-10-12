@@ -337,6 +337,11 @@ int main(int argc, char** argv) {
 
     std::printf("%-12s scenario=%s readers=%d writer=%s keys=%s seconds=%.3f\n", variant.c_str(),
                 scenario.c_str(), cfg.readers, writer_mode.c_str(), keys.c_str(), seconds);
+    const std::uintptr_t lock_addr =
+        reinterpret_cast<std::uintptr_t>(NovaKvInspector::lock_address(store));
+    std::printf("  store lock object at 0x%llx (cache line 0x%llx)\n",
+                static_cast<unsigned long long>(lock_addr),
+                static_cast<unsigned long long>(lock_addr & ~std::uintptr_t{63}));
     std::printf("  reads : ops=%llu rps=%.0f hits=%llu misses=%llu corrupt=%llu\n",
                 static_cast<unsigned long long>(ops), read_rps,
                 static_cast<unsigned long long>(hits), static_cast<unsigned long long>(misses),

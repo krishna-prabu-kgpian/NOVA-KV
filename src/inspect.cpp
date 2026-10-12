@@ -30,6 +30,10 @@ NovaKvStats NovaKvInspector::stats(const KVStore& store) {
     return s;
 }
 
+const void* NovaKvInspector::lock_address(const KVStore& store) {
+    return static_cast<const void*>(&store.impl_->lock);
+}
+
 const char* NovaKvInspector::validate(const KVStore& store) {
     const KVStore::Impl& impl = *store.impl_;
     const nova::Arena& arena = impl.arena;
