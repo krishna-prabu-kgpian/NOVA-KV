@@ -424,6 +424,47 @@ writer (1 s window, because B1 retains about 2–3 GiB per second of unthrottled
 one-thread runs. The harness stops the writer and invalidates the run if retained memory
 exceeds a limit. No perf profiling, no reclamation-batch study: those are B2 and Part D.
 
+## D-038 — The fourth (`rcu`) build is accepted; what Part A vs RCU comparisons mean (ACCEPTED, 2026-10-12, user decision)
+
+Confirms D-031. The original Part A engine and its three synchronization variants stay
+unchanged; the RCU variant uses immutable version roots and copy-on-write segments. The
+Part A baseline is not redesigned.
+
+**Consequence for every comparison between a Part A variant and the RCU store:** the two
+differ in storage and update strategy, not only in synchronization. A Part A write modifies
+one slot in place and appends the value; an RCU write copies the whole segment it touches
+(about 24 KiB at the workload's size) and the 2 KiB directory, updates a few hundred ownership
+counters, and (until B2) keeps the replaced version. Read paths differ too (one extra
+indirection through the version; no lock). So a throughput or latency difference between,
+say, `rwlock` and `rcu` measures "lock-based in-place store" against "lock-free copy-on-write
+store" as whole designs; it must not be presented as the cost or benefit of the lock alone.
+This is stated wherever such numbers are reported (B1 report, and later the Part D report).
+
+## D-039 — Pre-B2 audit findings and required changes (ACCEPTED, 2026-10-12)
+
+Full text: `docs/b1_audit_and_b2_readiness.md`. No correctness defect in B1 as specified. One
+ownership path is safe only because no cleaner exists and **must be changed before B2 enables
+one** (reproduced in a scratch experiment, `results/B1/audit/`): the writer's ownership of the
+writable chunk and of chunks an open commit appended to is a pointer comparison / private
+list, so a concurrent release of old versions could free a chunk the commit still references.
+
+Required before a cleaner thread runs (R1–R7), performance item to measure (R8):
+
+- R1 writer and open-commit ownership of chunks become real pins; one freeing rule
+  (the decrement to zero frees).
+- R2 freed chunk IDs go from cleaner to writer through a single-producer/single-consumer
+  channel; the cleaner never touches the writer's free stack.
+- R3 the retained list becomes a FIFO retirement queue carrying retirement epochs.
+- R4 statistics split per thread or atomic.
+- R5 `release_version` resumable under work budgets.
+- R6 quiescent hatches and version-pointer test interfaces removed or confined and checked.
+- R7 shutdown: stop and join the cleaner before releasing.
+- R8 keep `owners` / `pins` off cache lines readers load (measure first).
+
+The B1 implementation was not modified by the audit. One test schedule was added
+(`versioned_interleaving_test` S6: all older versions released while the writer holds a
+prepared version).
+
 ---
 
 ## Open items carried forward
@@ -435,6 +476,12 @@ exceeds a limit. No perf profiling, no reclamation-batch study: those are B2 and
 | O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
 | O-7 | RESOLVED in B1 for ownership (D-033). Reclamation itself (EBR, cleaner) is B2 | — | B2 |
-| O-8 | D-031: is a fourth `rcu` build next to unchanged Part A variants an acceptable reading of "don't fork the store"? | User | Nothing; affects how the A→B diff is presented |
+| O-8 | RESOLVED: the fourth `rcu` build is accepted (D-038) | — | — |
+| O-9 | B2 decision D-a: reader-slot lifetime across thread exit and store destruction | User (proposal in the audit §5.3) | B2 |
+| O-10 | B2 decision D-b: what `get` does when no reader slot is free (recommendation: generous fixed capacity, abort on exhaustion) | User | B2 |
+| O-11 | B2 decision D-c: cleaner wake-up (recommendation: polling, no signal on the write path) | User | B2 |
+| O-12 | B2 decision D-d: definition of one reclamation pass for `set_reclaim_batch` | User | B2, D.2 |
+| O-13 | B2 decision D-e: behaviour at a backlog/memory limit | User | B2 |
+| O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

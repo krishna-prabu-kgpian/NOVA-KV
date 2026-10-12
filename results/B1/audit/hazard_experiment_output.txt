@@ -1,0 +1,36 @@
+# Scratch experiment for the pre-B2 audit (2026-10-12). NOT part of the build.
+# Sources: commit 2d9c02c copied to a scratch directory, plus ONE added pause point
+#   NOVA_TEST_POINT(TestPoint::WriterAfterAppendsBeforeOwnership) immediately before 'Phase 3' in
+#   VersionedStore::commit (src/versioned_store.cpp), and the program in hazard_experiment.cpp.txt.
+# Build: g++ -std=c++17 -g -O0 -pthread [-fsanitize=address] -DNOVA_KV_TEST_HOOKS -Iinclude -Isrc hazard.cpp <engine sources>
+
+## debug build
+before: chunks_live=1 retained=2
+during: chunks_live=1 chunks_freed=1 (W freed while the commit holds an unpublished reference into it)
+/bin/bash: line 1: 26696 Segmentation fault         (core dumped) ./hazard_dbg 2>&1
+exit status: 139
+
+## AddressSanitizer build
+before: chunks_live=1 retained=2
+during: chunks_live=1 chunks_freed=1 (W freed while the commit holds an unpublished reference into it)
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==26700==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000010 (pc 0x589ba9be19df bp 0x787e00bfe180 sp 0x787e00bfe160 T1)
+==26700==The signal is caused by a WRITE memory access.
+==26700==Hint: address points to the zero page.
+    #0 0x589ba9be19df in std::__atomic_base<unsigned int>::fetch_add(unsigned int, std::memory_order) /usr/include/c++/15/bits/atomic_base.h:631
+    #1 0x589ba9be19df in nova::PinnedArena::pin(unsigned int) src/pinned_arena.cpp:198
+    #2 0x589ba9bcfd43 in nova::VersionedStore::commit(nova::BatchOp const*, unsigned long, bool*) src/versioned_store.cpp:263
+    #3 0x589ba9bcaa1b in operator() <scratch>/hazard/hazard.cpp:32
+    #4 0x589ba9bcbed9 in __invoke_impl<void, main()::<lambda()> > /usr/include/c++/15/bits/invoke.h:63
+    #5 0x589ba9bcbe9c in __invoke<main()::<lambda()> > /usr/include/c++/15/bits/invoke.h:98
+    #6 0x589ba9bcbe57 in _M_invoke<0> /usr/include/c++/15/bits/std_thread.h:303
+    #7 0x589ba9bcbe2b in operator() /usr/include/c++/15/bits/std_thread.h:310
+    #8 0x589ba9bcbe0f in _M_run /usr/include/c++/15/bits/std_thread.h:255
+    #9 0x7c7e042f5ef8  (/usr/lib/x86_64-linux-gnu/libstdc++.so.6+0xf5ef8) (BuildId: 3a7a8c6bd922e6314edb7a710fdc0293265c2c42)
+    #10 0x7c7e04663a80 in asan_thread_start ../../../../src/libsanitizer/asan/asan_interceptors.cpp:246
+    #11 0x7c7e03ea4079 in start_thread nptl/pthread_create.c:454
+    #12 0x7c7e03f3772b in __clone3 ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+==26700==Register values:
+exit status: 1

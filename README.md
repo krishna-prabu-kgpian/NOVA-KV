@@ -156,6 +156,15 @@ scripts/run_b1_observation.sh                 # the small B1 measurement set -> 
 
 The `rcu` driver with the generator's default 100,000 trades retains several GiB in B1.
 
+**Reading Part A against RCU numbers.** The `rcu` build differs from the Part A variants in
+storage and update strategy, not only in synchronization: a Part A write changes one slot in
+place, an RCU write copies the segment it touches and the directory. A difference between,
+for example, `rwlock` and `rcu` compares two whole designs and is not the cost of the lock
+alone (`docs/decisions.md` D-038).
+
+Pre-B2 audit of ownership, publication and readiness for reclamation:
+`docs/b1_audit_and_b2_readiness.md`.
+
 ## Part A results and how to reproduce them
 
 - **Report (4 pages):** `reports/part_a_report.pdf` (source `reports/part_a_report.src.md`).

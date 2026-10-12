@@ -1,0 +1,43 @@
+// SCRATCH EXPERIMENT (not part of the repository): what happens if older
+// versions are released while a commit has appended value bytes but has not yet
+// taken its pins -- the window a B2 cleaner could hit.
+#include "versioned_store.h"
+#include "test_points.h"
+#include <condition_variable>
+#include <cstdio>
+#include <mutex>
+#include <thread>
+#include <vector>
+using namespace nova;
+static std::mutex m; static std::condition_variable cv; static bool parked = false, released = false;
+static thread_local bool park_me = false;
+static void hook(TestPoint p, void*) {
+    if (!park_me || p != TestPoint::WriterAfterAppendsBeforeOwnership) return;
+    std::unique_lock<std::mutex> lk(m);
+    if (parked) return;
+    parked = true; cv.notify_all(); cv.wait(lk, [] { return released; });
+}
+int main() {
+    VersionedStore s;
+    std::vector<unsigned char> small(100, 1), big(65400, 2);
+    s.put(1, small.data(), small.size());   // value of key 1 lives in chunk W (the writable chunk)
+    s.erase(1);                             // current version no longer references W;
+                                            // only the retained version 1 pins it
+    std::printf("before: chunks_live=%llu retained=%llu\n",
+                (unsigned long long)s.stats().arena.chunks_live, (unsigned long long)s.stats().versions_retained);
+    test_hooks::set_point_hook(hook, nullptr);
+    BatchOp ops[2] = {{BatchOp::Kind::Put, 2, small.data(), small.size()},   // appended into W
+                      {BatchOp::Kind::Put, 3, big.data(), big.size()}};       // does not fit: W sealed, new chunk
+    bool ok = false;
+    std::thread writer([&] { park_me = true; ok = s.commit(ops, 2); });
+    { std::unique_lock<std::mutex> lk(m); cv.wait(lk, [] { return parked; }); }
+    s.release_retained_quiescent();         // "cleaner": drops the last pin on W, which is no longer writable
+    std::printf("during: chunks_live=%llu chunks_freed=%llu (W freed while the commit holds an unpublished reference into it)\n",
+                (unsigned long long)s.stats().arena.chunks_live, (unsigned long long)s.stats().arena.chunks_freed);
+    std::fflush(stdout);
+    { std::lock_guard<std::mutex> lk(m); released = true; } cv.notify_all();
+    writer.join();
+    std::printf("after: commit ok=%d (reaching this line means no crash)\n", ok);
+    unsigned char out[100];
+    std::printf("get(2)=%d\n", (int)s.get(2, out, sizeof(out)));
+}

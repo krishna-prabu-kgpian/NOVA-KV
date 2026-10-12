@@ -219,9 +219,13 @@ gates to it as the milestone lands.
 - **B1 (immutable versions, COW index, atomic root; reclamation deliberately absent):
   complete** — `reports/milestones/B1.md`, tag `part-b-publication`, branch `part-b/rcu`.
   Design note `docs/versioning.md`.
+- **Pre-B2 audit: done** — `docs/b1_audit_and_b2_readiness.md`,
+  `reports/milestones/B1_audit.md`. No B1 defect; changes R1–R7 are REQUIRED before a cleaner
+  thread may run (D-039), R1 first: writer / open-commit chunk ownership must become real
+  pins (reproduced hazard in `results/B1/audit/`).
 - **Next: B2** (EBR with gated epoch advancement, cleaner, `set_reclaim_batch`, safe chunk-ID
-  reuse with concurrent readers). Requires user approval and the EBR proof gate above. Part C
-  is still inert declarations.
+  reuse with concurrent readers). Requires user approval, the user's answers to the open B2
+  decisions O-9…O-13, and the EBR proof gate above. Part C is still inert declarations.
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021; `perf_event_paranoid = 1` is
@@ -233,6 +237,8 @@ Part B rules established in B1 (D-031…D-037, `docs/versioning.md`):
 
 - `rcu` is a fourth build of the same `KVStore`; the three Part A lock variants must stay
   behaviourally identical to `part-a-final`.
+  Accepted by the user (D-038). Any Part A vs RCU comparison must say that the designs differ
+  in storage/update strategy, not only in synchronization.
 - Published Versions, Segments and value bytes are never modified. Every fallible step of a
   commit precedes any ownership change; the root is written exactly once per logical write.
 - Ownership is structural: versions own segments (`owners`), segments pin distinct chunks

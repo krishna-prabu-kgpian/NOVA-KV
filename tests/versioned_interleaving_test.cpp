@@ -20,6 +20,10 @@
 //      intact, and it is not lost when the writer resumes.
 //   S5 (stress, bounded by counts) multi-key commits race with readers that
 //      read several keys through one version: never a mix of two commits.
+//   S6 writer parked with a new version built and its ownership taken, but not
+//      published; another thread then releases EVERY older version (what a
+//      cleaner will do in B2). No segment or chunk the new or the current
+//      version uses may be destroyed.
 #include "versioned_store.h"
 
 #include "test_points.h"
@@ -264,6 +268,95 @@ void writer_parked(TestPoint where, bool expect_new_state, const char* name) {
                 saw_new.load(), saw_mixed.load());
 }
 
+// ---- S6: older versions released while a new version is being prepared ----------
+// Pre-B2 audit demonstration. The release is done with the B1 quiescent hatch:
+// legal here because the only other thread is the writer, parked at a pause
+// point (the gate's mutex orders its writes before this thread's reads), and
+// there are no readers. It stands in for a cleaner that has established, by
+// whatever means, that the OLD versions are unreachable.
+void release_old_versions_while_writer_prepares() {
+    VersionedStore s;
+    const auto keys = keys_in_distinct_partitions(40);
+    const std::size_t big = 30000;  // two per 64 KiB chunk: values of different keys share chunks
+    // Build history: every key written three times, so each partition's segment
+    // and each chunk has been referenced by many versions.
+    for (std::uint64_t round = 0; round < 3; ++round) {
+        for (std::size_t i = 0; i < keys.size(); ++i) {
+            const Bytes v = pattern(big, round * 1000 + i);
+            NOVA_CHECK(s.put(keys[i], v.data(), v.size()));
+        }
+    }
+    const Version* v_current = s.current_version();
+    const std::uint64_t retained_before = s.stats().versions_retained;
+    NOVA_CHECK(retained_before == 120);
+
+    // The new version: overwrites 3 keys, erases 1. It SHARES the other 36
+    // segments with the current version, and its 3 rebuilt segments keep
+    // nothing old; the shared segments reference chunks written long ago.
+    std::vector<Bytes> new_values;
+    for (std::size_t i = 0; i < 3; ++i) new_values.push_back(pattern(big, 9000 + i));
+    std::vector<BatchOp> ops;
+    for (std::size_t i = 0; i < 3; ++i) {
+        ops.push_back(BatchOp{BatchOp::Kind::Put, keys[i], new_values[i].data(), new_values[i].size()});
+    }
+    ops.push_back(BatchOp{BatchOp::Kind::Erase, keys[3], nullptr, 0});
+
+    Gate gate(TestPoint::WriterBeforePublish);
+    bool commit_ok = false;
+    std::thread writer([&]() {
+        tl_park_this_thread = true;
+        commit_ok = s.commit(ops.data(), ops.size());
+    });
+    gate.wait_until_parked();  // new version built, pins and owner references taken
+
+    // "Cleaner": every one of the 120 older versions goes away now.
+    s.release_retained_quiescent();
+    NOVA_CHECK(s.stats().versions_retained == 0);
+    NOVA_CHECK(s.stats().versions_released == 120);
+    NOVA_CHECK(s.stats().segments_released > 0 && s.stats().arena.chunks_freed > 0);  // it really freed things
+
+    // The CURRENT version (still published; readers may be using it) is whole.
+    NOVA_CHECK(s.current_version() == v_current);
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        NOVA_CHECK(holds(s, v_current, keys[i], pattern(big, 2000 + i)));
+    }
+    // Every segment the current version points at is still owned: by it, and,
+    // where the prepared version shares it, by that one too.
+    std::uint32_t shared_twice = 0, owned_once = 0, zero = 0;
+    for (const nova::Segment* seg : v_current->segments) {
+        if (seg == nullptr) continue;
+        const std::uint32_t owners = seg->owners.load();
+        if (owners == 2) ++shared_twice;
+        else if (owners == 1) ++owned_once;
+        else ++zero;
+    }
+    NOVA_CHECK(zero == 0);
+    NOVA_CHECK(shared_twice == 36);  // shared with the not-yet-published version
+    NOVA_CHECK(owned_once == 4);     // the 4 partitions the new version replaced
+
+    gate.release();
+    writer.join();
+    NOVA_CHECK(commit_ok && gate.was_parked());
+
+    // The prepared version, published after the release, is whole as well.
+    const Version* v_new = s.current_version();
+    NOVA_CHECK(v_new != v_current);
+    for (std::size_t i = 0; i < 3; ++i) NOVA_CHECK(holds(s, v_new, keys[i], new_values[i]));
+    unsigned char probe[8];
+    NOVA_CHECK(!s.get_at(v_new, keys[3], probe, 0) && !s.get_at(v_new, keys[3], nullptr, 0));
+    for (std::size_t i = 4; i < keys.size(); ++i) {
+        NOVA_CHECK(holds(s, v_new, keys[i], pattern(big, 2000 + i)));  // through shared segments
+    }
+    // And the replaced version is still intact on the retained list.
+    for (std::size_t i = 0; i < keys.size(); ++i) NOVA_CHECK(holds(s, v_current, keys[i], pattern(big, 2000 + i)));
+    NOVA_CHECK(s.stats().versions_retained == 1);
+    const char* err = s.validate();
+    if (err != nullptr) std::fprintf(stderr, "invariant violated: %s\n", err);
+    NOVA_CHECK(err == nullptr);
+    std::printf("  S6: 120 older versions released while a prepared version shared 36 segments; "
+                "no shared segment or chunk lost\n");
+}
+
 // ---- S5: atomic visibility under free-running concurrency -------------------------
 struct Record {
     std::uint64_t generation;
@@ -401,6 +494,7 @@ int main() {
     writer_parked(TestPoint::WriterBeforePublish, false, "S3 writer parked before publish");
     writer_parked(TestPoint::WriterAfterPublish, true, "S4 writer parked after publish");
     atomic_visibility_stress();
+    release_old_versions_while_writer_prepares();
 
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Version) == 0);
     NOVA_CHECK(nova::test_hooks::live_objects(nova::LiveObject::Segment) == 0);
