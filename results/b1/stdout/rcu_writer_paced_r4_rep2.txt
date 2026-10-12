@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_rcu --readers 4 --reader-cpus 0,2,4,6 --seed 2 --run-id rcu_writer_paced_r4_rep2 --git-sha 55240b4deaee --scenario writer_paced --csv results/b1/runs.csv --cow-csv results/b1/cow.csv --hist results/b1/hist/rcu_writer_paced_r4_rep2.csv --warmup 0.5 --duration 3 --writer on --writer-cpu 15 --writer-rate 10000
+rcu          scenario=writer_paced readers=4 writer=thread_paced keys=hit seconds=3.000
+  store lock object at 0x637837007d00, 8 bytes (cache lines 0x637837007d00..0x637837007d00)
+  reads : ops=197744649 rps=65912667 hits=197744649 misses=0 corrupt=0
+  read latency ns: p50=30 p99=90 p999=341 max=59172 mean=39.6
+  writes: ok=30000 failed=0 rps=10000 p50=13824 p99=17152 max=328639 ns
+  rcu   : publications=35002 (writes incl. warm-up=35002) retained_at_end=35002 commits_failed=0
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23931 directory_bytes_copied=2048 owner_refs=255.0 chunk_pins=57.8 value_bytes=32.0
+  rcu memory held: after_load=9.0 MiB at_end=894.3 MiB (versions + segments + chunks; nothing is reclaimed in B1)
+# exit_status: 0
