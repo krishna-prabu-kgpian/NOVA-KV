@@ -1,0 +1,9 @@
+# gate: whitespace_check
+# started_utc: 2026-10-12T11:16:51Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c 
+    git diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD -- . ':!NOVA_KV_*.md' ':!assignment2.pdf' ':!supplied/workload_gen.cpp' ':!results' &&
+    git diff --check HEAD -- . ':!results'
+
+
+# exit_status: 0
