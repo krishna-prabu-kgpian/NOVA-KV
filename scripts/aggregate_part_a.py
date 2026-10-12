@@ -416,7 +416,7 @@ def aggregate_c2c():
     if not files:
         print("no perf c2c reports; skipping")
         return None
-    header = ["config", "lock_cacheline", "sampled_loads", "load_hitm_total",
+    header = ["config", "lock_cachelines", "sampled_loads", "load_hitm_total",
               "shared_cache_lines", "top_line_address", "top_line_hitm", "top_line_hitm_pct",
               "top_line_is_store_lock", "locked_ops_on_shared_lines"]
     rows = []
@@ -429,8 +429,9 @@ def aggregate_c2c():
         config = os.path.basename(path)[:-len(".c2c-report.txt")]
         text = open(path, errors="replace").read()
         log = open(os.path.join(OUT, "c2c", config + ".record.log"), errors="replace").read()
-        m = re.search(r"store lock object at 0x[0-9a-f]+ \(cache line (0x[0-9a-f]+)\)", log)
-        lock_line = m.group(1) if m else ""
+        m = re.search(r"store lock object at 0x[0-9a-f]+, \d+ bytes \(cache lines (0x[0-9a-f]+)\.\.(0x[0-9a-f]+)\)", log)
+        lock_lo, lock_hi = (int(m.group(1), 16), int(m.group(2), 16)) if m else (0, -1)
+        lock_line = f"{m.group(1)}..{m.group(2)}" if m else ""
         hitm = field(text, "Load Local HITM") + field(text, "Load Remote HITM")
         top_addr, top_hitm, top_pct = "", 0, 0.0
         # First data row of the "Shared Data Cache Line Table".
@@ -439,7 +440,7 @@ def aggregate_c2c():
             top_addr, top_pct, top_hitm = m.group(1), float(m.group(2)), int(m.group(3))
         rows.append([config, lock_line, field(text, "Load Operations"), hitm,
                      field(text, "Total Shared Cache Lines"), top_addr, top_hitm, top_pct,
-                     "yes" if (top_addr and top_addr == lock_line) else "no",
+                     "yes" if (top_addr and lock_lo <= int(top_addr, 16) <= lock_hi) else "no",
                      field(text, "Locked Access on shared lines")])
     order = {"global_lock": 0, "rwlock": 1}
     rows.sort(key=lambda r: (order.get(r[0].rsplit("_r", 1)[0], 9), int(r[0].rsplit("_r", 1)[1])))

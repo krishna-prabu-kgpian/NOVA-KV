@@ -34,6 +34,8 @@ const void* NovaKvInspector::lock_address(const KVStore& store) {
     return static_cast<const void*>(&store.impl_->lock);
 }
 
+std::size_t NovaKvInspector::lock_size() { return sizeof(nova::StoreLock); }
+
 const char* NovaKvInspector::validate(const KVStore& store) {
     const KVStore::Impl& impl = *store.impl_;
     const nova::Arena& arena = impl.arena;

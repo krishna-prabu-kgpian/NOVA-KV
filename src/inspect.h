@@ -4,6 +4,7 @@
 
 #include "kvstore.h"
 
+#include <cstddef>
 #include <cstdint>
 
 struct NovaKvStats {
@@ -27,6 +28,7 @@ struct NovaKvInspector {
     // Address of the store's lock object (meaningless for the `single`
     // variant). Lets a profiler's cache-line report be matched to the lock.
     static const void* lock_address(const KVStore& store);
+    static std::size_t lock_size();
 
     // Walks the whole store and checks its structural invariants: slot counts,
     // load bound, each key in its own partition and reachable exactly once

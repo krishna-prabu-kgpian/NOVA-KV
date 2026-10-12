@@ -339,9 +339,12 @@ int main(int argc, char** argv) {
                 scenario.c_str(), cfg.readers, writer_mode.c_str(), keys.c_str(), seconds);
     const std::uintptr_t lock_addr =
         reinterpret_cast<std::uintptr_t>(NovaKvInspector::lock_address(store));
-    std::printf("  store lock object at 0x%llx (cache line 0x%llx)\n",
-                static_cast<unsigned long long>(lock_addr),
-                static_cast<unsigned long long>(lock_addr & ~std::uintptr_t{63}));
+    // The lock object may straddle two 64-byte cache lines.
+    std::printf("  store lock object at 0x%llx, %zu bytes (cache lines 0x%llx..0x%llx)\n",
+                static_cast<unsigned long long>(lock_addr), NovaKvInspector::lock_size(),
+                static_cast<unsigned long long>(lock_addr & ~std::uintptr_t{63}),
+                static_cast<unsigned long long>((lock_addr + NovaKvInspector::lock_size() - 1) &
+                                                ~std::uintptr_t{63}));
     std::printf("  reads : ops=%llu rps=%.0f hits=%llu misses=%llu corrupt=%llu\n",
                 static_cast<unsigned long long>(ops), read_rps,
                 static_cast<unsigned long long>(hits), static_cast<unsigned long long>(misses),
