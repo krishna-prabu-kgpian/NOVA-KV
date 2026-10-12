@@ -201,7 +201,15 @@ VersionedStore::Pin VersionedStore::acquire_pin() const {
     pin.slot = epochs_.acquire_slot();  // dedicated slot; may throw before anything is pinned
     epochs_.pin(pin.slot);
     pin.version = current_.load(std::memory_order_seq_cst);  // one load, after validation
+    pin.slot->token = pin.version;
     NOVA_TEST_POINT(TestPoint::ReaderAfterRootLoad);
+    return pin;
+}
+
+VersionedStore::Pin VersionedStore::pin_of(ReaderSlot* slot) noexcept {
+    Pin pin;
+    pin.slot = slot;
+    pin.version = slot != nullptr ? static_cast<const Version*>(slot->token) : nullptr;
     return pin;
 }
 
@@ -209,11 +217,44 @@ bool VersionedStore::get_pinned(const Pin& pin, long key, void* value_out,
                                 std::size_t value_out_len) const noexcept {
     // No new announcement and no root load: the pin's slot has been announcing
     // one epoch since acquire_pin(), and the version is the one loaded then.
+    // (StopTheWorld comparator only: this call is frozen by a sweep like any
+    // other read. The pin, not this lock, is what keeps the version alive.)
+    std::shared_lock<std::shared_mutex> stw(stw_lock_, std::defer_lock);
+    if (options_.reclaim == ReclaimMode::StopTheWorld) stw.lock();
     return read(pin.version, key, hash_key(key), value_out, value_out_len);
+}
+
+std::size_t VersionedStore::keys_pinned(const Pin& pin, long* keys_out,
+                                        std::size_t max_keys) const noexcept {
+    if (keys_out == nullptr || max_keys == 0) return 0;
+    std::shared_lock<std::shared_mutex> stw(stw_lock_, std::defer_lock);
+    if (options_.reclaim == ReclaimMode::StopTheWorld) stw.lock();
+    // Partition by partition, slot by slot. A key occupies exactly one slot of
+    // exactly one segment of a version, so no key is reported twice; tombstones
+    // and empty slots are skipped.
+    std::size_t n = 0;
+    for (const Segment* seg : pin.version->segments) {
+        if (seg == nullptr) continue;
+        for (std::uint32_t i = 0; i < seg->capacity; ++i) {
+            if (seg->slots[i].state != SlotState::Occupied) continue;
+            if (n == max_keys) return n;
+            keys_out[n++] = seg->slots[i].key;
+        }
+    }
+    return n;
+}
+
+std::size_t VersionedStore::size_pinned(const Pin& pin) const noexcept {
+    std::size_t n = 0;
+    for (const Segment* seg : pin.version->segments) {
+        if (seg != nullptr) n += seg->live;
+    }
+    return n;
 }
 
 void VersionedStore::release_pin(Pin& pin) const noexcept {
     if (pin.slot == nullptr) return;
+    pin.slot->token = nullptr;
     epochs_.unpin(pin.slot);
     epochs_.release_slot(pin.slot);
     pin = Pin{};
@@ -236,14 +277,20 @@ bool VersionedStore::erase(long key) noexcept {
     // writer may read the current version freely: it cannot be retired except
     // by the writer itself.
     const std::uint64_t h = hash_key(key);
+    std::lock_guard<std::mutex> writer(writer_mutex_);
     if (segment_find(latest_->segments[partition_of(h)], key, h) == nullptr) return false;
     const BatchOp op{BatchOp::Kind::Erase, key, nullptr, 0};
     bool applied = false;
-    return commit(&op, 1, &applied) && applied;
+    return commit_locked(&op, 1, &applied) && applied;
 }
 
 bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) noexcept {
     if (n == 0) return true;
+    std::lock_guard<std::mutex> writer(writer_mutex_);
+    return commit_locked(ops, n, applied);
+}
+
+bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* applied) noexcept {
     if (n > 0xFFFFFFFFu) return false;
 
     // ---- Phase 0: validate every argument before anything is built. ----------
@@ -521,20 +568,30 @@ bool VersionedStore::epoch_pass() noexcept {
     return progress;
 }
 
-// Comparator for Part D.2 only. Every reader holds stw_lock_ shared for the
-// whole of its get(); taking it exclusively therefore means no reader is
-// inside the store, and the entire retire list can be freed regardless of
-// epochs. This is the unbounded stop-the-world sweep the assignment asks to be
-// compared against, not a mode for normal use.
+// Comparator for Part D.2 only: the naive stop-the-world sweep the assignment
+// asks to be compared against. Every get() (and every snapshot-scoped call)
+// holds stw_lock_ shared for its whole duration; taking it exclusively freezes
+// all of them, and the sweep then walks the entire retire list in one go, with
+// no batch limit and no work budget.
+//
+// What it frees is still decided by the epoch rule [C6], never by "the lock is
+// held": a long-lived pin (a Snapshot) holds no lock between calls, only its
+// announced epoch. With every short reader frozen out, only pins can be
+// announcing, so two gated advances make every entry that no pin protects
+// eligible; an entry a pin may still need stays, exactly as in an epoch pass.
 bool VersionedStore::stw_pass() noexcept {
     if (backlog() < kStwBacklogTrigger) return false;
     std::unique_lock<std::shared_mutex> freeze(stw_lock_);
     stw_pauses_.fetch_add(1, std::memory_order_relaxed);
+    bool progress = false;
+    if (epochs_.try_advance()) progress = true;
+    if (epochs_.try_advance()) progress = true;
     std::uint64_t unlimited = ~std::uint64_t{0};
     for (;;) {
         if (job_.version == nullptr) {
             RetireNode* oldest = queue_head_->next.load(std::memory_order_seq_cst);
             if (oldest == nullptr) break;
+            if (epochs_.epoch() < oldest->retire_epoch + 2) break;   // [C6], as in epoch_pass
             job_.version = oldest->version;
             RetireNode* consumed = queue_head_;
             queue_head_ = oldest;
@@ -542,8 +599,9 @@ bool VersionedStore::stw_pass() noexcept {
         }
         run_job(unlimited);
         reclaimed_.fetch_add(1, std::memory_order_seq_cst);
+        progress = true;
     }
-    return true;
+    return progress;
 }
 
 bool VersionedStore::reclaim_pass() noexcept {

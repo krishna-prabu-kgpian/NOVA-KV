@@ -45,6 +45,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <shared_mutex>
 #include <thread>
 
@@ -159,8 +160,22 @@ public:
     bool get_pinned(const Pin& pin, long key, void* value_out,
                     std::size_t value_out_len) const noexcept;
     void release_pin(Pin& pin) const noexcept;           // pin becomes inert
+    // The pin that owns `slot` (the slot remembers its version). Null gives an
+    // inert pin. This is how a public Snapshot, which stores one pointer, is
+    // turned back into a Pin.
+    static Pin pin_of(ReaderSlot* slot) noexcept;
+    // Up to `max_keys` keys present in the pinned version, each exactly once,
+    // in an unspecified but repeatable order (partition, then slot). Returns
+    // the number written; 0 if `keys_out` is null or `max_keys` is 0.
+    std::size_t keys_pinned(const Pin& pin, long* keys_out, std::size_t max_keys) const noexcept;
+    // Number of keys in the pinned version.
+    std::size_t size_pinned(const Pin& pin) const noexcept;
 
-    // ---- The single writer -----------------------------------------------------
+    // ---- Writes ------------------------------------------------------------------
+    // One writer at a time: put, erase and commit take an internal writer mutex
+    // for their whole duration, so calls from several threads are serialized
+    // (they never run concurrently, and each is one atomic publication). No
+    // reader ever takes this mutex.
     bool put(long key, const void* value, std::size_t value_len) noexcept;
     bool erase(long key) noexcept;
     // Applies `ops` in order as ONE logical write and publishes at most once.
@@ -240,6 +255,7 @@ private:
 
     bool read(const Version* v, long key, std::uint64_t h, void* value_out,
               std::size_t value_out_len) const noexcept;
+    bool commit_locked(const BatchOp* ops, std::size_t n, bool* applied) noexcept;  // writer_mutex_ held
     bool run_job(std::uint64_t& budget) noexcept;     // cleaner role
     bool epoch_pass() noexcept;                       // cleaner role
     bool stw_pass() noexcept;                         // cleaner role
@@ -252,8 +268,9 @@ private:
     // The one word readers and the writer share, alone on its cache line.
     alignas(kCacheLine) std::atomic<Version*> current_;
 
-    // ---- Writer-only state -------------------------------------------------------
-    alignas(kCacheLine) Version* latest_;   // == current_, without an atomic load
+    // ---- Writer-only state (guarded by writer_mutex_) ------------------------------
+    alignas(kCacheLine) std::mutex writer_mutex_;   // serializes put / erase / commit
+    Version* latest_;                       // == current_, without an atomic load
     RetireNode* queue_tail_;                // last node of the retirement queue
     struct WriterCounters {
         std::uint64_t versions_published = 0, commits_failed = 0, commits_without_change = 0;

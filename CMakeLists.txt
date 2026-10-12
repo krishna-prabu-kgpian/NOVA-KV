@@ -55,6 +55,7 @@ set(NOVA_STORE_SOURCES
     src/hash_segment.cpp
     src/arena.cpp
     src/alloc.cpp
+    src/staged_writes.cpp
     src/inspect.cpp)
 # Part B engine: compiled into the rcu variant only, so the Part A libraries
 # stay exactly the Part A code.
@@ -174,6 +175,19 @@ foreach(test pinned_arena_test cow_segment_test epoch_test versioned_store_test
     nova_add_test(${test})
 endforeach()
 
+# Part C.1 under allocation failure and under forced interleavings: hook builds.
+foreach(hooked single rcu)
+    add_executable(txn_failure_test_${hooked} tests/txn_failure_test.cpp)
+    target_include_directories(txn_failure_test_${hooked} PRIVATE src)
+    target_link_libraries(txn_failure_test_${hooked} PRIVATE nova_kv_${hooked}_testhooks nova_warnings)
+    nova_add_test(txn_failure_test_${hooked})
+endforeach()
+
+add_executable(txn_concurrency_test tests/txn_concurrency_test.cpp)
+target_include_directories(txn_concurrency_test PRIVATE src)
+target_link_libraries(txn_concurrency_test PRIVATE nova_kv_rcu_testhooks nova_warnings)
+nova_add_test(txn_concurrency_test)
+
 foreach(variant IN LISTS NOVA_VARIANTS)
     # The Part A sanity test, against every variant.
     add_executable(kvstore_test_${variant} tests/kvstore_test.cpp)
@@ -189,6 +203,15 @@ foreach(variant IN LISTS NOVA_VARIANTS)
             PRIVATE nova_kv_${variant} nova_warnings)
         nova_add_test(concurrent_lock_test_${variant})
     endif()
+
+    # Part C.1 through the public API: Transaction on every variant; Snapshot
+    # on rcu (the lock-based variants must refuse it).
+    foreach(c1test transaction_test snapshot_test)
+        add_executable(${c1test}_${variant} tests/${c1test}.cpp)
+        target_include_directories(${c1test}_${variant} PRIVATE src)
+        target_link_libraries(${c1test}_${variant} PRIVATE nova_kv_${variant} nova_warnings)
+        nova_add_test(${c1test}_${variant})
+    endforeach()
 
     add_executable(smoke_test_${variant} tests/smoke_test.cpp)
     target_include_directories(smoke_test_${variant} PRIVATE src)

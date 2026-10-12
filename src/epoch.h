@@ -45,6 +45,10 @@ struct alignas(kCacheLine) ReaderSlot {
     std::atomic<std::uint64_t> state{kEpochInactive};  // announced epoch, or kEpochInactive
     std::atomic<std::uint32_t> owned{0};               // 1 while handed out
     std::atomic<std::uint64_t> retries{0};             // validations that had to repeat (owner writes)
+    // Owner-private word, never read by the collector: a long-lived pin keeps
+    // the version it protects here, so that the slot alone identifies the pin
+    // (the public Snapshot handle is one pointer to this slot).
+    const void* token = nullptr;
 };
 
 struct EpochStats {

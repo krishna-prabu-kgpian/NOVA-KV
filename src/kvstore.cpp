@@ -14,9 +14,12 @@
 // by epoch-based reclamation on a background cleaner thread, in passes bounded
 // by set_reclaim_batch() (docs/reclamation.md).
 //
-// Part C (Transaction, Snapshot, secondary index) is declared in kvstore.h for
-// source compatibility with the supplied workload generator but is NOT
-// implemented: those bodies are inert and never report success.
+// Part C.1 (milestone C1): Transaction on every build; Snapshot, snapshot-scoped
+// get() and keys() on the rcu build (docs/transactions.md). The lock-based
+// baselines have no versions to pin, so acquire_snapshot() throws there.
+//
+// Part C.2 (secondary index, index_get) is declared in kvstore.h but NOT
+// implemented yet: create_index() returns false and index_get() finds nothing.
 #include "kvstore.h"
 
 #include "build_info.h"
@@ -24,9 +27,13 @@
 #include "kvstore_impl.h"
 #include "sync_mode.h"
 
+#include "alloc.h"
+#include "config.h"
+
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <stdexcept>
 
 const char* nova_kv_sync_mode_name() noexcept { return NOVA_KV_SYNC_MODE_NAME; }
 
@@ -43,8 +50,10 @@ KVStore::KVStore() : reclaim_batch_(nova::kDefaultReclaimBatch), impl_(new Impl(
 
 KVStore::~KVStore() { delete impl_; }
 
-// Single writer (the assignment's assumption): put and erase must not be called
-// from two threads at once. Each successful call publishes exactly one version.
+// Each successful call publishes exactly one version. The assignment assumes a
+// single writer thread; if put, erase and Transaction::commit are nevertheless
+// called from several threads, the store serializes them with an internal
+// writer mutex (one at a time, each atomic). Readers never take that mutex.
 bool KVStore::put(long key, const void* value, size_t value_len) {
     return impl_->store.put(key, value, value_len);
 }
@@ -69,6 +78,83 @@ bool KVStore::erase(long key) { return impl_->store.erase(key); }
 // kept in the private member reclaim_batch_ (kvstore.h), which is the variable
 // every reclamation pass reads.
 void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
+
+// ---- Part C.1: transactions ---------------------------------------------------------
+
+// The staged writes become one BatchOp array and go through the same commit
+// path as a single put: private copies of the touched partitions (each cloned
+// once), one new Version, one exchange of the root. The only allocation added
+// here is that array; if it fails nothing has been built or published.
+bool KVStore::Impl::commit_staged(const nova::StagedWrites& staged) noexcept {
+    const std::size_t n = staged.count();
+    nova::BatchOp* ops = static_cast<nova::BatchOp*>(
+        nova::alloc_bytes(n * sizeof(nova::BatchOp), alignof(nova::BatchOp)));
+    if (ops == nullptr) return false;
+    for (std::size_t i = 0; i < n; ++i) {
+        const nova::StagedOp& o = staged.op(i);
+        ops[i] = nova::BatchOp{nova::BatchOp::Kind::Put, o.key, staged.bytes(o), o.length};
+    }
+    const bool ok = store.commit(ops, n);
+    nova::free_bytes(ops);
+    return ok;
+}
+
+// ---- Part C.1: snapshots --------------------------------------------------------------
+//
+// A Snapshot is one long-lived reclamation pin (VersionedStore::Pin): a reader
+// slot of its own that keeps announcing the epoch validated at acquisition, and
+// the version loaded then. The handle stores the slot's address in pin_; the
+// slot remembers the version. Moving a handle copies those two words and clears
+// the source, so the slot is never written by a move and the protection is
+// neither dropped nor duplicated. Destroying the handle (or assigning over it)
+// clears the announcement and returns the slot, exactly once.
+
+void KVStore::Snapshot::release() noexcept {
+    if (pin_ != nullptr) {
+        nova::VersionedStore::Pin pin =
+            nova::VersionedStore::pin_of(static_cast<nova::ReaderSlot*>(pin_));
+        owner_->impl_->store.release_pin(pin);
+    }
+    owner_ = nullptr;
+    pin_ = nullptr;
+}
+
+// Throws std::bad_alloc if no reader slot can be allocated; it never returns a
+// handle that does not protect its version.
+KVStore::Snapshot KVStore::acquire_snapshot() const {
+    const nova::VersionedStore::Pin pin = impl_->store.acquire_pin();
+    return Snapshot(this, pin.slot);
+}
+
+namespace {
+// The pin behind a handle, or an inert pin if the handle is moved-from or was
+// acquired from another store.
+nova::VersionedStore::Pin pin_for(const KVStore* store, const KVStore* owner, void* pin) noexcept {
+    if (pin == nullptr || owner != store) return nova::VersionedStore::Pin{};
+    return nova::VersionedStore::pin_of(static_cast<nova::ReaderSlot*>(pin));
+}
+}  // namespace
+
+// Reads the version the snapshot is pinned to, never the current one. False for
+// an absent key, for a buffer that is too small (buffer untouched), and for a
+// handle that is moved-from or belongs to another store.
+bool KVStore::get(const Snapshot& snap, long key,
+                  void* value_out, size_t value_out_len) const {
+    const nova::VersionedStore::Pin pin = pin_for(this, snap.owner_, snap.pin_);
+    if (!pin) return false;
+    return impl_->store.get_pinned(pin, key, value_out, value_out_len);
+}
+
+// Writes up to max_keys of the keys present in the snapshot's version to
+// keys_out and returns how many were written. Each key appears once. The order
+// is unspecified (it follows the hash layout) but is the same every time for
+// the same snapshot. Returns 0 if keys_out is null, max_keys is 0, or the
+// handle is moved-from or belongs to another store.
+size_t KVStore::keys(const Snapshot& snap, long* keys_out, size_t max_keys) const {
+    const nova::VersionedStore::Pin pin = pin_for(this, snap.owner_, snap.pin_);
+    if (!pin) return 0;
+    return impl_->store.keys_pinned(pin, keys_out, max_keys);
+}
 
 #else
 
@@ -147,9 +233,106 @@ bool KVStore::erase(long key) {
 // setting is recorded and has no effect.
 void KVStore::set_reclaim_batch(int n) { reclaim_batch_.store(n <= 0 ? 1 : n); }
 
+
+// ---- Part C.1 on the lock-based baselines ---------------------------------------------
+
+// A Transaction is supported: every staged write is applied under ONE exclusive
+// hold of the store lock, so a concurrent reader sees none or all of them, and
+// if any step fails the writes already applied are undone before the lock is
+// released. Values that are replaced stay allocated until the whole batch has
+// succeeded, which is what makes the undo possible.
+bool KVStore::Impl::commit_staged(const nova::StagedWrites& staged) noexcept {
+    struct Undo {
+        long key;
+        std::uint64_t h;
+        bool replaced;
+        ValueRef old_ref;
+    };
+    const std::size_t n = staged.count();
+    Undo* undo = static_cast<Undo*>(nova::alloc_bytes(n * sizeof(Undo), alignof(Undo)));
+    if (undo == nullptr) return false;
+
+    WriteGuard guard(lock);
+    std::size_t done = 0;
+    for (; done < n; ++done) {
+        const nova::StagedOp& o = staged.op(done);
+        const std::uint64_t h = nova::hash_key(o.key);
+        HashSegment& seg = segments[nova::partition_of(h)];
+        HashSegment::UpsertPlan plan;
+        if (!seg.prepare_upsert(o.key, h, plan)) break;
+        ValueRef ref;
+        if (!arena.append(staged.bytes(o), o.length, &ref)) {
+            seg.abort_upsert(plan);
+            break;
+        }
+        Undo& u = undo[done];
+        u.key = o.key;
+        u.h = h;
+        u.replaced = seg.commit_upsert(o.key, h, ref, plan, &u.old_ref);
+    }
+    if (done == n) {
+        // Nothing can fail any more: the replaced values may go.
+        for (std::size_t i = 0; i < n; ++i) {
+            if (undo[i].replaced) arena.release(undo[i].old_ref);
+        }
+        nova::free_bytes(undo);
+        return true;
+    }
+    // Undo in reverse order. Restoring a value overwrites an existing key, and
+    // removing a key needs no memory, so neither step can fail.
+    while (done-- > 0) {
+        const Undo& u = undo[done];
+        HashSegment& seg = segments[nova::partition_of(u.h)];
+        ValueRef staged_ref;
+        if (u.replaced) {
+            HashSegment::UpsertPlan plan;
+            seg.prepare_upsert(u.key, u.h, plan);  // the key exists: no allocation
+            seg.commit_upsert(u.key, u.h, u.old_ref, plan, &staged_ref);
+        } else {
+            seg.erase(u.key, u.h, &staged_ref);
+        }
+        arena.release(staged_ref);
+    }
+    nova::free_bytes(undo);
+    return false;
+}
+
+// A Snapshot is NOT supported. These stores have one mutable state and no
+// versions: the only way to hold a view still is to hold the lock, which would
+// block the writer for the snapshot's lifetime (and deadlock a thread that then
+// calls the store with the mutex variant). The assignment defines Snapshot on
+// top of the Part B reclamation scheme. Rather than hand back a handle whose
+// reads silently report "absent", acquisition fails loudly.
+void KVStore::Snapshot::release() noexcept {
+    owner_ = nullptr;
+    pin_ = nullptr;
+}
+
+KVStore::Snapshot KVStore::acquire_snapshot() const {
+    throw std::logic_error("KVStore::acquire_snapshot: snapshots need the rcu build of NOVA-KV; "
+                           "the lock-based baseline stores have no versions to pin");
+}
+
+bool KVStore::get(const Snapshot& snap, long key,
+                  void* value_out, size_t value_out_len) const {
+    (void)snap;  // no valid handle can exist in this build
+    (void)key;
+    (void)value_out;
+    (void)value_out_len;
+    return false;
+}
+
+size_t KVStore::keys(const Snapshot& snap, long* keys_out, size_t max_keys) const {
+    (void)snap;
+    (void)keys_out;
+    (void)max_keys;
+    return 0;
+}
+
 #endif  // NOVA_KV_SYNC_MODE
 
-// ---- Part C (not implemented until C1/C2) ----------------------------------
+// ---- Part C.2 (secondary index): not implemented until milestone C2 ------------------
+// These report "no index": create_index() fails and the lookups find nothing.
 
 bool KVStore::create_index(size_t field_offset, size_t field_len) {
     (void)field_offset;
@@ -166,48 +349,6 @@ int KVStore::index_get(const void* field_value, size_t field_len,
     return 0;
 }
 
-KVStore::Snapshot::Snapshot(const KVStore* owner, void* pin) noexcept
-    : owner_(owner), pin_(pin) {}
-
-KVStore::Snapshot::Snapshot(Snapshot&& other) noexcept
-    : owner_(other.owner_), pin_(other.pin_) {
-    other.owner_ = nullptr;
-    other.pin_ = nullptr;
-}
-
-KVStore::Snapshot& KVStore::Snapshot::operator=(Snapshot&& other) noexcept {
-    if (this != &other) {
-        release();
-        owner_ = other.owner_;
-        pin_ = other.pin_;
-        other.owner_ = nullptr;
-        other.pin_ = nullptr;
-    }
-    return *this;
-}
-
-KVStore::Snapshot::~Snapshot() { release(); }
-
-void KVStore::Snapshot::release() noexcept {
-    // No reclamation scheme exists yet, so there is no pin to drop.
-    owner_ = nullptr;
-    pin_ = nullptr;
-}
-
-KVStore::Snapshot KVStore::acquire_snapshot() const {
-    // Inert handle: with no published versions there is nothing to pin.
-    return Snapshot(this, nullptr);
-}
-
-bool KVStore::get(const Snapshot& snap, long key,
-                  void* value_out, size_t value_out_len) const {
-    (void)snap;
-    (void)key;
-    (void)value_out;
-    (void)value_out_len;
-    return false;
-}
-
 int KVStore::index_get(const Snapshot& snap, const void* field_value, size_t field_len,
                        long* keys_out, int max_keys) const {
     (void)snap;
@@ -218,26 +359,82 @@ int KVStore::index_get(const Snapshot& snap, const void* field_value, size_t fie
     return 0;
 }
 
-size_t KVStore::keys(const Snapshot& snap, long* keys_out, size_t max_keys) const {
-    (void)snap;
-    (void)keys_out;
-    (void)max_keys;
-    return 0;
+// ---- Snapshot handle: the parts common to every build ----------------------------------
+
+KVStore::Snapshot::Snapshot(const KVStore* owner, void* pin) noexcept
+    : owner_(owner), pin_(pin) {}
+
+// A move transfers the pin: the source becomes inert and its destructor does
+// nothing. The pin itself (the reader slot) is not touched.
+KVStore::Snapshot::Snapshot(Snapshot&& other) noexcept
+    : owner_(other.owner_), pin_(other.pin_) {
+    other.owner_ = nullptr;
+    other.pin_ = nullptr;
 }
 
-struct Transaction::Impl {};
+KVStore::Snapshot& KVStore::Snapshot::operator=(Snapshot&& other) noexcept {
+    if (this != &other) {
+        release();  // the pin this handle held until now, if any
+        owner_ = other.owner_;
+        pin_ = other.pin_;
+        other.owner_ = nullptr;
+        other.pin_ = nullptr;
+    }
+    return *this;
+}
 
-Transaction::Transaction(KVStore& store) : store_(store), impl_(nullptr) {}
+KVStore::Snapshot::~Snapshot() { release(); }
 
-Transaction::~Transaction() { delete impl_; }
+// ---- Transaction (Part C.1) ----------------------------------------------------------
+//
+// put() stages; commit() publishes everything staged as one logical write.
+//
+//   - put() copies the bytes immediately. It returns void, so anything that
+//     goes wrong while staging (no memory, null value with a length, a value
+//     above the size limit) is remembered and makes commit() return false.
+//   - Several puts to one key: the last one wins.
+//   - commit() can be called once. It returns true if every staged write was
+//     published (in one publication), or if nothing was staged (nothing is
+//     published). It returns false, with the store unchanged, if staging or the
+//     commit failed. After commit() the Transaction is finished: further puts
+//     are ignored and further commits return false and publish nothing.
+//   - Destroying a Transaction that was not committed discards its writes.
+
+struct Transaction::Impl {
+    nova::StagedWrites staged;
+    bool failed = false;    // a put() could not be staged
+    bool finished = false;  // commit() has been called
+};
+
+Transaction::Transaction(KVStore& store) : store_(store), impl_(nullptr) {
+    // If even this small object cannot be allocated the Transaction is created
+    // in the failed state: puts are ignored and commit() returns false.
+    void* raw = nova::alloc_bytes(sizeof(Impl), alignof(Impl));
+    if (raw != nullptr) impl_ = new (raw) Impl();
+}
+
+Transaction::~Transaction() {
+    if (impl_ == nullptr) return;
+    impl_->~Impl();  // frees whatever is still staged
+    nova::free_bytes(impl_);
+}
 
 void Transaction::put(long key, const void* value, size_t value_len) {
-    (void)key;
-    (void)value;
-    (void)value_len;
+    if (impl_ == nullptr || impl_->finished || impl_->failed) return;
+    const bool valid = value_len <= nova::kMaxValueBytes && (value_len == 0 || value != nullptr);
+    if (!valid || !impl_->staged.put(key, value, static_cast<std::uint32_t>(value_len))) {
+        impl_->failed = true;
+        impl_->staged.clear();  // nothing of this transaction will ever be published
+    }
 }
 
 bool Transaction::commit() {
-    (void)store_;
-    return false;  // nothing is published, so success must not be reported
+    if (impl_ == nullptr || impl_->finished) return false;
+    impl_->finished = true;
+    bool ok = false;
+    if (!impl_->failed) {
+        ok = impl_->staged.count() == 0 || store_.impl_->commit_staged(impl_->staged);
+    }
+    impl_->staged.clear();
+    return ok;
 }

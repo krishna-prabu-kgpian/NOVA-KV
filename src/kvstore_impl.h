@@ -4,6 +4,7 @@
 
 #include "kvstore.h"
 
+#include "staged_writes.h"
 #include "sync_mode.h"
 
 #if NOVA_KV_SYNC_MODE == NOVA_KV_SYNC_RCU
@@ -15,6 +16,8 @@ struct KVStore::Impl {
     // The engine reads the reclaim batch from KVStore's own private member.
     explicit Impl(std::atomic<int>* reclaim_batch)
         : store(nova::default_store_options(), reclaim_batch) {}
+    // Publishes every staged write as one version (Transaction::commit).
+    bool commit_staged(const nova::StagedWrites& staged) noexcept;
     nova::VersionedStore store;
 };
 
@@ -30,6 +33,9 @@ struct KVStore::Impl {
     nova::StoreLock lock;                             // guards everything below
     nova::HashSegment segments[nova::kPartitionCount];  // primary index
     nova::Arena arena;                                // value bytes
+    // Applies every staged write under one exclusive hold of the lock, or none
+    // of them (Transaction::commit).
+    bool commit_staged(const nova::StagedWrites& staged) noexcept;
 };
 
 #endif
