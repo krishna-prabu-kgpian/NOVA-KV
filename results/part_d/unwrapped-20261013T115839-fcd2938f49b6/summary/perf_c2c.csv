@@ -1,0 +1,10 @@
+run,load_operations,load_hitm,shared_cache_lines
+global_lock_r8_writer_max,37653,3285,165
+global_lock_r8_writer_paced,38929,2916,142
+global_lock_r8_writer_paced_o0,37875,3069,133
+rcu_r1_writer_max,24868,1688,1196
+rcu_r8_readonly,59642,70,68
+rcu_r8_writer_max,77394,797,694
+rwlock_r8_writer_max,42010,1279,59
+rwlock_r8_writer_paced,47362,1313,15
+rwlock_r8_writer_paced_o0,26270,2424,6

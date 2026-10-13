@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_global_lock --readers 2 --duration 5 --warmup 0.5 --reader-cpus 0,2 --seed 3 --run-id global_lock_writer_paced_r2_rep3 --git-sha fcd2938f49b6 --scenario writer_paced --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/hist/global_lock_writer_paced_r2_rep3.csv --writer on --writer-cpu 15 --writer-rate 10000 --lock-offset 48
+# wrapper: none
+# start: 2026-10-13T12:08:19.706
+global_lock  scenario=writer_paced readers=2 writer=thread_paced keys=hit seconds=5.000
+  store lock object at 0x587f4bb74df0 (offset 48 in its cache line, placed by --lock-offset), 40 bytes (cache lines 0x587f4bb74dc0..0x587f4bb74e00)
+  reads : ops=71285374 rps=14256899 hits=71285374 misses=0 corrupt=0
+  read latency ns: p50=41 p99=1456 p999=2816 max=143590 mean=114.1
+  writes: ok=49999 failed=0 rps=10000 p50=280 p99=3264 max=119305 ns
+# exit_status: 0
+# end: 2026-10-13T12:08:25.221

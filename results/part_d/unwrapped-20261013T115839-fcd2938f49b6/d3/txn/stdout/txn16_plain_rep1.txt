@@ -1,0 +1,26 @@
+# command: build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/txn/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/txn/hist/txn16_plain_rep1.csv --run-id txn16_plain_rep1 --git-sha fcd2938f49b6 --experiment txn --txn-size 16 --index off --duration 3
+# wrapper: none
+# start: 2026-10-13T12:35:33.903
+join_bench experiment=txn trades=100000 instruments=50 threads=1 writer=off txn_size=16 index=off duration=3.0s
+  commits_per_s                           27024.698 1/s        
+  rows_per_s                             432395.169 1/s        
+  commit_p50_us                              27.872 us         
+  commit_p99_us                              67.758 us         
+  commit_p999_us                             78.308 us         
+  commit_max_us                             116.190 us         
+  segments_cloned_per_commit                 15.546 1/commit   
+  primary_bytes_copied_per_commit        373956.445 bytes      
+  directory_bytes_copied_per_commit        2048.000 bytes      
+  index_segments_built_per_commit             0.000 1/commit   
+  index_bytes_built_per_commit                0.000 bytes      
+  bytes_copied_per_commit                376004.445 bytes      
+  bytes_copied_per_row                    23500.278 bytes      
+  owner_refs_per_commit                     240.454 1/commit   
+  memory_held_idle_mib                        9.030 MiB        
+  memory_held_max_mib                        15.924 MiB        
+  backlog_max_versions                       14.000 versions   
+  versions_reclaimed                      81088.000 versions   
+  cleaner_cpu_s                               1.917 s          
+valid=1
+# exit_status: 0
+# end: 2026-10-13T12:35:37.001

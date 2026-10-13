@@ -1,0 +1,12 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/perf_stat/ps_rcu_writer_paced_r4_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/rss/ps_rcu_writer_paced_r4_rep1.txt build/release/concurrent_bench_rcu --readers 4 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6 --seed 1 --run-id ps_rcu_writer_paced_r4_rep1 --git-sha fcd2938f49b6 --scenario writer_paced --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/hist/ps_rcu_writer_paced_r4_rep1.csv --cow-csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer on --writer-cpu 15 --writer-rate 10000
+rcu          scenario=writer_paced readers=4 writer=thread_paced keys=hit seconds=5.000
+  store lock object at 0x636dc6871f00 (offset 0 in its cache line, not controlled), 8 bytes (cache lines 0x636dc6871f00..0x636dc6871f00)
+  reads : ops=296584264 rps=59316029 hits=296584264 misses=0 corrupt=0
+  read latency ns: p50=40 p99=131 p999=261 max=143871 mean=46.1
+  writes: ok=50000 failed=0 rps=10000 p50=4352 p99=8832 max=48722 ns
+  rcu   : publications=55001 (writes incl. warm-up=55001) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23923 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=62.6 value_bytes=32.0
+  rcu reclamation: reclaimed=55001 backlog_at_end=0 backlog_max=18243 passes=63306 epoch_advances=42938/44870 attempts (1932 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=37785 cleaner_cpu=0.422s (7.7% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=10.7 MiB settled=10.7 MiB (versions + segments + chunks)
+# exit_status: 0

@@ -1,0 +1,147 @@
+experiment,cell,measure,original_wrapped,original_lock_offset,middle_unwrapped,middle_lock_offset,final,final_lock_offset_0
+D.1 track C,global_lock; writer_paced; 1 reader(s),reads/s,1.70013e+07,16,1.60308e+07,32,1.61225e+07,1.61045e+07
+D.1 track C,global_lock; writer_paced; 1 reader(s),writer updates/s,9999.8,16,9999.7,32,9999.8,9999.7
+D.1 track C,global_lock; writer_paced; 2 reader(s),reads/s,1.84721e+07,48,1.54021e+07,0,1.52831e+07,1.57317e+07
+D.1 track C,global_lock; writer_paced; 2 reader(s),writer updates/s,9999.8,48,9999.7,0,9999.7,9999.7
+D.1 track C,global_lock; writer_paced; 4 reader(s),reads/s,2.17264e+07,48,1.60061e+07,0,1.69119e+07,1.63086e+07
+D.1 track C,global_lock; writer_paced; 4 reader(s),writer updates/s,9999.8,48,9999.9,0,9999.9,9999.7
+D.1 track C,global_lock; writer_paced; 8 reader(s),reads/s,1.23878e+07,32,1.12424e+07,48,1.1297e+07,9.30119e+06
+D.1 track C,global_lock; writer_paced; 8 reader(s),writer updates/s,9999.8,32,9999.7,48,9999.7,9999.9
+D.1 track C,global_lock; writer_max; 1 reader(s),reads/s,5.92969e+06,16,4.95162e+06,32,4.69806e+06,5.9737e+06
+D.1 track C,global_lock; writer_max; 1 reader(s),writer updates/s,2.97606e+06,16,3.07301e+06,32,3.02768e+06,3.23083e+06
+D.1 track C,global_lock; writer_max; 2 reader(s),reads/s,7.13747e+06,48,7.48632e+06,0,6.69193e+06,7.52657e+06
+D.1 track C,global_lock; writer_max; 2 reader(s),writer updates/s,2.23722e+06,48,2.43457e+06,0,2.1848e+06,2.43897e+06
+D.1 track C,global_lock; writer_max; 4 reader(s),reads/s,9.52705e+06,48,8.13624e+06,0,7.32304e+06,8.07064e+06
+D.1 track C,global_lock; writer_max; 4 reader(s),writer updates/s,1.74245e+06,48,1.49358e+06,0,1.3601e+06,1.47845e+06
+D.1 track C,global_lock; writer_max; 8 reader(s),reads/s,8.37337e+06,32,6.60159e+06,48,6.70188e+06,7.1455e+06
+D.1 track C,global_lock; writer_max; 8 reader(s),writer updates/s,633443,32,587715,48,588168,607689
+D.1 track C,global_lock; refkeys_paced; 8 reader(s),reads/s,1.33965e+07,32,1.40343e+07,48,1.41741e+07,1.0343e+07
+D.1 track C,global_lock; refkeys_paced; 8 reader(s),writer updates/s,9999.7,32,9999.7,48,9999.7,9999.7
+D.1 track C,rwlock; writer_paced; 1 reader(s),reads/s,1.68637e+07,16,1.59517e+07,32,1.59022e+07,1.59766e+07
+D.1 track C,rwlock; writer_paced; 1 reader(s),writer updates/s,9999.9,16,9999.9,32,9999.8,9999.8
+D.1 track C,rwlock; writer_paced; 2 reader(s),reads/s,2.34894e+07,48,2.18185e+07,0,2.37709e+07,2.23601e+07
+D.1 track C,rwlock; writer_paced; 2 reader(s),writer updates/s,9999.8,48,9999.8,0,9999.7,9999.8
+D.1 track C,rwlock; writer_paced; 4 reader(s),reads/s,3.42753e+07,48,2.84768e+07,0,3.69262e+07,2.86141e+07
+D.1 track C,rwlock; writer_paced; 4 reader(s),writer updates/s,9999.8,48,9999.7,0,9999.8,9999.9
+D.1 track C,rwlock; writer_paced; 8 reader(s),reads/s,2.13742e+07,32,3.41743e+07,48,3.41704e+07,2.12682e+07
+D.1 track C,rwlock; writer_paced; 8 reader(s),writer updates/s,1581.8,32,9999.7,48,9999.8,1587.6
+D.1 track C,rwlock; writer_max; 1 reader(s),reads/s,144920,16,294128,0,302142,294315
+D.1 track C,rwlock; writer_max; 1 reader(s),writer updates/s,144543,16,295350,0,303095,295395
+D.1 track C,rwlock; writer_max; 2 reader(s),reads/s,494218,48,1.05937e+06,32,1.07551e+06,1.03758e+06
+D.1 track C,rwlock; writer_max; 2 reader(s),writer updates/s,139935,48,273430,32,275604,271795
+D.1 track C,rwlock; writer_max; 4 reader(s),reads/s,1.56791e+06,48,5.05135e+06,32,4.07679e+06,4.00664e+06
+D.1 track C,rwlock; writer_max; 4 reader(s),writer updates/s,130062,48,245889,32,237984,241538
+D.1 track C,rwlock; writer_max; 8 reader(s),reads/s,2.13046e+07,32,2.19495e+07,16,1.83898e+07,2.13561e+07
+D.1 track C,rwlock; writer_max; 8 reader(s),writer updates/s,1500,32,3598.8,16,133464,1786.6
+D.1 track C,rwlock; refkeys_paced; 8 reader(s),reads/s,2.24749e+07,32,3.47284e+07,48,3.46842e+07,2.2739e+07
+D.1 track C,rwlock; refkeys_paced; 8 reader(s),writer updates/s,2288,32,9999.7,48,9999.8,5883.1
+D.1 track C,rcu; readonly; 1 reader(s),reads/s,1.66664e+07,,1.59583e+07,,1.60588e+07,
+D.1 track C,rcu; readonly; 8 reader(s),reads/s,1.12258e+08,,1.12581e+08,,1.12792e+08,
+D.1 track C,rcu; refkeys_paced; 8 reader(s),reads/s,1.05274e+08,,1.04738e+08,,1.0424e+08,
+D.1 track C,rcu; writer_max; 1 reader(s),reads/s,8.35728e+06,,8.36924e+06,,8.41359e+06,
+D.1 track C,rcu; writer_max; 2 reader(s),reads/s,1.80005e+07,,1.55123e+07,,1.71551e+07,
+D.1 track C,rcu; writer_max; 4 reader(s),reads/s,2.86904e+07,,2.83815e+07,,2.82959e+07,
+D.1 track C,rcu; writer_max; 8 reader(s),reads/s,5.00881e+07,,4.79868e+07,,4.79702e+07,
+D.1 track C,rcu; writer_paced; 1 reader(s),reads/s,1.48149e+07,,1.40145e+07,,1.39741e+07,
+D.1 track C,rcu; writer_paced; 2 reader(s),reads/s,3.03906e+07,,2.94676e+07,,2.92999e+07,
+D.1 track C,rcu; writer_paced; 4 reader(s),reads/s,6.04379e+07,,5.95996e+07,,5.97632e+07,
+D.1 track C,rcu; writer_paced; 8 reader(s),reads/s,9.92494e+07,,9.85235e+07,,9.825e+07,
+D.1 track C,single; inline_writer; 1 reader(s),reads/s,1.82055e+07,,1.68316e+07,,1.67818e+07,
+D.1 track C,single; readonly; 1 reader(s),reads/s,1.9123e+07,,1.83173e+07,,1.8325e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",global_lock; 1 reader(s),lookups/s,1.55762e+07,,1.52371e+07,,1.53023e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",global_lock; 2 reader(s),lookups/s,1.57381e+07,,1.49829e+07,,1.52036e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",global_lock; 4 reader(s),lookups/s,1.83869e+07,,1.69803e+07,,1.70582e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",global_lock; 8 reader(s),lookups/s,1.20546e+07,,1.17469e+07,,1.187e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rcu; 1 reader(s),lookups/s,1.50708e+07,,1.49078e+07,,1.48991e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rcu; 2 reader(s),lookups/s,2.56937e+07,,2.56081e+07,,2.55604e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rcu; 4 reader(s),lookups/s,4.92925e+07,,5.06408e+07,,4.97903e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rcu; 8 reader(s),lookups/s,8.41852e+07,,8.17501e+07,,8.21692e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rwlock; 1 reader(s),lookups/s,1.55035e+07,,1.51949e+07,,1.52288e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rwlock; 2 reader(s),lookups/s,1.90529e+07,,1.94135e+07,,1.92301e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rwlock; 4 reader(s),lookups/s,2.42049e+07,,2.42467e+07,,2.40065e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",rwlock; 8 reader(s),lookups/s,1.86572e+07,,1.85012e+07,,1.86452e+07,
+"D.1 track R: supplied generator, PRELOAD-ONLY — never wrapped, arguments fixed (the session-to-session yardstick)",single_thread; 1 reader(s),lookups/s,1.68886e+07,,1.65089e+07,,1.6538e+07,
+D.2 workload A (RCU store),batch_1,reads/s,5.09941e+07,,4.86205e+07,,4.85781e+07,
+D.2 workload A (RCU store),batch_1,writer updates/s,99938.8,,108816,,108776,
+D.2 workload A (RCU store),batch_1,longest stall ns (median),226859,,147127,,142220,
+D.2 workload A (RCU store),batch_8,reads/s,5.03821e+07,,4.83936e+07,,4.86242e+07,
+D.2 workload A (RCU store),batch_8,writer updates/s,100781,,108583,,108180,
+D.2 workload A (RCU store),batch_8,longest stall ns (median),129375,,144452,,149413,
+D.2 workload A (RCU store),batch_64,reads/s,5.03053e+07,,4.8464e+07,,4.83028e+07,
+D.2 workload A (RCU store),batch_64,writer updates/s,101109,,105831,,110122,
+D.2 workload A (RCU store),batch_64,longest stall ns (median),55776,,153168,,146248,
+D.2 workload A (RCU store),batch_256,reads/s,5.06313e+07,,4.83087e+07,,4.84462e+07,
+D.2 workload A (RCU store),batch_256,writer updates/s,100803,,108767,,107915,
+D.2 workload A (RCU store),batch_256,longest stall ns (median),67618,,153038,,164131,
+D.2 workload A (RCU store),batch_1024,reads/s,5.00117e+07,,4.8371e+07,,4.84617e+07,
+D.2 workload A (RCU store),batch_1024,writer updates/s,102624,,106720,,108887,
+D.2 workload A (RCU store),batch_1024,longest stall ns (median),46117,,148950,,140777,
+D.2 workload A (RCU store),reclaim_stw,reads/s,4.61662e+06,,7.04794e+06,,7.18442e+06,
+D.2 workload A (RCU store),reclaim_stw,writer updates/s,160704,,158482,,158638,
+D.2 workload A (RCU store),reclaim_stw,longest stall ns (median),6.4363e+06,,6.36577e+06,,6.81854e+06,
+D.2 workload A (RCU store),reclaim_disabled,reads/s,7.39699e+07,,7.38156e+07,,7.38335e+07,
+D.2 workload A (RCU store),reclaim_disabled,writer updates/s,82839.6,,83681.4,,83814.7,
+D.2 workload A (RCU store),reclaim_disabled,longest stall ns (median),95711,,137108,,140065,
+D.2 workload B (RCU store),batch_1,reads/s,3.78356e+07,,3.74194e+07,,4.03621e+07,
+D.2 workload B (RCU store),batch_1,writer updates/s,197961,,224277,,222705,
+D.2 workload B (RCU store),batch_1,longest stall ns (median),234877,,186902,,149384,
+D.2 workload B (RCU store),batch_8,reads/s,4.03006e+07,,4.07034e+07,,4.02671e+07,
+D.2 workload B (RCU store),batch_8,writer updates/s,203182,,220220,,222679,
+D.2 workload B (RCU store),batch_8,longest stall ns (median),274802,,245632,,197415,
+D.2 workload B (RCU store),batch_64,reads/s,4.02125e+07,,4.02107e+07,,4.03183e+07,
+D.2 workload B (RCU store),batch_64,writer updates/s,200660,,225290,,223468,
+D.2 workload B (RCU store),batch_64,longest stall ns (median),288639,,167696,,180513,
+D.2 workload B (RCU store),batch_256,reads/s,4.01985e+07,,4.02012e+07,,3.71793e+07,
+D.2 workload B (RCU store),batch_256,writer updates/s,201676,,224357,,223382,
+D.2 workload B (RCU store),batch_256,longest stall ns (median),203475,,160151,,149624,
+D.2 workload B (RCU store),batch_1024,reads/s,4.0222e+07,,4.04156e+07,,3.74052e+07,
+D.2 workload B (RCU store),batch_1024,writer updates/s,199715,,222098,,225531,
+D.2 workload B (RCU store),batch_1024,longest stall ns (median),187505,,152697,,152990,
+D.2 workload B (RCU store),reclaim_stw,reads/s,3.41511e+06,,6.93048e+06,,7.22882e+06,
+D.2 workload B (RCU store),reclaim_stw,writer updates/s,295004,,295725,,293161,
+D.2 workload B (RCU store),reclaim_stw,longest stall ns (median),2.50611e+07,,2.33639e+07,,2.28141e+07,
+D.2 workload B (RCU store),reclaim_disabled,reads/s,4.30925e+07,,3.94621e+07,,3.94428e+07,
+D.2 workload B (RCU store),reclaim_disabled,writer updates/s,164794,,170559,,171362,
+D.2 workload B (RCU store),reclaim_disabled,longest stall ns (median),53552,,145384,,151978,
+D.3 transactions (RCU store),1 key(s); index off,commit_p50_us,3.667,,3.577,,3.567,
+D.3 transactions (RCU store),1 key(s); index off,commit_p99_us,8.726,,8.335,,8.396,
+D.3 transactions (RCU store),1 key(s); index off,commits_per_s,238103,,239561,,236846,
+D.3 transactions (RCU store),1 key(s); index on,commit_p50_us,16.341,,16.341,,16.391,
+D.3 transactions (RCU store),1 key(s); index on,commit_p99_us,29.566,,29.144,,29.355,
+D.3 transactions (RCU store),1 key(s); index on,commits_per_s,58823.8,,58896.4,,58725.8,
+D.3 transactions (RCU store),4 key(s); index off,commit_p50_us,9.248,,8.877,,8.887,
+D.3 transactions (RCU store),4 key(s); index off,commit_p99_us,18.595,,17.133,,17.513,
+D.3 transactions (RCU store),4 key(s); index off,commits_per_s,101298,,102554,,101070,
+D.3 transactions (RCU store),4 key(s); index on,commit_p50_us,56.977,,57.729,,57.068,
+D.3 transactions (RCU store),4 key(s); index on,commit_p99_us,76.214,,76.273,,75.724,
+D.3 transactions (RCU store),4 key(s); index on,commits_per_s,17554.7,,17371.5,,17552.6,
+D.3 transactions (RCU store),16 key(s); index off,commit_p50_us,37.461,,26.109,,27.382,
+D.3 transactions (RCU store),16 key(s); index off,commit_p99_us,69.401,,70.753,,72.587,
+D.3 transactions (RCU store),16 key(s); index off,commits_per_s,26655.4,,27340.7,,26543.6,
+D.3 transactions (RCU store),16 key(s); index on,commit_p50_us,161.606,,159.611,,160.033,
+D.3 transactions (RCU store),16 key(s); index on,commit_p99_us,207.753,,205.086,,208.686,
+D.3 transactions (RCU store),16 key(s); index on,commits_per_s,6134.35,,6209.19,,6187.73,
+D.3 join (RCU store),1 joiner(s); writer paused,join_p50_ms,6.26118,,6.27909,,6.29419,
+D.3 join (RCU store),1 joiner(s); writer paused,join_p99_ms,6.6543,,8.2451,,8.94043,
+D.3 join (RCU store),1 joiner(s); writer paused,joins_per_s,158.965,,155.307,,154.156,
+D.3 join (RCU store),1 joiner(s); writer active,join_p50_ms,15.1156,,15.78,,15.7898,
+D.3 join (RCU store),1 joiner(s); writer active,join_p99_ms,16.4563,,17.3787,,17.3483,
+D.3 join (RCU store),1 joiner(s); writer active,joins_per_s,65.5815,,63.4893,,62.9775,
+D.3 join (RCU store),2 joiner(s); writer paused,join_p50_ms,6.48086,,6.45484,,6.38186,
+D.3 join (RCU store),2 joiner(s); writer paused,join_p99_ms,6.88672,,8.27859,,8.10791,
+D.3 join (RCU store),2 joiner(s); writer paused,joins_per_s,307.761,,303.613,,306.503,
+D.3 join (RCU store),2 joiner(s); writer active,join_p50_ms,12.8579,,13.2764,,13.2393,
+D.3 join (RCU store),2 joiner(s); writer active,join_p99_ms,14.4543,,15.1141,,15.056,
+D.3 join (RCU store),2 joiner(s); writer active,joins_per_s,153.642,,148.874,,148.919,
+D.3 join (RCU store),4 joiner(s); writer paused,join_p50_ms,6.77691,,6.67703,,6.74847,
+D.3 join (RCU store),4 joiner(s); writer paused,join_p99_ms,7.12343,,8.58966,,8.42472,
+D.3 join (RCU store),4 joiner(s); writer paused,joins_per_s,588.73,,583.776,,582.955,
+D.3 join (RCU store),4 joiner(s); writer active,join_p50_ms,13.2634,,13.6115,,13.5501,
+D.3 join (RCU store),4 joiner(s); writer active,join_p99_ms,14.9962,,15.3918,,15.6029,
+D.3 join (RCU store),4 joiner(s); writer active,joins_per_s,297.758,,290.336,,292.541,
+D.3 join (RCU store),8 joiner(s); writer paused,join_p50_ms,7.13886,,6.97457,,7.00609,
+D.3 join (RCU store),8 joiner(s); writer paused,join_p99_ms,9.33693,,9.56558,,9.51418,
+D.3 join (RCU store),8 joiner(s); writer paused,joins_per_s,1026.17,,1045.23,,1047.54,
+D.3 join (RCU store),8 joiner(s); writer active,join_p50_ms,13.1532,,12.7971,,13.7375,
+D.3 join (RCU store),8 joiner(s); writer active,join_p99_ms,21.1185,,21.589,,22.8406,
+D.3 join (RCU store),8 joiner(s); writer active,joins_per_s,580.273,,600.665,,557.689,

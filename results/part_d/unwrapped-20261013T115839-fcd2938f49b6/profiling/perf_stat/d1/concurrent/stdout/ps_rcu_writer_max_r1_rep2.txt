@@ -1,0 +1,12 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/perf_stat/ps_rcu_writer_max_r1_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/rss/ps_rcu_writer_max_r1_rep2.txt build/release/concurrent_bench_rcu --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 2 --run-id ps_rcu_writer_max_r1_rep2 --git-sha fcd2938f49b6 --scenario writer_max --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/hist/ps_rcu_writer_max_r1_rep2.csv --cow-csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer on --writer-cpu 15
+rcu          scenario=writer_max readers=1 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x61be84f7eec0 (offset 0 in its cache line, not controlled), 8 bytes (cache lines 0x61be84f7eec0..0x61be84f7eec0)
+  reads : ops=42172278 rps=8434367 hits=42172278 misses=0 corrupt=0
+  read latency ns: p50=80 p99=271 p999=461 max=136688 mean=96.3
+  writes: ok=878278 failed=0 rps=175654 p50=4736 p99=11776 max=401828 ns
+  rcu   : publications=982554 (writes incl. warm-up=982554) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23929 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=121.8 value_bytes=32.0
+  rcu reclamation: reclaimed=982554 backlog_at_end=0 backlog_max=11200 passes=82706 epoch_advances=79665/82438 attempts (2773 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=123 reader_slots=0 validation_retries=11930 cleaner_cpu=4.373s (79.5% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=31.2 MiB settled=31.2 MiB (versions + segments + chunks)
+# exit_status: 0

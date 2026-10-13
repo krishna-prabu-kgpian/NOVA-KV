@@ -988,6 +988,13 @@ Campaign `20261013T090846-615f4357f015-all` (`results/part_d/`, report `reports/
    and the milestone report. No conclusion changes. A second campaign with unwrapped timing
    runs and separate counter runs would remove the bias; it is offered to the user, not done.
 
+**Correction to D-070 (2026-10-13, see D-072).** The comparison in item 2 was made with
+identical arguments, so it does isolate the wrapper, and the final campaign confirms it at
+fixed lock placement (global mutex at 8 readers 1.22–1.25×; stop-the-world 0.41–0.71×; shared
+mutex with an unthrottled writer and 1–4 readers about 0.5×). But the differences *between
+campaigns* in the lock-store cells, which D-070 implicitly attributed to the wrapper, are
+mostly the lock-placement effect of D-072.
+
 ## D-071 — Corrected Part D campaign: unwrapped timing track, separate profiling track (user decision, 2026-10-13)
 
 The user authorized a second campaign after D-070. Method: `docs/part_d_plan.md` §10.
@@ -1033,6 +1040,32 @@ Decisions:
    they are, with this caveat.
 5. The mechanism (read of a lock field at byte 16–31 before the atomic update of byte 0) is a
    hypothesis consistent with all placements measured, not an established cause.
+
+## D-073 — Outcome of the final Part D campaign; report numbers are computed, not typed (Part D correction, 2026-10-13)
+
+Final campaign `20261013T115839-fcd2938f49b6-all` (`results/part_d/unwrapped-20261013T115839-fcd2938f49b6/`,
+named in `results/part_d/PRIMARY`): 470 timing runs started directly, 154 profiled runs, no
+failure, no problem found by the aggregator, conditions unchanged at 68 checkpoints.
+
+1. **Unchanged:** RCU meets 100,000 reads/s at 8 readers (98.25 M paced, 47.97 M
+   unthrottled) and scales to 8; the lock stores do not scale beyond 4; RCU with an
+   unthrottled writer at 4 or 8 readers is not a steady state; transactions, joins and
+   copy-on-write costs; R8 only weakly supported.
+2. **Changed:** the shared mutex starves its writer at 8 readers only with the lock at offset
+   0; the global mutex gains nothing from more readers (the first campaign's 21.7 M at 4
+   readers was not reproduced, and neither wrapper nor placement explains it); stop-the-world
+   reads at about one seventh of the bounded rate, not one eleventh; the worst-pause reduction
+   is 42× and 116×, not 28× and 87×.
+3. **Withdrawn:** "a batch of 1 reclaims more slowly and holds more memory" (D-069 item 1,
+   second half). Without the wrapper the reclaim batch has no measurable effect on any measure
+   in either workload. The first half of D-069 item 1 stands, more strongly.
+4. **Method rule adopted:** every number in `reports/part_d_report.md`,
+   `docs/part_d_compliance.md` and the correction's milestone report is a `{{ expression }}`
+   in a template, evaluated by `scripts/render_part_d_report.py` against the primary
+   campaign's summary CSVs; gate `part_d_artifacts` fails if a rendered file is stale. A
+   number can no longer outlive its data.
+5. No optimization and no change to the store. The lock-placement finding is a property of
+   the Part A baselines and is reported, not acted on.
 
 ---
 

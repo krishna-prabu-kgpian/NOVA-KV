@@ -143,7 +143,7 @@ src/                   store implementation; src/sync_mode.h selects the sync po
 supplied/              instructor workload: .cpp original, .h transcribed from the PDF
 tests/                 dependency-free tests (tests/test_util.h), registered with CTest
 drivers/               single_thread.cpp, global_lock.cpp, rwlock.cpp, rcu.cpp (from A1)
-benchmarks/            own harnesses: layout, concurrent, join (join.h is the join itself)
+benchmarks/            own harnesses: layout, concurrent, join (join.h is the join itself), reclaim
 scripts/               verification, environment capture, tool bootstrap
 docs/                  assignment_contract.md, decisions.md, later design notes
 reports/milestones/    one report per milestone (blueprint §16.3 headings)
@@ -196,7 +196,7 @@ gates to it as the milestone lands.
 - Tests use `NOVA_CHECK` (always evaluated, independent of `NDEBUG`), never bare `assert`.
 - Git: milestone work happens on a branch; tags mark accepted checkpoints (`a0-bootstrap`,
   `part-a-core`, `part-a-final`, `part-b-publication`, `part-b-final`, `part-b-audited`,
-  `part-c-transactions`, `part-c-final`, `part-d-final`, `part-e-bonus`). Never amend or erase earlier checkpoint
+  `part-c-transactions`, `part-c-final`, `part-d-final`, `part-d-audited`, `part-e-bonus`). Never amend or erase earlier checkpoint
   history; the Part A→B and B→C diffs are exported from the tags.
 
 ### Known environment limitations (re-check with `scripts/env_info.sh`)
@@ -243,12 +243,15 @@ gates to it as the milestone lands.
   variants (D-067); the Part D plan is `docs/part_d_plan.md` (not executed).
 - **Part C is complete, with one documented deviation** (the join uses one Snapshot per
   store, D-060).
-- **D (benchmark campaign): complete** — `reports/milestones/D.md`, tag `part-d-final`, branch
-  `part-d/benchmarks`. Report `reports/part_d_report.pdf` (source `.md`); checklist
-  `docs/part_d_compliance.md`; data `results/part_d/` (campaign
-  `20261013T090846-615f4357f015-all`, measured at 615f435 = the Part C store, no source change
-  under `src/` or `include/`). **Next: E (optional WAL) or final packaging — neither started;
-  both require user approval.**
+- **D (benchmark campaign): complete, corrected and audited** — `reports/milestones/D.md`
+  (first campaign, tag `part-d-final` 9062d83, kept unmoved) and
+  `reports/milestones/D_corrected.md` (tag `part-d-audited`), branch `part-d/corrected`.
+  Report `reports/part_d_report.pdf`; checklist `docs/part_d_compliance.md`; data
+  `results/part_d/` (three campaigns; `PRIMARY` names
+  `unwrapped-20261013T115839-fcd2938f49b6`, measured at fcd2938 = the Part C store, no change
+  under `src/` or `include/`). **`part-d-audited` is the Part D baseline.**
+  **Next: E (optional WAL), then optional optimization experiments, then final packaging —
+  none started; each requires user approval.**
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
@@ -336,20 +339,39 @@ Part C.2 rules (D-060…D-065, `docs/secondary_index.md`):
 - CSV rows written by benchmarks must not contain commas in free-text fields.
 - Mutation records: `results/C2/mutation_check.md` (21/21).
 
-Part D rules (D-068, D-069, `docs/part_d_plan.md`):
+Part D rules (D-068…D-073, `docs/part_d_plan.md` §9–§11):
 
-- `results/part_d/` is ONE campaign and is frozen evidence: never edit a raw file, never mix
-  in runs from another session or commit (`scripts/run_part_d.sh` refuses; the
-  `part_d_artifacts` gate checks the campaign stamps). A re-measurement is a new campaign.
+- **A timed run is started directly.** No `perf`, `/usr/bin/time`, tracer or other wrapper
+  around anything whose throughput, latency or stall is reported; profiling is a separate
+  track (`<campaign>/profiling/`) whose throughput is shown only as "what the profiler does".
+  `perf stat` changed cells by −59 % to +25 % (D-070).
+- **The lock-based stores have two speeds**, decided by the offset of their lock object in its
+  cache line, which the heap (and so the length of command-line strings) sets. Track C places
+  it (`concurrent_bench --lock-offset`) and measures offsets 48 and 0; report both, never one
+  as "the" baseline; for a single comparison with RCU use the higher. Why it matters is a
+  hypothesis. Part A's accepted lock results were measured without this control and stay as
+  they are, with that caveat (D-072).
+- **A campaign is one directory, never reused or edited** (`results/part_d/unwrapped-<time>-<sha>/`;
+  `run_part_d.sh all` refuses an existing one). `results/part_d/PRIMARY` names the source of
+  results; `scripts/publish_part_d.sh` regenerates `summary/` and `figures/`. The original
+  campaign must stay identical to `part-d-final:results/part_d` (gate). No ratio mixes
+  campaigns; `summary/original_vs_corrected.md` is the only place they meet.
+- **Numbers in Part D documents are computed, not typed**: edit
+  `reports/part_d_report.template.md`, `docs/part_d_compliance.template.md`,
+  `reports/milestones/D_corrected.template.md`, then `scripts/render_part_d_report.py`; the
+  gate `part_d_artifacts` fails on a stale rendering. (README headline numbers are typed:
+  re-check them against the report when the primary campaign changes.)
 - Report what was measured, including where it contradicts the assignment's expectation: the
-  reclaim batch does NOT trade read throughput against stalls here (it changes reclamation
-  throughput and memory); the RCU store with an unthrottled writer at 4/8 readers is not in a
-  steady state (the cleaner falls behind, no back-pressure); audit item R8 is only weakly
-  supported by `perf c2c` and no optimization was made.
-- Track R (supplied generator) is always labelled preload-only; the generator's `use_join`
-  path is an index probe, never a join; joins are one Snapshot per store (two handles).
-- Figures and tables are regenerated from the raw data by `scripts/aggregate_part_d.py`; the
-  PDF by `scripts/build_part_d_report.sh`.
+  reclaim batch has NO measurable effect on read throughput, stalls, reclamation rate or
+  memory here; the RCU store with an unthrottled writer at 4/8 readers is not in a steady
+  state (no back-pressure); audit item R8 is only weakly supported and no optimization was
+  made.
+- Track R (supplied generator) is always labelled preload-only and its lock placement is not
+  controllable; the generator's `use_join` path is an index probe, never a join; joins are one
+  Snapshot per store (two handles).
+- Benchmark validation must respect documented comparator behaviour (the stop-the-world
+  comparator sweeps only from 1,024 retired versions) and must not weaken an engine
+  assertion; engine tests, not benchmarks, are the proof of safety and progress.
 
 Measurement rules (D-024…D-026, D-029, D-046): never label supplied-generator runs as
 concurrent (they are preload-only); active-writer numbers come from

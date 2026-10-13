@@ -1,0 +1,266 @@
+1. perf stat, whole process, medians of the repetitions (D.1 track C) -- PROFILING TRACK runs; reads/s is the TIMING track median
+   NOTE: counters are per PROCESS (readers + writer + cleaner + loading), divided by the reads of the
+   measured window: they bound, but do not isolate, what a read costs.
+
+   rcu         readonly      r=1: reads/s=  16.06M  slowest/fastest reader= 16.01/ 16.01M  IPC=1.26  cycles/read=   379  instr/read=  479  cache-miss/read= 1.075  L1d-miss/read= 5.07  ctx-switches=    59251
+   rcu         readonly      r=8: reads/s= 112.79M  slowest/fastest reader= 11.49/ 16.48M  IPC=1.33  cycles/read=   337  instr/read=  447  cache-miss/read= 0.677  L1d-miss/read= 4.01  ctx-switches=    62718
+   rcu         writer_paced  r=1: reads/s=  13.97M  slowest/fastest reader= 13.92/ 13.92M  IPC=1.89  cycles/read=   718  instr/read= 1355  cache-miss/read= 2.051  L1d-miss/read= 6.99  ctx-switches=    67891
+   rcu         writer_paced  r=8: reads/s=  98.25M  slowest/fastest reader=  8.50/ 14.64M  IPC=1.26  cycles/read=   426  instr/read=  535  cache-miss/read= 1.191  L1d-miss/read= 4.58  ctx-switches=    68066
+   rcu         writer_max    r=1: reads/s=   8.41M  slowest/fastest reader=  8.43/  8.43M  IPC=0.70  cycles/read=  1651  instr/read= 1154  cache-miss/read=29.658  L1d-miss/read=62.20  ctx-switches=   225673
+   rcu         writer_max    r=8: reads/s=  47.97M  slowest/fastest reader=  4.80/  7.22M  IPC=0.60  cycles/read=   909  instr/read=  547  cache-miss/read= 4.982  L1d-miss/read=11.74  ctx-switches=   141383
+   rwlock      writer_paced  r=1: reads/s=  15.90M  slowest/fastest reader= 15.73/ 15.73M  IPC=2.16  cycles/read=   585  instr/read= 1264  cache-miss/read= 0.673  L1d-miss/read= 4.26  ctx-switches=    12756
+   rwlock      writer_paced  r=8: reads/s=  34.17M  slowest/fastest reader=  2.32/  5.45M  IPC=0.64  cycles/read=  1176  instr/read=  753  cache-miss/read= 2.349  L1d-miss/read= 7.29  ctx-switches=   484996
+   rwlock      writer_max    r=1: reads/s=   0.30M  slowest/fastest reader=  0.14/  0.14M  IPC=1.91  cycles/read= 11092  instr/read=21221  cache-miss/read=55.212  L1d-miss/read=161.95  ctx-switches=  1576930
+   rwlock      writer_max    r=8: reads/s=  18.39M  slowest/fastest reader=  1.02/  3.05M  IPC=0.63  cycles/read=  1233  instr/read=  781  cache-miss/read= 3.463  L1d-miss/read=13.79  ctx-switches=  2918102
+   global_lock writer_paced  r=1: reads/s=  16.12M  slowest/fastest reader= 15.88/ 15.88M  IPC=2.13  cycles/read=   583  instr/read= 1242  cache-miss/read= 0.634  L1d-miss/read= 3.94  ctx-switches=     5747
+   global_lock writer_paced  r=8: reads/s=  11.30M  slowest/fastest reader=  1.52/  1.91M  IPC=0.82  cycles/read=  2184  instr/read= 1789  cache-miss/read= 7.439  L1d-miss/read=16.40  ctx-switches=  2527364
+   global_lock writer_max    r=1: reads/s=   4.70M  slowest/fastest reader=  4.54/  4.54M  IPC=1.42  cycles/read=  1468  instr/read= 2085  cache-miss/read= 5.596  L1d-miss/read=16.12  ctx-switches=   700583
+   global_lock writer_max    r=8: reads/s=   6.70M  slowest/fastest reader=  0.79/  1.09M  IPC=0.68  cycles/read=  3149  instr/read= 2151  cache-miss/read=13.520  L1d-miss/read=28.64  ctx-switches=  4041650
+
+2. Flame-graph data: share of sampled on-CPU cycles by role (perf record over the whole process)
+
+   global_lock_r8_writer_max
+       78.7%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+       11.0%  lock functions (libc)
+        6.3%  clock reads (the harness times every get)
+        1.4%  other
+        1.3%  reader: store get
+        1.1%  thread loop body (harness)
+   global_lock_r8_writer_paced
+       71.5%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+       14.6%  lock functions (libc)
+        9.5%  clock reads (the harness times every get)
+        1.8%  thread loop body (harness)
+        1.6%  reader: store get
+        1.0%  other
+   global_lock_r8_writer_paced_o0
+       72.6%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+       14.7%  lock functions (libc)
+        8.7%  clock reads (the harness times every get)
+        1.5%  thread loop body (harness)
+        1.5%  reader: store get
+        1.0%  other
+   join_t8_writer_active
+       48.9%  reader: store get
+       33.2%  other
+        9.0%  cleaner thread (reclamation)
+        6.2%  writer: store put
+        2.6%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+   rcu_r1_writer_max
+       32.2%  cleaner thread (reclamation)
+       24.4%  clock reads (the harness times every get)
+       23.2%  writer: store put
+       12.4%  reader: store get
+        5.7%  thread loop body (harness)
+        1.4%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+        0.5%  other
+   rcu_r2_writer_max
+       37.4%  clock reads (the harness times every get)
+       19.4%  cleaner thread (reclamation)
+       17.0%  reader: store get
+       16.5%  writer: store put
+        8.5%  thread loop body (harness)
+        0.7%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+   rcu_r4_writer_max
+       50.5%  clock reads (the harness times every get)
+       19.6%  reader: store get
+       12.3%  cleaner thread (reclamation)
+        9.9%  writer: store put
+        5.9%  thread loop body (harness)
+        1.1%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+   rcu_r8_readonly
+       58.4%  reader: store get
+       35.8%  clock reads (the harness times every get)
+        4.4%  thread loop body (harness)
+        0.6%  cleaner thread (reclamation)
+        0.5%  writer: store put
+   rcu_r8_stw
+       25.4%  lock functions (libc)
+       22.4%  clock reads (the harness times every get)
+       18.7%  writer: store put
+       17.7%  cleaner thread (reclamation)
+        8.6%  reader: store get
+        5.4%  thread loop body (harness)
+        1.3%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+   rcu_r8_writer_max
+       49.8%  clock reads (the harness times every get)
+       17.3%  reader: store get
+       14.6%  thread loop body (harness)
+        9.0%  cleaner thread (reclamation)
+        5.6%  writer: store put
+        2.5%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+        1.0%  other
+   rcu_r8_writer_paced
+       48.5%  reader: store get
+       35.7%  clock reads (the harness times every get)
+        7.6%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+        5.4%  thread loop body (harness)
+        1.5%  cleaner thread (reclamation)
+        0.7%  writer: store put
+        0.5%  other
+   rwlock_r8_writer_max
+       53.2%  lock functions (libc)
+       31.3%  clock reads (the harness times every get)
+        6.4%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+        4.8%  thread loop body (harness)
+        3.5%  reader: store get
+        0.8%  other
+   rwlock_r8_writer_paced
+       49.8%  lock functions (libc)
+       32.7%  clock reads (the harness times every get)
+        9.0%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+        4.2%  thread loop body (harness)
+        3.6%  reader: store get
+        0.7%  other
+   rwlock_r8_writer_paced_o0
+       59.0%  lock functions (libc)
+       34.6%  clock reads (the harness times every get)
+        3.6%  thread loop body (harness)
+        1.5%  reader: store get
+        1.0%  kernel (no symbols: kptr_restrict; futex wait/wake for the lock variants)
+
+3. perf c2c (AMD IBS load/store sampling)
+
+   global_lock_r8_writer_max: 37653 load samples, 21460 with a data source: L1 79.26%, L2 1.88%, L3 18.84%, modified in another core (HITM) 15.31%, DRAM 0.01%; shared cache lines 165
+   global_lock_r8_writer_paced: 38929 load samples, 22266 with a data source: L1 82.43%, L2 1.36%, L3 16.21%, modified in another core (HITM) 13.10%, DRAM 0.00%; shared cache lines 142
+   global_lock_r8_writer_paced_o0: 37875 load samples, 23209 with a data source: L1 82.80%, L2 0.97%, L3 16.23%, modified in another core (HITM) 13.22%, DRAM 0.00%; shared cache lines 133
+   rcu_r1_writer_max: 24868 load samples, 18584 with a data source: L1 86.46%, L2 3.79%, L3 9.52%, modified in another core (HITM) 9.08%, DRAM 0.23%; shared cache lines 1196
+   rcu_r8_readonly: 59642 load samples, 14820 with a data source: L1 94.61%, L2 4.09%, L3 1.30%, modified in another core (HITM) 0.47%, DRAM 0.00%; shared cache lines 68
+   rcu_r8_writer_max: 77394 load samples, 28643 with a data source: L1 92.95%, L2 3.22%, L3 3.54%, modified in another core (HITM) 2.78%, DRAM 0.29%; shared cache lines 694
+   rwlock_r8_writer_max: 42010 load samples, 14283 with a data source: L1 85.86%, L2 3.93%, L3 10.21%, modified in another core (HITM) 8.95%, DRAM 0.01%; shared cache lines 59
+   rwlock_r8_writer_paced: 47362 load samples, 11820 with a data source: L1 86.04%, L2 2.52%, L3 11.44%, modified in another core (HITM) 11.11%, DRAM 0.00%; shared cache lines 15
+   rwlock_r8_writer_paced_o0: 26270 load samples, 5914 with a data source: L1 56.70%, L2 2.05%, L3 41.26%, modified in another core (HITM) 40.99%, DRAM 0.00%; shared cache lines 6
+
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/global_lock_r8_writer_max.c2c-report.txt
+   HITM load samples in the Pareto section: 3082
+     1386.0   45.0%      9 lines  0xffffffffbdb32f11 [[unknown]]
+      326.0   10.6%      2 lines  0xffffffffbdb32e94 [[unknown]]
+      242.0    7.9%      1 lines  0xffffffffbc9999a9 [[unknown]]
+      219.0    7.1%      1 lines  __GI___lll_lock_wait [libc.so.6]
+      120.0    3.9%      9 lines  0xffffffffbdb32f24 [[unknown]]
+      102.0    3.3%     10 lines  0xffffffffbdb32c8a [[unknown]]
+       99.0    3.2%      1 lines  pthread_mutex_lock@@GLIBC_ [libc.so.6]
+       65.0    2.1%      6 lines  0xffffffffbc8a9195 [[unknown]]
+       54.0    1.8%      2 lines  0xffffffffbdb32943 [[unknown]]
+       53.0    1.7%      2 lines  0xffffffffbc99e291 [[unknown]]
+       52.0    1.7%      1 lines  0xffffffffbc999919 [[unknown]]
+       43.0    1.4%      1 lines  0xffffffffbdb32c62 [[unknown]]
+       34.0    1.1%      1 lines  0xffffffffbc99ee38 [[unknown]]
+       31.0    1.0%      1 lines  0xffffffffbdb32c6a [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/global_lock_r8_writer_paced.c2c-report.txt
+   HITM load samples in the Pareto section: 2786
+     1189.0   42.7%      8 lines  0xffffffffbdb32f11 [[unknown]]
+      239.0    8.6%      1 lines  0xffffffffbdb32e94 [[unknown]]
+      235.0    8.4%      2 lines  0xffffffffbc9999a9 [[unknown]]
+      218.0    7.8%      1 lines  __GI___lll_lock_wait [libc.so.6]
+      150.0    5.4%      1 lines  pthread_mutex_lock@@GLIBC_ [libc.so.6]
+      124.0    4.5%      8 lines  0xffffffffbdb32f24 [[unknown]]
+       87.0    3.1%      9 lines  0xffffffffbdb32c8a [[unknown]]
+       58.0    2.1%      2 lines  0xffffffffbdb32943 [[unknown]]
+       55.0    2.0%      8 lines  0xffffffffbc8a9195 [[unknown]]
+       43.0    1.5%      2 lines  0xffffffffbdb32c62 [[unknown]]
+       38.0    1.4%      1 lines  0xffffffffbc99e291 [[unknown]]
+       37.0    1.3%     10 lines  0xffffffffbc99e2fc [[unknown]]
+       36.0    1.3%      3 lines  0xffffffffbdb32c6a [[unknown]]
+       36.0    1.3%      1 lines  0xffffffffbc999919 [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/global_lock_r8_writer_paced_o0.c2c-report.txt
+   HITM load samples in the Pareto section: 2917
+     1035.0   35.5%      8 lines  0xffffffffbdb32f11 [[unknown]]
+      367.0   12.6%      1 lines  pthread_mutex_lock@@GLIBC_ [libc.so.6]
+      302.0   10.4%      2 lines  0xffffffffbdb32e94 [[unknown]]
+      232.0    8.0%      1 lines  __GI___lll_lock_wait [libc.so.6]
+      187.0    6.4%      2 lines  0xffffffffbc9999a9 [[unknown]]
+      132.0    4.5%      7 lines  0xffffffffbdb32c8a [[unknown]]
+      105.0    3.6%      8 lines  0xffffffffbdb32f24 [[unknown]]
+       70.0    2.4%      8 lines  0xffffffffbc8a9195 [[unknown]]
+       62.0    2.1%      2 lines  0xffffffffbdb32c62 [[unknown]]
+       53.0    1.8%      1 lines  0xffffffffbc99e291 [[unknown]]
+       44.0    1.5%      1 lines  0xffffffffbdb32943 [[unknown]]
+       43.0    1.5%      1 lines  0xffffffffbdb32c6a [[unknown]]
+       40.0    1.4%      1 lines  pthread_mutex_unlock@@GLIB [libc.so.6]
+       39.0    1.3%      1 lines  0xffffffffbdb32cb4 [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rcu_r1_writer_max.c2c-report.txt
+   HITM load samples in the Pareto section: 702
+      330.0   47.0%     89 lines  nova::PinnedArena::release [concurrent_bench_rcu]
+      242.0   34.5%    110 lines  nova::VersionedStore::comm [concurrent_bench_rcu]
+       49.0    7.0%     41 lines  nova::VersionedStore::run_ [concurrent_bench_rcu]
+       43.0    6.1%     25 lines  nova::PinnedArena::add_ref [concurrent_bench_rcu]
+        9.0    1.3%      3 lines  nova::VersionedStore::read [concurrent_bench_rcu]
+        6.0    0.9%      1 lines  0xffffffffbdb32c8a [[unknown]]
+        3.0    0.4%      3 lines  _int_free_merge_chunk [libc.so.6]
+        3.0    0.4%      1 lines  0xffffffffbc9999a9 [[unknown]]
+        3.0    0.4%      7 lines  _int_malloc [libc.so.6]
+        3.0    0.4%      2 lines  __lll_lock_wait_private [libc.so.6]
+        2.0    0.3%      2 lines  nova::VersionedStore::publ [concurrent_bench_rcu]
+        2.0    0.3%      1 lines  nova::VersionedStore::get( [concurrent_bench_rcu]
+        1.0    0.1%      1 lines  cfree@GLIBC_2.2.5 [libc.so.6]
+        1.0    0.1%      1 lines  _int_free_chunk [libc.so.6]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rcu_r8_readonly.c2c-report.txt
+   HITM load samples in the Pareto section: 70
+       42.0   60.0%     42 lines  nova::VersionedStore::comm [concurrent_bench_rcu]
+        9.0   12.9%      9 lines  __memmove_avx512_unaligned [libc.so.6]
+        4.0    5.7%      4 lines  nova::VersionedStore::run_ [concurrent_bench_rcu]
+        3.0    4.3%      3 lines  nova::PinnedArena::release [concurrent_bench_rcu]
+        3.0    4.3%      3 lines  nova::PinnedArena::add_ref [concurrent_bench_rcu]
+        2.0    2.9%      2 lines  nova::VersionedStore::read [concurrent_bench_rcu]
+        1.0    1.4%      1 lines  0xffffffffbcb6208c [[unknown]]
+        1.0    1.4%      1 lines  0xffffffffbdb32c62 [[unknown]]
+        1.0    1.4%      1 lines  0xffffffffbdb32ccc [[unknown]]
+        1.0    1.4%      1 lines  0xffffffffbc757b9b [[unknown]]
+        1.0    1.4%      1 lines  __lll_lock_wait_private [libc.so.6]
+        1.0    1.4%      1 lines  _int_malloc [libc.so.6]
+        1.0    1.4%      1 lines  nova::EpochDomain::thread_ [concurrent_bench_rcu]
+        0.0    0.0%      1 lines  0x00000000000009b9 [[vdso]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rcu_r8_writer_max.c2c-report.txt
+   HITM load samples in the Pareto section: 797
+      457.0   57.3%    457 lines  nova::VersionedStore::comm [concurrent_bench_rcu]
+      111.0   13.9%     41 lines  nova::PinnedArena::release [concurrent_bench_rcu]
+       80.0   10.0%     69 lines  nova::VersionedStore::read [concurrent_bench_rcu]
+       37.0    4.6%     37 lines  __memmove_avx512_unaligned [libc.so.6]
+       36.0    4.5%     30 lines  nova::PinnedArena::add_ref [concurrent_bench_rcu]
+       17.0    2.1%     17 lines  unlink_chunk.isra.0 [libc.so.6]
+       11.0    1.4%     12 lines  nova::VersionedStore::run_ [concurrent_bench_rcu]
+       11.0    1.4%     11 lines  _int_malloc [libc.so.6]
+        8.0    1.0%      9 lines  _int_free_merge_chunk [libc.so.6]
+        7.0    0.9%      2 lines  nova::VersionedStore::publ [concurrent_bench_rcu]
+        3.0    0.4%      3 lines  0xffffffffbdb32c8a [[unknown]]
+        2.0    0.3%      2 lines  0xffffffffbc8ab261 [[unknown]]
+        2.0    0.3%      2 lines  __libc_malloc2 [libc.so.6]
+        1.0    0.1%      1 lines  0xffffffffbc8b83aa [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rwlock_r8_writer_max.c2c-report.txt
+   HITM load samples in the Pareto section: 1241
+      847.1   68.3%      1 lines  pthread_rwlock_unlock@@GLI [libc.so.6]
+      123.0    9.9%      1 lines  pthread_rwlock_rdlock@GLIB [libc.so.6]
+       95.0    7.7%      8 lines  0xffffffffbdb32f11 [[unknown]]
+       34.0    2.7%      1 lines  0xffffffffbdb32e94 [[unknown]]
+       28.0    2.3%      1 lines  0xffffffffbc99996c [[unknown]]
+       19.0    1.5%      1 lines  0xffffffffbdb32c8a [[unknown]]
+       13.0    1.0%      1 lines  0xffffffffbdb32cb4 [[unknown]]
+       12.0    1.0%      1 lines  0xffffffffbdb32943 [[unknown]]
+       12.0    1.0%      1 lines  0xffffffffbdb32c62 [[unknown]]
+        9.0    0.7%      6 lines  0xffffffffbdb32f24 [[unknown]]
+        8.0    0.6%      1 lines  0xffffffffbdb32ccc [[unknown]]
+        7.0    0.6%      3 lines  0xffffffffbc89c7cd [[unknown]]
+        4.0    0.3%      1 lines  0xffffffffbdb32c6a [[unknown]]
+        3.0    0.2%      1 lines  0xffffffffbc8a3daf [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rwlock_r8_writer_paced.c2c-report.txt
+   HITM load samples in the Pareto section: 1300
+     1204.9   92.7%      1 lines  pthread_rwlock_unlock@@GLI [libc.so.6]
+       83.1    6.4%      1 lines  pthread_rwlock_rdlock@GLIB [libc.so.6]
+        3.0    0.2%      1 lines  0xffffffffbc99996c [[unknown]]
+        3.0    0.2%      1 lines  0xffffffffbdb32e94 [[unknown]]
+        2.0    0.2%      1 lines  0xffffffffbdb32c8a [[unknown]]
+        1.0    0.1%      1 lines  0xffffffffbdb32943 [[unknown]]
+        1.0    0.1%      1 lines  0xffffffffbdb32c62 [[unknown]]
+        1.0    0.1%      1 lines  0xffffffffbdb32ccc [[unknown]]
+        1.0    0.1%      1 lines  0xffffffffbdb32d44 [[unknown]]
+        0.0    0.0%      1 lines  0xffffffffbdb32c96 [[unknown]]
+        0.0    0.0%      1 lines  0xffffffffbdb32ea4 [[unknown]]
+== results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/c2c/rwlock_r8_writer_paced_o0.c2c-report.txt
+   HITM load samples in the Pareto section: 2420
+     2313.1   95.6%      1 lines  pthread_rwlock_unlock@@GLI [libc.so.6]
+      101.9    4.2%      1 lines  pthread_rwlock_rdlock@GLIB [libc.so.6]
+        2.0    0.1%      1 lines  0xffffffffbc99996c [[unknown]]
+        1.0    0.0%      1 lines  0xffffffffbdb32943 [[unknown]]
+        1.0    0.0%      1 lines  0xffffffffbdb32e94 [[unknown]]
+        1.0    0.0%      1 lines  0xffffffffbdb32e7d [[unknown]]

@@ -1,0 +1,22 @@
+# command: build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/join/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/join/hist/join_t4_active_rep1.csv --run-id join_t4_active_rep1 --git-sha fcd2938f49b6 --experiment join --threads 4 --cpus 0,2,4,6 --writer on --duration 3
+# wrapper: none
+# start: 2026-10-13T12:37:18.706
+join_bench experiment=join trades=100000 instruments=50 threads=4 writer=on txn_size=1 index=on duration=3.0s
+  joins_per_s                               288.887 1/s        
+  joined_rows_per_s                          28.889 M/s        
+  join_p50_ms                                13.622 ms         
+  join_p99_ms                                15.603 ms         
+  join_p999_ms                               15.746 ms         
+  join_max_ms                                15.746 ms         
+  joins_measured                            868.000 joins      
+  writer_trade_puts_per_s                167800.717 1/s        
+  writer_instrument_txns_per_s             2621.616 1/s        
+  memory_held_max_mib                       142.089 MiB        
+  backlog_max_versions                     5054.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     512499.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               2.696 s          
+valid=1
+# exit_status: 0
+# end: 2026-10-13T12:37:21.815

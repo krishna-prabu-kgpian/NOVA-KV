@@ -1,5 +1,12 @@
 # Milestone D — performance evaluation (D.1, D.2, D.3)
 
+> **Superseded for results.** This is the report of the first campaign, as tagged
+> `part-d-final` (9062d83), kept unchanged below this note as a record. Its timing figures
+> were measured inside `perf stat` and without control of the lock placement, and several of
+> its statements were later corrected or withdrawn: see `reports/milestones/D_corrected.md`
+> and `reports/part_d_report.md`. The paths it gives under `results/part_d/` are now under
+> `results/part_d/original-wrapped-20261013T090846-615f4357f015/`.
+
 Date: 2026-10-13. Branch `part-d/benchmarks`, from the audited Part C checkpoint `b27efd7`.
 Measured commit: `615f435`. Verified commit: `e09da24`.
 

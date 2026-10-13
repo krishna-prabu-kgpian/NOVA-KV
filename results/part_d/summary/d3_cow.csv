@@ -1,0 +1,61 @@
+case,metric,reps,median,min,max
+all rows as one transaction,bytes_copied,5,6.14605e+06,6.14605e+06,6.14605e+06
+all rows as one transaction,bytes_copied_per_row,5,61.4605,61.4605,61.4605
+all rows as one transaction,elapsed_ms,5,13.2599,12.845,13.4802
+all rows as one transaction,memory_held_after_mib,5,9.09371,9.09371,9.09371
+all rows as one transaction,memory_held_before_mib,5,9.02975,9.02975,9.02975
+all rows as one transaction,payload_bytes_per_row,5,32,32,32
+all rows as one transaction,publications,5,1,1,1
+all rows as one transaction,rows,5,100000,100000,100000
+all rows as one transaction,rows_per_s,5,7.54151e+06,7.41828e+06,7.78515e+06
+all rows as one transaction,segments_cloned,5,256,256,256
+all rows as single puts,bytes_copied,5,2.61026e+09,2.61026e+09,2.61026e+09
+all rows as single puts,bytes_copied_per_row,5,26102.6,26102.6,26102.6
+all rows as single puts,elapsed_ms,5,555.367,554.212,555.854
+all rows as single puts,memory_held_after_mib,5,10.2018,9.83336,10.7484
+all rows as single puts,memory_held_before_mib,5,9.02975,9.02975,9.02975
+all rows as single puts,payload_bytes_per_row,5,32,32,32
+all rows as single puts,publications,5,100000,100000,100000
+all rows as single puts,rows,5,100000,100000,100000
+all rows as single puts,rows_per_s,5,180061,179903,180436
+all rows as single puts,segments_cloned,5,100000,100000,100000
+4096 rows spread over all partitions as one transaction,bytes_copied,5,6.14605e+06,6.14605e+06,6.14605e+06
+4096 rows spread over all partitions as one transaction,bytes_copied_per_row,5,1500.5,1500.5,1500.5
+4096 rows spread over all partitions as one transaction,elapsed_ms,5,0.766023,0.722861,0.921347
+4096 rows spread over all partitions as one transaction,memory_held_after_mib,5,15.1259,15.1259,15.1259
+4096 rows spread over all partitions as one transaction,memory_held_before_mib,5,9.02975,9.02975,9.02975
+4096 rows spread over all partitions as one transaction,payload_bytes_per_row,5,32,32,32
+4096 rows spread over all partitions as one transaction,publications,5,1,1,1
+4096 rows spread over all partitions as one transaction,rows,5,4096,4096,4096
+4096 rows spread over all partitions as one transaction,rows_per_s,5,5.3471e+06,4.44566e+06,5.66637e+06
+4096 rows spread over all partitions as one transaction,segments_cloned,5,256,256,256
+4096 rows spread as single puts,bytes_copied,5,1.06779e+08,1.06779e+08,1.06779e+08
+4096 rows spread as single puts,bytes_copied_per_row,5,26069,26069,26069
+4096 rows spread as single puts,elapsed_ms,5,23.9117,23.5322,24.0654
+4096 rows spread as single puts,memory_held_after_mib,5,10.267,9.33119,11.1005
+4096 rows spread as single puts,memory_held_before_mib,5,9.02975,9.02975,9.02975
+4096 rows spread as single puts,payload_bytes_per_row,5,32,32,32
+4096 rows spread as single puts,publications,5,4096,4096,4096
+4096 rows spread as single puts,rows,5,4096,4096,4096
+4096 rows spread as single puts,rows_per_s,5,171297,170203,174059
+4096 rows spread as single puts,segments_cloned,5,4096,4096,4096
+16 rows as one transaction,bytes_copied,5,346112,346112,346112
+16 rows as one transaction,bytes_copied_per_row,5,21632,21632,21632
+16 rows as one transaction,elapsed_ms,5,0.028674,0.027953,0.030468
+16 rows as one transaction,memory_held_after_mib,5,9.3665,9.3665,9.3665
+16 rows as one transaction,memory_held_before_mib,5,9.02975,9.02975,9.02975
+16 rows as one transaction,payload_bytes_per_row,5,32,32,32
+16 rows as one transaction,publications,5,1,1,1
+16 rows as one transaction,rows,5,16,16,16
+16 rows as one transaction,rows_per_s,5,557997,525141,572389
+16 rows as one transaction,segments_cloned,5,15,15,15
+16 rows as single puts,bytes_copied,5,401408,401408,401408
+16 rows as single puts,bytes_copied_per_row,5,25088,25088,25088
+16 rows as single puts,elapsed_ms,5,0.058991,0.05798,0.061486
+16 rows as single puts,memory_held_after_mib,5,9.4272,9.4272,9.4272
+16 rows as single puts,memory_held_before_mib,5,9.02975,9.02975,9.02975
+16 rows as single puts,payload_bytes_per_row,5,32,32,32
+16 rows as single puts,publications,5,16,16,16
+16 rows as single puts,rows,5,16,16,16
+16 rows as single puts,rows_per_s,5,271228,260222,275957
+16 rows as single puts,segments_cloned,5,16,16,16

@@ -44,8 +44,9 @@
 # without control that depends on the lengths of the command-line strings.
 # Every track C run of global_lock and rwlock therefore fixes it with
 # --lock-offset, and every such cell is measured at both placements:
-#   scenario <name>       lock at offset 48 (its first 16 bytes end a line: the faster placement)
-#   scenario <name>_o0    lock at offset 0  (cache-line aligned: the slower placement)
+#   scenario <name>       lock at offset 48 (its first 16 bytes end a line)
+#   scenario <name>_o0    lock at offset 0  (cache-line aligned)
+# Neither is faster everywhere; both are reported.
 #
 # CPU placement (AMD Ryzen AI 7 350: logical CPUs N and N+8 are SMT siblings;
 # cores 0,2,4,6 are the fast cores, 1,3,5,7 the slower ones): readers and

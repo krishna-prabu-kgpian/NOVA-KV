@@ -1,0 +1,20 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/perf_stat/ps_join_t1_active_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/rss/ps_join_t1_active_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/hist/ps_join_t1_active_rep1.csv --run-id ps_join_t1_active_rep1 --git-sha fcd2938f49b6 --experiment join --threads 1 --cpus 0 --writer on --duration 3
+join_bench experiment=join trades=100000 instruments=50 threads=1 writer=on txn_size=1 index=on duration=3.0s
+  joins_per_s                                65.128 1/s        
+  joined_rows_per_s                           6.513 M/s        
+  join_p50_ms                                15.221 ms         
+  join_p99_ms                                16.697 ms         
+  join_p999_ms                               18.862 ms         
+  join_max_ms                                18.862 ms         
+  joins_measured                            196.000 joins      
+  writer_trade_puts_per_s                160381.701 1/s        
+  writer_instrument_txns_per_s             2505.751 1/s        
+  memory_held_max_mib                       150.159 MiB        
+  backlog_max_versions                     5460.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     490648.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               2.296 s          
+valid=1
+# exit_status: 0

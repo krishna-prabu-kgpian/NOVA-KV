@@ -1,0 +1,16 @@
+run_id,variant,experiment,trades,instruments,threads,writer,txn_size,index,duration_s,metric,value,unit,detail,valid,git_sha
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,joins_per_s,609.398261,1/s,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,joined_rows_per_s,60.939826,M/s,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,join_p50_ms,12.311873,ms,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,join_p99_ms,20.604121,ms,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,join_p999_ms,22.686356,ms,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,join_max_ms,22.686466,ms,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,joins_measured,1832.000000,joins,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,writer_trade_puts_per_s,110129.109870,1/s,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,writer_instrument_txns_per_s,1720.751749,1/s,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,memory_held_max_mib,1001.431816,MiB,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,backlog_max_versions,38392.000000,versions,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,memory_held_idle_mib,9.116486,MiB,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,versions_reclaimed,336690.000000,versions,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,index_segments_reclaimed,16.000000,segments,,1,unknown
+fg_join_t8_active,rcu,join,100000,50,8,on,1,on,3.000,cleaner_cpu_s,3.024606,s,,1,unknown

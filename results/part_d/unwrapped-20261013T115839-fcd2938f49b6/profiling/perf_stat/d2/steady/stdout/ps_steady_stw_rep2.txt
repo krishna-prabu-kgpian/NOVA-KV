@@ -1,0 +1,12 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d2/steady/perf_stat/ps_steady_stw_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d2/steady/rss/ps_steady_stw_rep2.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 2 --git-sha fcd2938f49b6 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d2/steady/runs.csv --cow-csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d2/steady/cow.csv --retain-limit-mb 16000 --duration 3 --reclaim stw --run-id ps_steady_stw_rep2 --scenario reclaim_stw --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d2/steady/hist/ps_steady_stw_rep2.csv
+rcu          scenario=reclaim_stw readers=8 writer=thread_max keys=hit seconds=3.000
+  store lock object at 0x5ff92e0e6f40 (offset 0 in its cache line, not controlled), 8 bytes (cache lines 0x5ff92e0e6f40..0x5ff92e0e6f40)
+  reads : ops=15226943 rps=5075544 hits=15226943 misses=0 corrupt=0
+  read latency ns: p50=361 p99=1040 p999=2000 max=7752643 mean=1535.1
+  writes: ok=485561 failed=0 rps=161850 p50=5376 p99=14848 max=86994 ns
+  rcu   : publications=577407 (writes incl. warm-up=577407) commits_failed=0 reclaim=stw batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23926 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=115.9 value_bytes=32.0
+  rcu reclamation: reclaimed=583769 backlog_at_end=804 backlog_max=10455 passes=4400 epoch_advances=1102/1102 attempts (0 blocked by a reader) max_versions_in_pass=0 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=0 cleaner_cpu=2.547s (72.8% of one CPU over warm-up + window)
+  rcu memory held: after_load=173.2 MiB at_end=48.0 MiB settled=48.0 MiB (versions + segments + chunks)
+# exit_status: 0

@@ -1,0 +1,25 @@
+campaign: 20261013T115839-fcd2938f49b6-all
+git_sha: fcd2938f49b6
+mode: all
+timing_track=unwrapped (measured executables started directly; no perf, no /usr/bin/time)
+lock_placement=controlled (track C, global_lock and rwlock: --lock-offset 48 for <scenario>, 0 for <scenario>_o0)
+profiling_track=separate (profiling/perf_stat, profiling/flamegraphs, profiling/c2c) perf_stat_reps=2
+build_dir: build/release (CMAKE_BUILD_TYPE=Release)
+compile command (kvstore.cpp, rcu variant):
+  /usr/bin/c++ -DNOVA_KV_SYNC_MODE=NOVA_KV_SYNC_RCU -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/include -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/src -O3 -g -DNDEBUG -std=c++17 -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror -o CMakeFiles/nova_kv_rcu.dir/src/kvstore.cpp.o -c /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/kvstore.cpp
+reps=5 d1_duration_s=5 reference_duration_s=5 d2_d3_duration_s=3 warmup_s=0.5
+reader_counts="1 2 4 8" reclaim_batches="1 8 64 256 1024" txn_sizes="1 4 16" join_threads="1 2 4 8"
+reader_cpus=0,2,4,6,1,3,5,7 writer_cpu=15 (cleaner thread not pinned) paced_writer_rate=10000 retain_limit_mb=16000
+perf_events=task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses perf_record_freq_hz=1999
+perf: perf version 7.0.12   perf_event_paranoid=1 kptr_restrict=1
+sha256 of the measured executables:
+  f4f259e8bde8815babd209074c03fafcca44a32e74601162f29f4ec9764d230e  concurrent_bench_single
+  b2524464cd98af6fde0e20b394b330417516aeafb72cc1591184eaa0cd0567fb  concurrent_bench_global_lock
+  615347d2f50c8443a8feb5525c413bafbf6fb43f172ec2e90b8bc0b644dd2950  concurrent_bench_rwlock
+  9931ba55b2467994eed8cc74a71498a1edb9e8c3bd10a133747774273fac0068  concurrent_bench_rcu
+  b48a07661db6ea82a3b5b14bb44d64b5e24a5b5fe3ffbf7acab539b59e412b6a  join_bench
+  20ee9eda8f8fe942f8232d1dc12b3312c50ed06ca99084cc6fb2ea52a58816ab  reclaim_bench
+  3e12e822b34b2638ff4717f3757e74d3944bcbe76efd58a32bf02518400bb58c  single_thread
+  67bfb0771c945a9ab480516689323e754a212fa3ce1967e44f9f30a566612699  global_lock
+  764566a294705f6b2b6a359232c3ebd3f245a0484275a1e2e68084f40930aed5  rwlock
+  9203606c5f4010639207798ad2dc2c8d16494af54681f8804f8eac06499706b1  rcu

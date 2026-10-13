@@ -1,0 +1,12 @@
+# command: build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 3 --git-sha fcd2938f49b6 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim-batch 1 --run-id backlog_batch1_rep3 --scenario batch_1 --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d2/backlog/hist/backlog_batch1_rep3.csv
+# wrapper: none
+# start: 2026-10-13T12:33:58.893
+reclaim_bench variant=rcu reclaim=epoch batch=1 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 3.000 s  reads=110694839 rps=36896960 p50=170 ns p99=321 ns p999=501 ns max=341117 ns
+  writer : ok=678879 failed=0 wps=226285 stopped_at_limit=0  pin_cycles=70
+  backlog: max=6312 at_release=6363  held idle=7.9 MiB max=70.2 MiB at_end=26.8 MiB
+  cleanup: drained=1 in 16.748 ms  reads=816145 max=23725 ns p999=391 ns
+  reclaim: versions=788275 passes=789568 max_per_pass=1 stw_pauses=0 cleaner_cpu=2.977 s
+valid=1
+# exit_status: 0
+# end: 2026-10-13T12:34:02.428

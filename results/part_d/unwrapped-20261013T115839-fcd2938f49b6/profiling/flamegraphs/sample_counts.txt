@@ -1,0 +1,14 @@
+rcu_r1_writer_max: 31796 samples, 63498452905 cycles
+rcu_r2_writer_max: 43421 samples, 86451870462 cycles
+rcu_r4_writer_max: 65726 samples, 142159125805 cycles
+rcu_r8_writer_max: 110940 samples, 223492409321 cycles
+rcu_r8_writer_paced: 100174 samples, 203228270315 cycles
+rcu_r8_readonly: 88502 samples, 182879648967 cycles
+global_lock_r8_writer_max: 92175 samples, 169972937221 cycles
+global_lock_r8_writer_paced: 93884 samples, 179707664012 cycles
+global_lock_r8_writer_paced_o0: 93512 samples, 177111022069 cycles
+rwlock_r8_writer_max: 86594 samples, 164206117979 cycles
+rwlock_r8_writer_paced: 98853 samples, 196000699484 cycles
+rwlock_r8_writer_paced_o0: 86211 samples, 176492167451 cycles
+rcu_r8_stw: 48462 samples, 91522116797 cycles
+join_t8_writer_active: 59471 samples, 114101626422 cycles

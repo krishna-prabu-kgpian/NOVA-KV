@@ -1,0 +1,8 @@
+FlameGraph: https://github.com/brendangregg/FlameGraph @ 41fee1f99f9276008b7cd112fca19dc3ea84ac32
+perf: perf version 7.0.12   kptr_restrict: 1
+Each <id>.record.log starts with the exact perf record command. Then:
+  DEBUGINFOD_URLS= perf script --no-inline -i <id>.data   (kept as <id>.perf-script.txt.xz)
+  sed: label unresolved kernel frames [kernel]; stackcollapse-perf.pl; merge consecutive [kernel] frames; flamegraph.pl
+Samples are taken on the cycles event: box widths are shares of on-CPU cycles. A thread blocked
+in the kernel consumes no cycles and is not sampled. kptr_restrict is nonzero, so kernel frames
+have no symbol names; no sample is added, removed or reattributed.

@@ -14,7 +14,7 @@ A single-node, in-memory key-value store with RCU reads, built for
 | B2 | Epoch-based reclamation, background cleaner, `set_reclaim_batch`; Part B README, compliance checklist, A→B diff | **Done** (`reports/milestones/B2.md`) — Part B complete |
 | C1 | `Transaction` (atomic multi-key commits), `Snapshot`, snapshot-scoped `get`, `keys`; writer serialization; isolation design note | **Done** (`reports/milestones/C1.md`) |
 | C2 | Secondary index inside the version (`create_index`, `index_get`), index-nested-loop join with one snapshot per store, Part C README and B→C diff | **Done** (`reports/milestones/C2.md`) — Part C complete, with one documented deviation |
-| D | Benchmark campaign: D.1 scaling and the 100k target, D.2 reclaim-batch study, D.3 join and transactions; perf stat, flame graphs, perf c2c | **Done** (`reports/milestones/D.md`) — report `reports/part_d_report.pdf` |
+| D | Benchmark campaign: D.1 scaling and the 100k target, D.2 reclaim-batch study, D.3 join and transactions; perf stat, flame graphs, perf c2c | **Done, corrected and audited** (`reports/milestones/D.md`, `reports/milestones/D_corrected.md`) — report `reports/part_d_report.pdf` |
 | E | Write-ahead log (optional bonus) | Not started |
 
 **What works:** `put`, `get`, `erase` and `set_reclaim_batch` under four synchronization
@@ -240,34 +240,46 @@ build/release/join_bench --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --
 
 ## Part D: benchmarks
 
-- **Report:** `reports/part_d_report.pdf` (source `reports/part_d_report.md`)
-- **Compliance checklist:** `docs/part_d_compliance.md`; plan and pre-campaign deviations:
-  `docs/part_d_plan.md`
-- **Raw data, summaries, figures:** `results/part_d/` (campaign id in `CAMPAIGN`;
-  `summary/summary.md` has every table)
+- **Report:** `reports/part_d_report.pdf` (source `reports/part_d_report.md`, generated from
+  `reports/part_d_report.template.md`: every number is computed from the campaign data)
+- **Compliance checklist:** `docs/part_d_compliance.md`; plan, deviations and the two
+  corrections of method: `docs/part_d_plan.md` (§9–§11)
+- **Data:** `results/part_d/` (`README.md` there lists the three campaigns; `PRIMARY` names
+  the one the report uses; `summary/summary.md` has every table)
+- **Milestone reports:** `reports/milestones/D.md` (first campaign, tag `part-d-final`) and
+  `reports/milestones/D_corrected.md` (final campaign, tag `part-d-audited`)
 
-Headline results (medians of 5 runs; mains power, `performance` governor; details and caveats
-in the report):
+Part D was measured three times. The first campaign (tag `part-d-final`) ran every timed
+benchmark inside `perf stat`, which changes some results. The second ran them directly and
+exposed a second problem: the lock-based stores run at two different speeds depending on where
+their lock object lies inside its cache line. The final campaign starts every timed run
+directly, profiles in separate runs, and measures the lock-based stores at both placements.
+All three are kept; only the final one is a source of results.
+
+Headline results of the final campaign (medians of 5 runs; mains power, `performance`
+governor; details and caveats in the report):
 
 | | |
 |---|---|
-| RCU, 8 readers, writer paced at 10,000/s | 99.2 M reads/s, p99.9 0.21 µs — the 100,000/s target is met |
-| RCU, 8 readers, unthrottled writer | 50.1 M reads/s, 101,121 updates/s; the cleaner falls behind and memory grows |
-| Global mutex / shared mutex | stop scaling after 4 readers; the shared mutex starves its writer at 8 |
-| Reclaim batch 1…1024 | no effect on read throughput or stalls; larger batches reclaim faster |
-| Stop-the-world vs bounded reclamation | longest reader stall 28× to 87× worse |
-| Join, 8 joiners | 1,026 joins/s with the writer paused, 580 with it active (one Snapshot per store) |
-| Transactions of 1 / 4 / 16 keys | 238,103 / 101,298 / 26,655 commits/s |
+| RCU, 8 readers, writer paced at 10,000/s | 98.25 M reads/s, p99.9 0.24 µs — the 100,000/s target is met |
+| RCU, 8 readers, unthrottled writer | 47.97 M reads/s, 104,956 updates/s; the cleaner falls behind and memory grows |
+| Global mutex | gains nothing from more readers; 11.30 / 9.30 M reads/s at 8 readers (lock at offset 48 / 0) |
+| Shared mutex | stops scaling after 4 readers; at 8: 34.17 M reads/s (lock at 48), or 21.27 M with a starved writer (lock at 0) |
+| Reclaim batch 1…1024 | no measurable effect on read throughput, stalls, reclamation rate or memory |
+| Stop-the-world vs bounded reclamation | longest reader stall 42× to 116× worse |
+| Join, 8 joiners | 1,048 joins/s with the writer paused, 558 with it active (one Snapshot per store) |
+| Transactions of 1 / 4 / 16 keys | 236,846 / 101,070 / 26,544 commits/s |
 
-Two tracks are kept apart everywhere: the **supplied generator is preload-only** (no writer
-while its readers run); numbers "with a writer" come from `benchmarks/concurrent_bench.cpp`.
+Two workload tracks are kept apart everywhere: the **supplied generator is preload-only** (no
+writer while its readers run); numbers "with a writer" come from
+`benchmarks/concurrent_bench.cpp`.
 
 ```bash
-scripts/run_part_d.sh check     # prerequisites: mains, governor, perf, idle machine
-scripts/run_part_d.sh all       # about 40 minutes -> results/part_d/ (refuses a dirty tree)
-scripts/aggregate_part_d.py results/part_d
-scripts/part_d_profile_breakdown.py results/part_d
-scripts/build_part_d_report.sh
+scripts/run_part_d.sh check       # prerequisites: mains, governor, perf, idle machine
+scripts/run_part_d.sh all         # about an hour -> a NEW directory results/part_d/unwrapped-<time>-<sha>/
+scripts/publish_part_d.sh results/part_d/unwrapped-<time>-<sha>   # aggregate, audit, compare, make it PRIMARY
+scripts/render_part_d_report.py   # report, checklist and milestone report from their templates
+scripts/build_part_d_report.sh    # the PDF
 ```
 
 ## Part A results and how to reproduce them

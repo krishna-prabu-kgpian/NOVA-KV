@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_rwlock --readers 4 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6 --seed 5 --run-id rwlock_writer_max_o0_r4_rep5 --git-sha fcd2938f49b6 --scenario writer_max_o0 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/hist/rwlock_writer_max_o0_r4_rep5.csv --writer on --writer-cpu 15 --lock-offset 0
+# wrapper: none
+# start: 2026-10-13T12:19:37.779
+rwlock       scenario=writer_max_o0 readers=4 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x61bea9e84dc0 (offset 0 in its cache line, placed by --lock-offset), 56 bytes (cache lines 0x61bea9e84dc0..0x61bea9e84dc0)
+  reads : ops=18921143 rps=3784182 hits=18921143 misses=0 corrupt=0
+  read latency ns: p50=111 p99=4672 p999=17664 max=3816968 mean=1026.8
+  writes: ok=1190190 failed=0 rps=238035 p50=4096 p99=12672 max=3821667 ns
+# exit_status: 0
+# end: 2026-10-13T12:19:43.299

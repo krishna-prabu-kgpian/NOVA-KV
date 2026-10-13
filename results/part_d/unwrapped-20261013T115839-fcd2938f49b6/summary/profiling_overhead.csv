@@ -1,0 +1,92 @@
+experiment,cell,measure,timing_median,timing_runs,perf_stat_median,perf_stat_runs,ratio_profiled_over_timing
+D.1,global_lock; refkeys_paced; 8 reader(s),reads/s,1.41741e+07,5,2.14974e+07,2,1.5167
+D.1,global_lock; refkeys_paced_o0; 8 reader(s),reads/s,1.0343e+07,5,1.29143e+07,2,1.2486
+D.1,global_lock; writer_max; 1 reader(s),reads/s,4.69806e+06,5,4.54435e+06,2,0.9673
+D.1,global_lock; writer_max; 2 reader(s),reads/s,6.69193e+06,5,6.25311e+06,2,0.9344
+D.1,global_lock; writer_max; 4 reader(s),reads/s,7.32304e+06,5,8.25177e+06,2,1.1268
+D.1,global_lock; writer_max; 8 reader(s),reads/s,6.70188e+06,5,7.9074e+06,2,1.1799
+D.1,global_lock; writer_max_o0; 1 reader(s),reads/s,5.9737e+06,5,5.4927e+06,2,0.9195
+D.1,global_lock; writer_max_o0; 2 reader(s),reads/s,7.52657e+06,5,6.93209e+06,2,0.9210
+D.1,global_lock; writer_max_o0; 4 reader(s),reads/s,8.07064e+06,5,8.81249e+06,2,1.0919
+D.1,global_lock; writer_max_o0; 8 reader(s),reads/s,7.1455e+06,5,7.89745e+06,2,1.1052
+D.1,global_lock; writer_paced; 1 reader(s),reads/s,1.61225e+07,5,1.58845e+07,2,0.9852
+D.1,global_lock; writer_paced; 2 reader(s),reads/s,1.52831e+07,5,1.3116e+07,2,0.8582
+D.1,global_lock; writer_paced; 4 reader(s),reads/s,1.69119e+07,5,1.73669e+07,2,1.0269
+D.1,global_lock; writer_paced; 8 reader(s),reads/s,1.1297e+07,5,1.41177e+07,2,1.2497
+D.1,global_lock; writer_paced_o0; 1 reader(s),reads/s,1.61045e+07,5,1.59555e+07,2,0.9907
+D.1,global_lock; writer_paced_o0; 2 reader(s),reads/s,1.57317e+07,5,1.36534e+07,2,0.8679
+D.1,global_lock; writer_paced_o0; 4 reader(s),reads/s,1.63086e+07,5,1.66936e+07,2,1.0236
+D.1,global_lock; writer_paced_o0; 8 reader(s),reads/s,9.30119e+06,5,1.13873e+07,2,1.2243
+D.1,rcu; readonly; 1 reader(s),reads/s,1.60588e+07,5,1.60134e+07,2,0.9972
+D.1,rcu; readonly; 8 reader(s),reads/s,1.12792e+08,5,1.11703e+08,2,0.9904
+D.1,rcu; refkeys_paced; 8 reader(s),reads/s,1.0424e+08,5,1.0391e+08,2,0.9968
+D.1,rcu; writer_max; 1 reader(s),reads/s,8.41359e+06,5,8.42533e+06,2,1.0014
+D.1,rcu; writer_max; 2 reader(s),reads/s,1.71551e+07,5,1.59153e+07,2,0.9277
+D.1,rcu; writer_max; 4 reader(s),reads/s,2.82959e+07,5,2.83586e+07,2,1.0022
+D.1,rcu; writer_max; 8 reader(s),reads/s,4.79702e+07,5,4.98641e+07,2,1.0395
+D.1,rcu; writer_paced; 1 reader(s),reads/s,1.39741e+07,5,1.39222e+07,2,0.9963
+D.1,rcu; writer_paced; 2 reader(s),reads/s,2.92999e+07,5,2.92849e+07,2,0.9995
+D.1,rcu; writer_paced; 4 reader(s),reads/s,5.97632e+07,5,5.92153e+07,2,0.9908
+D.1,rcu; writer_paced; 8 reader(s),reads/s,9.825e+07,5,9.77185e+07,2,0.9946
+D.1,rwlock; refkeys_paced; 8 reader(s),reads/s,3.46842e+07,5,3.23491e+07,2,0.9327
+D.1,rwlock; refkeys_paced_o0; 8 reader(s),reads/s,2.2739e+07,5,2.25536e+07,2,0.9918
+D.1,rwlock; writer_max; 1 reader(s),reads/s,302142,5,143574,2,0.4752
+D.1,rwlock; writer_max; 2 reader(s),reads/s,1.07551e+06,5,616286,2,0.5730
+D.1,rwlock; writer_max; 4 reader(s),reads/s,4.07679e+06,5,2.05978e+06,2,0.5052
+D.1,rwlock; writer_max; 8 reader(s),reads/s,1.83898e+07,5,1.65289e+07,2,0.8988
+D.1,rwlock; writer_max_o0; 1 reader(s),reads/s,294315,5,142615,2,0.4846
+D.1,rwlock; writer_max_o0; 2 reader(s),reads/s,1.03758e+06,5,521316,2,0.5024
+D.1,rwlock; writer_max_o0; 4 reader(s),reads/s,4.00664e+06,5,1.77446e+06,2,0.4429
+D.1,rwlock; writer_max_o0; 8 reader(s),reads/s,2.13561e+07,5,2.1361e+07,2,1.0002
+D.1,rwlock; writer_paced; 1 reader(s),reads/s,1.59022e+07,5,1.57305e+07,2,0.9892
+D.1,rwlock; writer_paced; 2 reader(s),reads/s,2.37709e+07,5,2.34925e+07,2,0.9883
+D.1,rwlock; writer_paced; 4 reader(s),reads/s,3.69262e+07,5,3.48304e+07,2,0.9432
+D.1,rwlock; writer_paced; 8 reader(s),reads/s,3.41704e+07,5,3.18167e+07,2,0.9311
+D.1,rwlock; writer_paced_o0; 1 reader(s),reads/s,1.59766e+07,5,1.58746e+07,2,0.9936
+D.1,rwlock; writer_paced_o0; 2 reader(s),reads/s,2.23601e+07,5,2.01114e+07,2,0.8994
+D.1,rwlock; writer_paced_o0; 4 reader(s),reads/s,2.86141e+07,5,2.69282e+07,2,0.9411
+D.1,rwlock; writer_paced_o0; 8 reader(s),reads/s,2.12682e+07,5,2.1277e+07,2,1.0004
+D.1,single; inline_writer; 1 reader(s),reads/s,1.67818e+07,5,1.67469e+07,2,0.9979
+D.1,single; readonly; 1 reader(s),reads/s,1.8325e+07,5,1.81671e+07,2,0.9914
+D.2 A,batch 1,reads/s,4.85781e+07,5,4.9792e+07,2,1.0250
+D.2 A,batch 1,longest stall ns,142220,5,143496,2,1.0090
+D.2 A,batch 8,reads/s,4.86242e+07,5,4.99367e+07,2,1.0270
+D.2 A,batch 8,longest stall ns,149413,5,159576,2,1.0680
+D.2 A,batch 64,reads/s,4.83028e+07,5,4.9635e+07,2,1.0276
+D.2 A,batch 64,longest stall ns,146248,5,147148,2,1.0062
+D.2 A,batch 256,reads/s,4.84462e+07,5,4.96031e+07,2,1.0239
+D.2 A,batch 256,longest stall ns,164131,5,197182,2,1.2014
+D.2 A,batch 1024,reads/s,4.84617e+07,5,5.03495e+07,2,1.0390
+D.2 A,batch 1024,longest stall ns,140777,5,161570,2,1.1477
+D.2 A,stop-the-world,reads/s,7.18442e+06,5,5.13203e+06,2,0.7143
+D.2 A,stop-the-world,longest stall ns,6.81854e+06,5,6.48204e+06,2,0.9506
+D.2 A,disabled,reads/s,7.38335e+07,5,7.30285e+07,2,0.9891
+D.2 A,disabled,longest stall ns,140065,5,159466,2,1.1385
+D.2 B,batch 1,reads/s,4.03621e+07,5,3.73482e+07,2,0.9253
+D.2 B,batch 1,longest stall ns,149384,5,153905,2,1.0303
+D.2 B,batch 8,reads/s,4.02671e+07,5,3.92519e+07,2,0.9748
+D.2 B,batch 8,longest stall ns,197415,5,298086,2,1.5099
+D.2 B,batch 64,reads/s,4.03183e+07,5,4.04734e+07,2,1.0038
+D.2 B,batch 64,longest stall ns,180513,5,147332,2,0.8162
+D.2 B,batch 256,reads/s,3.71793e+07,5,4.06515e+07,2,1.0934
+D.2 B,batch 256,longest stall ns,149624,5,156605,2,1.0467
+D.2 B,batch 1024,reads/s,3.74052e+07,5,4.0536e+07,2,1.0837
+D.2 B,batch 1024,longest stall ns,152990,5,149466,2,0.9770
+D.2 B,stop-the-world,reads/s,7.22882e+06,5,2.95448e+06,2,0.4087
+D.2 B,stop-the-world,longest stall ns,2.28141e+07,5,2.61007e+07,2,1.1441
+D.2 B,disabled,reads/s,3.94428e+07,5,3.93421e+07,2,0.9974
+D.2 B,disabled,longest stall ns,151978,5,143130,2,0.9418
+D.3 txn,1 key(s); index off,commits/s,236846,5,231848,2,0.9789
+D.3 txn,1 key(s); index on,commits/s,58725.8,5,58195,2,0.9910
+D.3 txn,4 key(s); index off,commits/s,101070,5,103328,2,1.0223
+D.3 txn,4 key(s); index on,commits/s,17552.6,5,17403.5,2,0.9915
+D.3 txn,16 key(s); index off,commits/s,26543.6,5,26399.8,2,0.9946
+D.3 txn,16 key(s); index on,commits/s,6187.73,5,6136.4,2,0.9917
+D.3 join,1 joiner(s); writer paused,joins/s,154.156,5,154.454,2,1.0019
+D.3 join,1 joiner(s); writer active,joins/s,62.9775,5,64.7918,2,1.0288
+D.3 join,2 joiner(s); writer paused,joins/s,306.503,5,301.941,2,0.9851
+D.3 join,2 joiner(s); writer active,joins/s,148.919,5,151.655,2,1.0184
+D.3 join,4 joiner(s); writer paused,joins/s,582.955,5,578.805,2,0.9929
+D.3 join,4 joiner(s); writer active,joins/s,292.541,5,294.217,2,1.0057
+D.3 join,8 joiner(s); writer paused,joins/s,1047.54,5,1035.68,2,0.9887
+D.3 join,8 joiner(s); writer active,joins/s,557.689,5,612.321,2,1.0980

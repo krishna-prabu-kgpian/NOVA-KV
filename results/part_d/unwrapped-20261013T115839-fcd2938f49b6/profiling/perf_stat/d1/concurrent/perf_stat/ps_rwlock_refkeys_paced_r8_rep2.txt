@@ -1,0 +1,21 @@
+# started on Tue Oct 13 12:51:45 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/rss/ps_rwlock_refkeys_paced_r8_rep2.txt build/release/concurrent_bench_rwlock --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 2 --run-id ps_rwlock_refkeys_paced_r8_rep2 --git-sha fcd2938f49b6 --scenario refkeys_paced --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/hist/ps_rwlock_refkeys_paced_r8_rep2.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference --lock-offset 48':
+
+         46,403.34 msec task-clock                                                            
+   186,470,775,568      cycles                                                                  (83.57%)
+   119,594,158,341      instructions                                                            (82.75%)
+     1,517,994,471      cache-references                                                        (83.46%)
+       337,934,060      cache-misses                                                            (83.56%)
+           485,436      context-switches                                                      
+                 6      cpu-migrations                                                        
+       267,207,401      branch-misses                                                           (83.74%)
+     1,139,673,890      L1-dcache-load-misses                                                   (82.93%)
+
+       5.516655915 seconds time elapsed
+
+       4.134121000 seconds user
+      42.303579000 seconds sys
+
+

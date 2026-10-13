@@ -1,0 +1,6 @@
+# Field offsets of the two glibc lock types on the measurement machine (offsetof, compiled with GCC 15.2).
+# Supports the layout facts quoted in the lock-placement hypothesis (report section 2.2). Which field each
+# function reads first is from the glibc sources (nptl/pthread_mutex_lock.c, nptl/pthread_rwlock_unlock.c), not measured.
+glibc 2.43
+pthread_mutex_t size=40 __lock=0 __owner=8 __kind=16
+pthread_rwlock_t size=56 __readers=0 __writers=4 __wrphase_futex=8 __writers_futex=12 __cur_writer=24 __shared=28 __flags=48

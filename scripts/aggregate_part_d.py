@@ -358,9 +358,9 @@ if V2:
 if PLACED:
     md += ["**Lock placement.** The two lock-based stores run at two different speeds depending on where their lock object",
            "lies inside its 64-byte cache line (decision D-072). Every such cell is therefore measured twice, with the lock",
-           "placed at offset 48 (its first 16 bytes end one line, the rest begins the next: the faster placement) and at",
-           "offset 0 (cache-line aligned: the slower one; offsets 16 and 32 behave like 0). The RCU store's readers take",
-           "no lock, so it has one row.", ""]
+           "placed at offset 48 (its first 16 bytes end one line, the rest begins the next) and at offset 0 (cache-line",
+           "aligned; offsets 16 and 32 behaved like 0 in the diagnostic). Neither is better everywhere: see the tables.",
+           "The RCU store's readers take no lock, so it has one row.", ""]
 PF = " *(prof.)*" if V2 else ""
 for scen, title in (("writer_paced", "Writer paced at 10,000 updates/s"), ("writer_max", "Writer unthrottled")):
     md += [f"### {title}", "",
@@ -416,9 +416,9 @@ md.append("")
 cow1 = {r["run_id"]: r for r in read_csv(os.path.join(OUT, "d1/concurrent/cow.csv"))}
 md += ["### RCU store during D.1: copy-on-write and reclamation", "",
        "\"Backlog max\" and \"Peak RSS\" include the loading of the 100,000 trades before the measured window; \"at end\"",
+       "is the state when the window closes. A backlog at the end that is close to the maximum means it was still growing.", "",
        *(["Peak RSS is from the profiling track (`/usr/bin/time` around other runs of the same command); everything else",
           "is the store's own counters in the timing runs."] if V2 else []),
-       "is the state when the window closes. A backlog at the end that is close to the maximum means it was still growing.", "",
        "| Writer | Readers | Peak RSS MiB | Memory held at end MiB | Backlog max (versions) | Backlog at end | Cleaner CPU s | Bytes copied per update |",
        "|---|---:|---:|---:|---:|---:|---:|---:|"]
 rcu_recl_rows = []

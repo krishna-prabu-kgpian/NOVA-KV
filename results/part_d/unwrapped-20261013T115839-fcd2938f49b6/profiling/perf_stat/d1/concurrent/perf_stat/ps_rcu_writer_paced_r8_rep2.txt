@@ -1,0 +1,21 @@
+# started on Tue Oct 13 12:50:59 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/rss/ps_rcu_writer_paced_r8_rep2.txt build/release/concurrent_bench_rcu --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 2 --run-id ps_rcu_writer_paced_r8_rep2 --git-sha fcd2938f49b6 --scenario writer_paced --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/hist/ps_rcu_writer_paced_r8_rep2.csv --cow-csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer on --writer-cpu 15 --writer-rate 10000':
+
+         50,717.86 msec task-clock                                                            
+   207,916,789,440      cycles                                                                  (83.37%)
+   261,102,273,578      instructions                                                            (83.31%)
+     2,942,216,234      cache-references                                                        (83.31%)
+       585,144,322      cache-misses                                                            (83.33%)
+            66,731      context-switches                                                      
+                49      cpu-migrations                                                        
+       361,407,486      branch-misses                                                           (83.36%)
+     2,218,649,115      L1-dcache-load-misses                                                   (83.33%)
+
+       5.903641151 seconds time elapsed
+
+      46.587221000 seconds user
+       4.145002000 seconds sys
+
+

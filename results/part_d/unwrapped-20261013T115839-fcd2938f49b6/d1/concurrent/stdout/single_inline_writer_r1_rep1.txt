@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_single --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 1 --run-id single_inline_writer_r1_rep1 --git-sha fcd2938f49b6 --scenario inline_writer --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/hist/single_inline_writer_r1_rep1.csv --writer inline:100
+# wrapper: none
+# start: 2026-10-13T12:02:36.207
+single       scenario=inline_writer readers=1 writer=inline_same_thread keys=hit seconds=5.000
+  store lock object at 0x5be6bc051dd0 (offset 16 in its cache line, not controlled), 1 bytes (cache lines 0x5be6bc051dc0..0x5be6bc051dc0)
+  reads : ops=81107001 rps=16221146 hits=81107001 misses=0 corrupt=0
+  read latency ns: p50=30 p99=240 p999=420 max=136838 mean=39.9
+  writes: ok=811070 failed=0 rps=162211 p50=0 p99=0 max=0 ns
+# exit_status: 0
+# end: 2026-10-13T12:02:41.724

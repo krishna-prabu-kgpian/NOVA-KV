@@ -1,0 +1,4 @@
+mode,reps,rps_median,rps_min,rps_max,probe_hit_rate
+put,5,8.15331e+07,7.75424e+07,8.34254e+07,
+txn:16,5,8.27234e+07,7.55748e+07,8.40182e+07,
+join,5,6.20149e+07,6.06807e+07,6.25164e+07,1

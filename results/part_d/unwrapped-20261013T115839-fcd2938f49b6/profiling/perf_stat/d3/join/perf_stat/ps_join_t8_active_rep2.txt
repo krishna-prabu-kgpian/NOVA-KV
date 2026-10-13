@@ -1,0 +1,21 @@
+# started on Tue Oct 13 12:55:32 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/rss/ps_join_t8_active_rep2.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/runs.csv --hist results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d3/join/hist/ps_join_t8_active_rep2.csv --run-id ps_join_t8_active_rep2 --git-sha fcd2938f49b6 --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --duration 3':
+
+         30,077.10 msec task-clock                                                            
+   119,872,091,161      cycles                                                                  (83.30%)
+   204,789,704,318      instructions                                                            (83.35%)
+     3,118,325,951      cache-references                                                        (83.43%)
+       541,089,043      cache-misses                                                            (83.30%)
+           190,824      context-switches                                                      
+                46      cpu-migrations                                                        
+       297,165,445      branch-misses                                                           (83.29%)
+     1,687,216,149      L1-dcache-load-misses                                                   (83.34%)
+
+       3.263108581 seconds time elapsed
+
+      28.008486000 seconds user
+       2.128483000 seconds sys
+
+

@@ -1,0 +1,301 @@
+run_id,variant,experiment,trades,instruments,threads,writer,txn_size,index,duration_s,metric,value,unit,detail,valid,git_sha
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,13.480205,ms,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,7418284.810951,1/s,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,61.460480,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.093712,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,100000.000000,versions,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,555.854342,ms,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,179903.245228,1/s,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,100000.000000,segments,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,2610262016.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26102.620160,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,10.748375,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.864760,ms,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,4736574.309635,1/s,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,1500.500000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,15.125916,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,4096.000000,versions,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,23.532218,ms,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,174059.240825,1/s,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,4096.000000,segments,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,106778624.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26069.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.436478,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.028674,ms,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,557996.791518,1/s,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,15.000000,segments,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,346112.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,21632.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.366501,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,publications,16.000000,versions,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.057980,ms,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,275957.226630,1/s,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,16.000000,segments,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,401408.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,25088.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep1,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.427200,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,13.379734,ms,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,7473990.140611,1/s,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,61.460480,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.093712,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,100000.000000,versions,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,555.636779,ms,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,179973.687451,1/s,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,100000.000000,segments,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,2610262016.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26102.620160,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.833359,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.921347,ms,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,4445664.879790,1/s,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,1500.500000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,15.125916,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,4096.000000,versions,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,23.615716,ms,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,173443.820209,1/s,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,4096.000000,segments,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,106778624.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26069.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,10.927948,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.030468,ms,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,525141.131679,1/s,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,15.000000,segments,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,346112.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,21632.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.366501,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,publications,16.000000,versions,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.058991,ms,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,271227.814412,1/s,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,16.000000,segments,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,401408.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,25088.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep2,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.427200,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,13.214220,ms,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,7567605.201064,1/s,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,61.460480,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.093712,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,100000.000000,versions,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,554.630581,ms,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,180300.191561,1/s,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,100000.000000,segments,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,2610262016.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26102.620160,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,10.201752,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.740334,ms,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,5532637.971510,1/s,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,1500.500000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,15.125916,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,4096.000000,versions,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,24.065410,ms,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,170202.793138,1/s,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,4096.000000,segments,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,106778624.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26069.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.331192,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.028814,ms,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,555285.625043,1/s,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,15.000000,segments,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,346112.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,21632.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.366501,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,publications,16.000000,versions,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.058951,ms,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,271411.850520,1/s,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,16.000000,segments,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,401408.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,25088.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep3,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.427200,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,12.844960,ms,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,7785154.644312,1/s,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,61.460480,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.093712,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,100000.000000,versions,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,554.211837,ms,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,180436.420379,1/s,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,100000.000000,segments,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,2610262016.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26102.620160,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.912300,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.722861,ms,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,5666372.926469,1/s,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,1500.500000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,15.125916,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,4096.000000,versions,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,23.947886,ms,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,171038.061564,1/s,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,4096.000000,segments,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,106778624.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26069.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,10.267044,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.027953,ms,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,572389.367867,1/s,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,15.000000,segments,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,346112.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,21632.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.366501,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,publications,16.000000,versions,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.059553,ms,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,268668.245093,1/s,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,16.000000,segments,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,401408.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,25088.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep4,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.427200,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,13.259937,ms,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,7541513.960436,1/s,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,61.460480,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.093712,MiB,all rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,100000.000000,rows,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,100000.000000,versions,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,555.366767,ms,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,180061.188285,1/s,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,100000.000000,segments,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,2610262016.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26102.620160,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,10.453171,MiB,all rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.766023,ms,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,5347097.933091,1/s,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,256.000000,segments,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,6146048.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,1500.500000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,15.125916,MiB,4096 rows spread over all partitions as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,4096.000000,rows,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,4096.000000,versions,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,23.911728,ms,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,171296.695914,1/s,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,4096.000000,segments,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,106778624.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,26069.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,11.100471,MiB,4096 rows spread as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,1.000000,versions,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.028013,ms,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,571163.388427,1/s,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,15.000000,segments,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,346112.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,21632.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.366501,MiB,16 rows as one transaction,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows,16.000000,rows,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,publications,16.000000,versions,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,elapsed_ms,0.061486,ms,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,rows_per_s,260221.839118,1/s,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,segments_cloned,16.000000,segments,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied,401408.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,bytes_copied_per_row,25088.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,payload_bytes_per_row,32.000000,bytes,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_before_mib,9.029755,MiB,16 rows as single puts,1,fcd2938f49b6
+cow_rep5,rcu,cow,100000,50,1,off,1,on,2.000,memory_held_after_mib,9.427200,MiB,16 rows as single puts,1,fcd2938f49b6

@@ -228,7 +228,8 @@ run_gate part_d_artifacts yes sh -c '
              scripts/compare_part_d_campaigns.py scripts/publish_part_d.sh \
              benchmarks/concurrent_bench.cpp benchmarks/join_bench.cpp benchmarks/reclaim_bench.cpp \
              reports/part_d_report.md reports/part_d_report.pdf docs/part_d_compliance.md docs/part_d_plan.md \
-             reports/milestones/D.md reports/milestones/D_corrected.md $P/README.md \
+             reports/part_d_report.template.md docs/part_d_compliance.template.md scripts/render_part_d_report.py \
+             reports/milestones/D.md $P/README.md results/part_d_diagnostics/lock_placement_effect.txt \
              $P/summary/summary.md $P/summary/original_vs_corrected.md $P/summary/profile_breakdown.txt \
              $P/summary/profiling_overhead.csv \
              "$C/CAMPAIGN" "$C/conditions.log" "$C/env/campaign_config.txt" "$C/env/prerequisites.txt" \
@@ -270,12 +271,19 @@ run_gate part_d_artifacts yes sh -c '
     diff -r -q "$C/figures" $P/figures > /dev/null && echo "ok       $P/figures is the corrected campaign" || bad "STALE    $P/figures differs from $C/figures"
     cmp -s "$C/summary/summary.md" $P/summary/summary.md && echo "ok       $P/summary/summary.md is the corrected campaign" || bad "STALE    $P/summary/summary.md"
     grep -q "unwrapped" $P/summary/summary.md || bad "STALE    summary does not describe an unwrapped timing track"
+    # LOCK PLACEMENT: every track C run of a lock-based store was placed, at offset 48 or 0.
+    unplaced=$(awk -F, "NR==1 {for (i=1;i<=NF;i++) {if (\$i==\"variant\") v=i; if (\$i==\"lock_placement\") p=i}} NR>1 && (\$v==\"global_lock\" || \$v==\"rwlock\") && \$p!=\"controlled\"" "$C/d1/concurrent/runs.csv" | wc -l)
+    [ "$unplaced" -eq 0 ] && echo "ok       lock placement controlled in every lock-store run of track C" || bad "UNPLACED $unplaced lock-store runs without a controlled lock offset"
+    # Every number in the report and the checklist is computed from this campaign.
+    py=python3; [ -x .tools/venv/bin/python ] && py=.tools/venv/bin/python
+    "$py" scripts/render_part_d_report.py --check || status=1
     # Statements the report must not lose.
     grep -qi "preload-only" reports/part_d_report.md || bad "MISSING  preload-only label in the report"
     grep -qi "two handles" reports/part_d_report.md || bad "MISSING  one-snapshot-per-store limitation in the report"
     grep -qi "started directly" reports/part_d_report.md || bad "MISSING  the unwrapped-timing statement in the report"
     grep -q "$(cat $P/PRIMARY)" reports/part_d_report.md || bad "STALE    the report does not name the primary campaign"
     grep -q "615f4357f015-all" reports/part_d_report.md || bad "MISSING  the report does not name the superseded campaign"
+    grep -qi "hypothesis" reports/part_d_report.md || bad "MISSING  the report presents an unproven mechanism as fact"
     exit $status'
 
 # ---- Informational (do not affect the verdict) ------------------------------
