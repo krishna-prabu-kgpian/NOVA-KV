@@ -1,0 +1,8 @@
+# clean clone build, 2026-10-13T10:25:09+05:30
+clone exit=0
+checkout e09da24 exit=0
+configure exit=0
+build exit=0 warnings=0
+ctest exit=0
+100% tests passed, 0 tests failed out of 75
+Total Test time (real) =  62.20 sec

@@ -1,0 +1,7 @@
+# gate: flamegraph_scripts_present
+# started_utc: 2026-10-13T04:54:52Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c test -x .tools/FlameGraph/flamegraph.pl -a -x .tools/FlameGraph/stackcollapse-perf.pl || { command -v stackcollapse-perf.pl && command -v flamegraph.pl; }
+
+
+# exit_status: 0

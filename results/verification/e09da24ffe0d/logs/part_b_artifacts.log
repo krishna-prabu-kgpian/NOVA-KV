@@ -1,0 +1,38 @@
+# gate: part_b_artifacts
+# started_utc: 2026-10-13T04:54:52Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c 
+    status=0
+    for f in include/kvstore.h src/kvstore.cpp src/versioned_store.cpp src/epoch.cpp src/pinned_arena.cpp \
+             src/cow_segment.cpp tests/concurrent_lock_test.cpp tests/reclamation_test.cpp \
+             tests/reclamation_stress_test.cpp reports/part_b_readme.md docs/reclamation.md \
+             docs/part_b_compliance.md results/diffs/part_a_to_part_b.diff; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    grep -q "void set_reclaim_batch(int n);" include/kvstore.h || { echo "MISSING  set_reclaim_batch declaration"; status=1; }
+    grep -q "std::atomic<int> reclaim_batch_;" include/kvstore.h || { echo "MISSING  private reclaim-batch member in kvstore.h"; status=1; }
+    git rev-parse --verify --quiet part-b-audited^{commit} >/dev/null || { echo "MISSING  tag part-b-audited"; status=1; }
+    if git diff part-a-final part-b-audited -- src include | cmp -s - results/diffs/part_a_to_part_b.diff; then
+        echo "ok       Part A -> Part B diff matches: git diff part-a-final part-b-audited -- src include"
+    else
+        echo "STALE    results/diffs/part_a_to_part_b.diff differs from: git diff part-a-final part-b-audited -- src include"; status=1
+    fi
+    git rev-parse --verify --quiet part-b-publication^{commit} >/dev/null || { echo "MISSING  tag part-b-publication"; status=1; }
+    exit $status
+
+ok       include/kvstore.h
+ok       src/kvstore.cpp
+ok       src/versioned_store.cpp
+ok       src/epoch.cpp
+ok       src/pinned_arena.cpp
+ok       src/cow_segment.cpp
+ok       tests/concurrent_lock_test.cpp
+ok       tests/reclamation_test.cpp
+ok       tests/reclamation_stress_test.cpp
+ok       reports/part_b_readme.md
+ok       docs/reclamation.md
+ok       docs/part_b_compliance.md
+ok       results/diffs/part_a_to_part_b.diff
+ok       Part A -> Part B diff matches: git diff part-a-final part-b-audited -- src include
+
+# exit_status: 0
