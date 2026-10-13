@@ -241,12 +241,15 @@ provides or claims a cross-store transaction or a global version.
   The index is defined as part of a published version and those stores have no versions. The
   supplied generator's `use_join` path therefore finds nothing on them (it ignores
   `create_index`'s result).
-- **The supplied generator's probe is not a join** and may miss on this store for a reason of
-  its own: `make_trade` leaves the 8th byte of `Trade::symbol` uninitialized (`Trade t;`, then
-  `snprintf` writes 7 bytes), while `load_instruments` zero-initializes the Instrument. The
-  probe passes 8 bytes and the index compares 8 bytes, so whether it matches depends on what
-  the stack held. The comparison is byte for byte by requirement; the generator is not
-  modified. The repository's own join benchmark zero-fills its symbols.
+- **The supplied generator's probe is not a join**, and it depends on a byte the generator
+  never writes: `make_trade` declares `Trade t;` and `snprintf` fills 7 of the 8 bytes of
+  `symbol`; the 8th is indeterminate and is stored with the trade. The generator probes with
+  all 8 bytes, the instruments' 8th byte is 0, and the index compares byte for byte (as
+  required), so the probe matches exactly the trades whose stored 8th byte is 0. Measured in
+  every build here (debug, release, ASan, TSan; 100,000 trades): the byte was always 0 and
+  the probe matched 100 % (`results/C2_audit/generator_probe_hit_rate.txt`). The file is not
+  modified; generator runs with `use_join` report their measured hit rate; index and join
+  behaviour is measured with the repository's own, fully initialized data (decision D-065).
 - One index per store; no index removal; no range or prefix queries; no index on a field of
   variable position.
 

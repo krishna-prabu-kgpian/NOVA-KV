@@ -1,0 +1,25 @@
+# Hit rate of the supplied generator's own index probe (run_reader: index_get(t.symbol, 8, ...)) on the rcu build,
+# measured after workload_run(use_txn, txn_size 4, use_join) with 200 trades, per build mode. 2026-10-13T03:00:07Z
+# The supplied source is unmodified (supplied/SHA256SUMS).
+$ build/verify/debug/reference_workload_link_test_rcu
+  generator index probe: 200 of 200 stored trades have a zero 8th symbol byte; the generator's 8-byte probe matches 200 of them (byte-exact index)
+reference_workload_link_test: 46 checks, 0 failed
+exit status: 0
+$ build/verify/release/reference_workload_link_test_rcu
+  generator index probe: 200 of 200 stored trades have a zero 8th symbol byte; the generator's 8-byte probe matches 200 of them (byte-exact index)
+reference_workload_link_test: 46 checks, 0 failed
+exit status: 0
+$ build/asan/reference_workload_link_test_rcu
+  generator index probe: 200 of 200 stored trades have a zero 8th symbol byte; the generator's 8-byte probe matches 200 of them (byte-exact index)
+reference_workload_link_test: 46 checks, 0 failed
+exit status: 0
+$ build/tsan/reference_workload_link_test_rcu
+  generator index probe: 200 of 200 stored trades have a zero 8th symbol byte; the generator's 8-byte probe matches 200 of them (byte-exact index)
+reference_workload_link_test: 46 checks, 0 failed
+exit status: 0
+$ generator object from build/verify/release, default parameters, use_join
+default workload (m=1000,n=100) use_txn=0: trades=100000 eighth_byte_zero=100000 probe_hits=100000 rps=19070499
+default workload (m=1000,n=100) use_txn=1: trades=100000 eighth_byte_zero=100000 probe_hits=100000 rps=18889113
+$ generator object from build/verify/debug, default parameters, use_join
+default workload (m=1000,n=100) use_txn=0: trades=100000 eighth_byte_zero=100000 probe_hits=100000 rps=9421530
+default workload (m=1000,n=100) use_txn=1: trades=100000 eighth_byte_zero=100000 probe_hits=100000 rps=8916793

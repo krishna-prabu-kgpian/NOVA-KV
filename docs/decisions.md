@@ -850,13 +850,37 @@ exist: the join asks again with a larger buffer when one comes back full (both r
 a repeatable order), which resolves O-18 without an API extension. Records of the wrong size
 are skipped and counted.
 
-## D-065 — The supplied generator's index probe may miss (RECORDED, C2)
+## D-065 — The supplied generator's index probe and its indeterminate eighth byte (RECORDED, C2; measured and corrected in the C2 audit)
 
-`supplied/workload_gen.cpp::make_trade` declares `Trade t;` and writes 7 bytes of `symbol`
-with `snprintf`; the 8th byte is indeterminate. `load_instruments` zero-initializes. The
-generator's probe passes all 8 bytes, and the index compares byte for byte (required), so the
-probe matches only if that stack byte happens to be 0. The file is not modified and the
-comparison is not loosened; the repository's own join code zero-fills symbols.
+Source, unmodified (`supplied/workload_gen.cpp`): `make_trade` declares `Trade t;` (no
+initializer) and fills `symbol` with `std::snprintf(t.symbol, sizeof(t.symbol), "SYM%03d",
+(i + j) % 50)`, which writes 6 characters and a terminator: bytes 0–6. **Byte 7 of
+`Trade::symbol` is never written**; its value is indeterminate by the language. The whole
+struct is stored (`trades.put(t.trade_id, &t, sizeof(t))` or the `Transaction` equivalent),
+so that byte becomes part of the stored row. `run_reader`, when `cfg.use_join` is set, reads a
+trade and calls `instruments->index_get(t.symbol, sizeof(t.symbol), match_ids, 8)`: an 8-byte
+probe. `load_instruments` creates the index over `Instrument::symbol` (offset 0, 8 bytes) and
+writes instruments from `Instrument ins{}`, so their byte 7 is 0.
+
+Effect on a byte-exact index (which the requirement demands): the generator's probe matches a
+trade exactly when that trade's stored byte 7 is 0.
+`tests/reference_workload_link_test.cpp` asserts that equivalence and prints the counts.
+
+**Measured** (`results/C2_audit/generator_probe_hit_rate.txt`): in every build of this
+repository on this machine (debug, release, ASan+UBSan, TSan; 200 trades, and the default
+100,000 trades with puts and with transactions) the byte was 0 in every stored trade and the
+probe matched 100 %. **So the generator's probe does hit here.** The C2 report said it "may
+miss": that is what the source permits, not what happens with these binaries, and nothing was
+measured wrongly because of it. It remains a property of the supplied program that another
+compiler, flag or call sequence could change.
+
+What it affects: only what work the generator's probe does (a miss is a hash and one bucket
+probe; a hit adds one primary lookup and a compare), i.e. the latency of `use_join` runs. It
+affects no correctness check: the generator discards the probe's result. For Part D: every
+generator run with `use_join` records the measured hit rate of that binary next to its
+numbers; index and join behaviour is measured with the repository's own harness
+(`benchmarks/join_bench.cpp`), whose data is fully initialized. The supplied file is not
+modified and the comparison is not loosened.
 
 ## D-066 — Leak in a no-change commit on an indexed store (C2; found by source review, fixed)
 
@@ -871,6 +895,38 @@ freeing the array on that path, regression test
 `index_test::test_commit_without_change_on_indexed_store` (detected by the leak checker of the
 ASan build). The observation set in `results/c2/` was measured at `92e11ec`, before this
 one-line fix; the fixed path is not exercised by any benchmark.
+
+## D-067 — Part C API coverage on the lock-based variants: assessment (RECORDED, C2 audit; no gap found)
+
+Question: must `create_index` / `index_get` (and `Snapshot`) work on the three Part A
+variants, or only on the RCU store? From the PDF:
+
+| PDF text | Bearing |
+|---|---|
+| Overview: Part C "extend[s] the store with atomic, isolated multi-key writes and a secondary index used for an index-nested-loop join, **both built on the RCU mechanism from Part B**" | Part C is defined on the RCU store |
+| Part C intro: "without adding a second locking scheme on top of RCU" | same |
+| C.1: commit publishes "with a single pointer-swap, built the same way as a single-key write in Part B" | a lock-based store has no pointer swap |
+| Appendix A.1, Snapshot: the version "must stay pinned by your Part B reclamation scheme" | meaningless without versions |
+| Part A: "Implement a KVStore class with the interface from Appendix A (put, get, erase)" | the baseline's required interface is three functions |
+| Part B: "The change must live inside the KVStore class itself: don't fork the store" | one class, one header: which is why the declarations are visible to every build |
+| D.1: point gets "for all four configurations", generator "with its default parameters" (`use_txn = false`, `use_join = false`) | the only requirement that names the lock variants uses neither Part C API |
+| D.3: join and transaction benchmarks | no list of configurations; they measure the Part C store |
+| Appendix A.2: the Part A driver example passes `nullptr` for `instruments` | the baselines are not expected to see an index call |
+
+Conclusion: nothing in the assignment requires the Part C APIs to function on the lock-based
+variants. They must *compile and link* there (one header, one generator source), which they
+do. `Transaction` happens to work on them (D-055); `acquire_snapshot` throws and
+`create_index` / `index_get` report "no index" (D-055, D-063), both documented and tested.
+**Not a Part C requirement gap.**
+
+Residual risk, stated rather than hidden: someone running the generator with `use_join` (or
+`use_txn` plus a snapshot-based tool) against a lock driver gets "no index". If that were ever
+wanted, the smallest correct remedy would be a mutable hash index inside the baseline stores,
+updated under the existing lock in `put` / `erase` / `commit_staged` (with undo), about the
+size of the existing baseline transaction code; it would touch only the lock branch of
+`kvstore.cpp` and leave the `part-a-final` checkpoint and its measurements as they are. Not
+done: not required, and it would add index maintenance to the Part A write path that Part D.1
+compares.
 
 ---
 

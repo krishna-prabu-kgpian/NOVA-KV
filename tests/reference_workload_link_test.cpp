@@ -61,6 +61,38 @@ void run(const std::string& label, const WorkloadConfig& cfg, bool with_instrume
             if (n == 1 && keys[0] == sidx) ++found;
         }
         NOVA_CHECK(found == (has_index ? 50 : 0));
+
+        // What the GENERATOR's own probe finds (supplied/workload_gen.cpp,
+        // run_reader): it reads a Trade and passes all 8 bytes of Trade::symbol
+        // to instruments->index_get(). make_trade() writes only 7 of those bytes
+        // ("SYM0xx" and the terminator); the 8th is whatever the stack held and
+        // is stored with the trade. The index compares 8 bytes, and every
+        // instrument's 8th byte is 0. So the generator's probe matches a trade
+        // exactly when that trade's stored 8th symbol byte happens to be 0.
+        // That equivalence is asserted; the hit RATE is a property of the
+        // supplied program's indeterminate byte and is only reported.
+        if (has_index) {
+            long trades_seen = 0, eighth_byte_zero = 0, probe_hits = 0, inconsistent = 0;
+            for (int i = 0; i < cfg.m; i++) {
+                for (int j = 0; j < cfg.n; j++) {
+                    const long id = static_cast<long>(i) * 100000 + j;
+                    Trade t{};
+                    if (!trades.get(id, &t, sizeof(t))) continue;
+                    ++trades_seen;
+                    long match_ids[8];
+                    const int n = instruments.index_get(t.symbol, sizeof(t.symbol), match_ids, 8);
+                    const bool zero = t.symbol[7] == 0;
+                    if (zero) ++eighth_byte_zero;
+                    if (n > 0) ++probe_hits;
+                    if ((n == 1) != zero || n > 1) ++inconsistent;
+                }
+            }
+            NOVA_CHECK(trades_seen == static_cast<long>(cfg.m) * cfg.n);
+            NOVA_CHECK(inconsistent == 0);
+            std::printf("  generator index probe: %ld of %ld stored trades have a zero 8th symbol byte; "
+                        "the generator's 8-byte probe matches %ld of them (byte-exact index)\n",
+                        eighth_byte_zero, trades_seen, probe_hits);
+        }
     }
 
     // The generator's writer must have left every trade in the store, readable
