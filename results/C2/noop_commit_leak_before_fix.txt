@@ -1,0 +1,20 @@
+# index_test_rcu (ASan+UBSan build) at 5a2ceb1 + the new test test_commit_without_change_on_indexed_store, BEFORE the fix
+$ build/asan/index_test_rcu
+
+=================================================================
+==140163==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 9600 byte(s) in 50 object(s) allocated from:
+    #0 0x7be30ef2b60f in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67
+    #1 0x58b56a6c3130 in nova::alloc_bytes(unsigned long, unsigned long) /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/alloc.cpp:62
+    #2 0x58b56a6d3c3f in nova::VersionedStore::commit_locked(nova::BatchOp const*, unsigned long, bool*) /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/versioned_store.cpp:372
+    #3 0x58b56a6d1c97 in nova::VersionedStore::commit(nova::BatchOp const*, unsigned long, bool*) /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/versioned_store.cpp:293
+    #4 0x58b56a6c7a95 in NovaKvInspector::commit_batch(KVStore&, NovaBatchOp const*, unsigned long) /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/inspect.cpp:120
+    #5 0x58b56a68d29a in test_commit_without_change_on_indexed_store /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/index_test.cpp:407
+    #6 0x58b56a693369 in main /home/overmind/Documents/DOCS/assignment2/NOVA-KV/tests/index_test.cpp:608
+    #7 0x7be30de2a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59
+    #8 0x7be30de2a717 in __libc_start_main_impl ../csu/libc-start.c:360
+    #9 0x58b56a67ebe4 in _start (/home/overmind/Documents/DOCS/assignment2/NOVA-KV/build/asan/index_test_rcu+0x11fbe4) (BuildId: 4db226123775c2755ddcaa351afb531b0b4addf3)
+
+SUMMARY: AddressSanitizer: 9600 byte(s) leaked in 50 allocation(s).
+exit status: 1

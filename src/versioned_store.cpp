@@ -438,7 +438,9 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
 
     if (!any_change) {
         // Only erases of absent keys: the state is unchanged, publish nothing.
+        // (Such a commit has recorded no index delta either.)
         arena_.rollback_commit();
+        free_bytes(deltas);
         ++w_.commits_without_change;
         return true;
     }

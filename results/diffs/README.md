@@ -57,9 +57,9 @@ the pin-aware stop-the-world comparator, writer serialization.
  src/staged_writes.cpp   |  72 ++++++++
  src/staged_writes.h     |  52 ++++++
  src/test_points.h       |   3 +-
- src/versioned_store.cpp | 449 ++++++++++++++++++++++++++++++++++++++++++++++--
+ src/versioned_store.cpp | 451 ++++++++++++++++++++++++++++++++++++++++++++++--
  src/versioned_store.h   |  70 +++++++-
- 15 files changed, 1257 insertions(+), 82 deletions(-)
+ 15 files changed, 1259 insertions(+), 82 deletions(-)
 ```
 
 ## Part B -> Part C.1 (interim, milestone C1): `part_b_to_part_c1.diff`

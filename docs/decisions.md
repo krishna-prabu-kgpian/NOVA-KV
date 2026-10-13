@@ -858,6 +858,20 @@ generator's probe passes all 8 bytes, and the index compares byte for byte (requ
 probe matches only if that stack byte happens to be 0. The file is not modified and the
 comparison is not loosened; the repository's own join code zero-fills symbols.
 
+## D-066 — Leak in a no-change commit on an indexed store (C2; found by source review, fixed)
+
+`commit_locked` allocates the index-delta array before applying the operations. Its early
+return for a commit that changes nothing (a batch consisting only of erases of absent keys)
+did not free it. Not reachable through the public API (`KVStore::erase` checks for the key
+first and `Transaction` has no erase), but reachable through the engine's batch commit. Found
+while reviewing the function before declaring C2 complete; the first C2 verification run was
+stopped for it. Reproduced under ASan before the fix
+(`results/C2/noop_commit_leak_before_fix.txt`: 9600 bytes in 50 allocations), fixed by
+freeing the array on that path, regression test
+`index_test::test_commit_without_change_on_indexed_store` (detected by the leak checker of the
+ASan build). The observation set in `results/c2/` was measured at `92e11ec`, before this
+one-line fix; the fixed path is not exercised by any benchmark.
+
 ---
 
 ## Open items carried forward

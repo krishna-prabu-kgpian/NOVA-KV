@@ -1045,7 +1045,7 @@ index bfdb8b8..6de8e19 100644
  #ifdef NOVA_KV_TEST_HOOKS
  namespace test_hooks {
 diff --git a/src/versioned_store.cpp b/src/versioned_store.cpp
-index d58bbbf..4e1518f 100644
+index d58bbbf..8ca27f8 100644
 --- a/src/versioned_store.cpp
 +++ b/src/versioned_store.cpp
 @@ -103,6 +103,9 @@ VersionedStore::VersionedStore(const StoreOptions& options, std::atomic<int>* re
@@ -1242,7 +1242,17 @@ index d58bbbf..4e1518f 100644
          }
          any_change = any_change || took_effect;
          if (applied != nullptr) applied[i] = took_effect;
-@@ -345,6 +457,25 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
+@@ -326,7 +438,9 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
+ 
+     if (!any_change) {
+         // Only erases of absent keys: the state is unchanged, publish nothing.
++        // (Such a commit has recorded no index delta either.)
+         arena_.rollback_commit();
++        free_bytes(deltas);
+         ++w_.commits_without_change;
+         return true;
+     }
+@@ -345,6 +459,25 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
      node = static_cast<RetireNode*>(alloc_bytes(sizeof(RetireNode), alignof(RetireNode)));
      if (node == nullptr) return fail();
  
@@ -1268,7 +1278,7 @@ index d58bbbf..4e1518f 100644
      // ================= Nothing below this line can fail. =======================
  
      // ---- Phase 4: assemble the new version and take ownership. --------------
-@@ -385,11 +516,44 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
+@@ -385,11 +518,44 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
          next->segments[p]->owners.fetch_add(1, std::memory_order_seq_cst);
          ++w_.owner_refs_taken;
      }
@@ -1314,7 +1324,7 @@ index d58bbbf..4e1518f 100644
      NOVA_TEST_POINT(TestPoint::WriterBeforePublish);
      Version* const old = current_.exchange(next, std::memory_order_seq_cst);     // [W1]
      latest_ = next;
-@@ -412,13 +576,156 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
+@@ -412,13 +578,156 @@ bool VersionedStore::commit(const BatchOp* ops, std::size_t n, bool* applied) no
      retired_.store(retired, std::memory_order_seq_cst);
      const std::uint64_t backlog = retired - reclaimed_.load(std::memory_order_seq_cst);
      if (backlog > w_.backlog_max) w_.backlog_max = backlog;
@@ -1473,7 +1483,7 @@ index d58bbbf..4e1518f 100644
  // ---- Reclamation ---------------------------------------------------------------------
  
  void VersionedStore::set_reclaim_batch(int n) noexcept {
-@@ -437,7 +744,7 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
+@@ -437,7 +746,7 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
      Version* v = job_.version;
      for (;;) {
          if (job_.segment == nullptr) {
@@ -1482,7 +1492,7 @@ index d58bbbf..4e1518f 100644
              if (budget == 0) return false;
              --budget;
              Segment* seg = v->segments[job_.partition];
-@@ -466,6 +773,20 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
+@@ -466,6 +775,20 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
          ++job_.partition;
          NOVA_TEST_POINT(TestPoint::CleanerMidVersion);
      }
@@ -1503,7 +1513,7 @@ index d58bbbf..4e1518f 100644
      index_bytes_released_.fetch_add(sizeof(Version), std::memory_order_relaxed);
      NOVA_COUNT_OBJECT(LiveObject::Version, -1);
      v->~Version();
-@@ -521,20 +842,30 @@ bool VersionedStore::epoch_pass() noexcept {
+@@ -521,20 +844,30 @@ bool VersionedStore::epoch_pass() noexcept {
      return progress;
  }
  
@@ -1539,7 +1549,7 @@ index d58bbbf..4e1518f 100644
              job_.version = oldest->version;
              RetireNode* consumed = queue_head_;
              queue_head_ = oldest;
-@@ -542,8 +873,9 @@ bool VersionedStore::stw_pass() noexcept {
+@@ -542,8 +875,9 @@ bool VersionedStore::stw_pass() noexcept {
          }
          run_job(unlimited);
          reclaimed_.fetch_add(1, std::memory_order_seq_cst);
@@ -1550,7 +1560,7 @@ index d58bbbf..4e1518f 100644
  }
  
  bool VersionedStore::reclaim_pass() noexcept {
-@@ -634,6 +966,16 @@ VersionedStats VersionedStore::stats() const noexcept {
+@@ -634,6 +968,16 @@ VersionedStats VersionedStore::stats() const noexcept {
      s.index_bytes_copied = w_.index_bytes_copied;
      s.directory_bytes_copied = w_.directory_bytes_copied;
      s.owner_refs_taken = w_.owner_refs_taken;
@@ -1567,7 +1577,7 @@ index d58bbbf..4e1518f 100644
      s.index_bytes_held = w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed);
      s.arena = arena_.stats();
      // Commits that changed nothing also unwind the arena, without being failures.
-@@ -649,6 +991,65 @@ void VersionedStore::for_each_version(void (*fn)(const Version*, void*), void* c
+@@ -649,6 +993,65 @@ void VersionedStore::for_each_version(void (*fn)(const Version*, void*), void* c
      }
  }
  
@@ -1633,7 +1643,7 @@ index d58bbbf..4e1518f 100644
  const char* VersionedStore::validate() {
      if (latest_ == nullptr) return "store has no current version";
      if (current_.load(std::memory_order_seq_cst) != latest_) return "current_ differs from the writer's latest version";
-@@ -743,6 +1144,32 @@ const char* VersionedStore::validate() {
+@@ -743,6 +1146,32 @@ const char* VersionedStore::validate() {
              ++chunk_refs[s->pins[k].chunk_id];
          }
      }

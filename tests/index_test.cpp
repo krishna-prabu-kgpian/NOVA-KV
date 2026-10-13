@@ -392,6 +392,27 @@ void test_transactions_maintain_the_index() {
     check_valid(s);
 }
 
+// A commit that turns out to change nothing (a batch of erases of keys that do
+// not exist) on an INDEXED store: nothing is published, the index is untouched,
+// and the commit's private index bookkeeping is released (the leak checker of
+// the ASan build is what detects it if it is not).
+void test_commit_without_change_on_indexed_store() {
+    KVStore s;
+    Model m;
+    NOVA_CHECK(s.create_index(0, 4));
+    for (long k = 0; k < 20; ++k) NOVA_CHECK(put(s, m, k, row(8, 0, field_of("zzzz", 4), static_cast<std::uint64_t>(k))));
+    const NovaKvStats before = NovaKvInspector::stats(s);
+    for (int round = 0; round < 50; ++round) {
+        NovaBatchOp ops[3] = {{false, 1000 + round, nullptr, 0}, {false, 2000, nullptr, 0}, {false, -5, nullptr, 0}};
+        NOVA_CHECK(NovaKvInspector::commit_batch(s, ops, 3));     // succeeds, changes nothing
+    }
+    const NovaKvStats after = NovaKvInspector::stats(s);
+    NOVA_CHECK(after.versions_published == before.versions_published);
+    NOVA_CHECK(after.index_segments_built == before.index_segments_built);
+    check_against_model(s, nullptr, m, 0, 4);
+    check_valid(s);
+}
+
 // ---- Many keys per value (truncation) and many values (growth) -------------------------------------
 void test_truncation_is_deterministic() {
     KVStore s;
@@ -584,6 +605,7 @@ int main() {
     test_field_bytes_and_boundaries();
     test_overwrite_delete_and_key_reuse();
     test_transactions_maintain_the_index();
+    test_commit_without_change_on_indexed_store();
     test_truncation_is_deterministic();
     test_many_distinct_values();
     test_snapshot_uses_its_own_index();
