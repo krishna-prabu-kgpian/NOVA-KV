@@ -237,6 +237,10 @@ gates to it as the milestone lands.
   Part C README `reports/part_c_readme.md`; design `docs/secondary_index.md`; checklist
   `docs/part_c_compliance.md`; diff `results/diffs/part_b_to_part_c.diff`; preliminary
   measurements `results/c2/`.
+- **Post-C2 source audit: done** — `reports/milestones/C2_audit.md`. No source change. The
+  supplied generator's 8th symbol byte is indeterminate in its source but measured 0 in every
+  build (its index probe hits 100 %, D-065); the Part C APIs are not required on the lock
+  variants (D-067); the Part D plan is `docs/part_d_plan.md` (not executed).
 - **Part C is complete, with one documented deviation** (the join uses one Snapshot per
   store, D-060). **Next: D** (benchmark campaign). Requires user approval.
 
