@@ -225,9 +225,9 @@ Guaranteed:
 
 - that the two versions belong to one instant. A commit to either store can be published
   between the two acquisitions. If both tables are written while joins run, the pair of
-  snapshots is not an atomic cross-store snapshot. (In `join_test`'s concurrent run, 265 of
-  400 joins saw the two tables at different generations; each table was of a single
-  generation in all 400.)
+  snapshots is not an atomic cross-store snapshot. (In one run of `join_test`'s concurrent
+  test, 272 of 400 joins saw the two tables at different generations; each table was of a
+  single generation in all 400.)
 - **This is two handles, not the "exactly one Snapshot handle" of the assignment's Part C.2
   text. It is a documented deviation from that wording, not a way of satisfying it.**
 
