@@ -1,0 +1,9 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d2/backlog/perf_stat/backlog_stw_rep3.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/backlog/rss/backlog_stw_rep3.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 3 --git-sha 615f4357f015 --csv results/part_d/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim stw --run-id backlog_stw_rep3 --scenario reclaim_stw --hist results/part_d/d2/backlog/hist/backlog_stw_rep3.csv
+reclaim_bench variant=rcu reclaim=stw batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 3.000 s  reads=10363398 rps=3454280 p50=270 ns p99=831 ns p999=9984 ns max=26578276 ns
+  writer : ok=880899 failed=0 wps=293617 stopped_at_limit=0  pin_cycles=70
+  backlog: max=10540 at_release=10596  held idle=10.8 MiB max=98.7 MiB at_end=26.3 MiB
+  cleanup: drained=1 in 15.777 ms  reads=3665 max=15741007 ns p999=15728640 ns
+  reclaim: versions=1023171 passes=2165 max_per_pass=0 stw_pauses=2151 cleaner_cpu=2.471 s
+valid=1
+# exit_status: 0

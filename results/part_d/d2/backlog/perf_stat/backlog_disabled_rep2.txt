@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:35:31 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/backlog/rss/backlog_disabled_rep2.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 2 --git-sha 615f4357f015 --csv results/part_d/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim disabled --retain-limit-mb 8000 --run-id backlog_disabled_rep2 --scenario reclaim_disabled --hist results/part_d/d2/backlog/hist/backlog_disabled_rep2.csv':
+
+         16,493.25 msec task-clock                                                            
+    69,838,574,360      cycles                                                                  (83.19%)
+    60,559,928,401      instructions                                                            (83.16%)
+    12,771,203,468      cache-references                                                        (83.40%)
+     2,908,921,256      cache-misses                                                            (83.42%)
+            12,095      context-switches                                                      
+                 8      cpu-migrations                                                        
+       354,770,697      branch-misses                                                           (83.42%)
+     5,377,241,601      L1-dcache-load-misses                                                   (83.42%)
+
+       4.416197490 seconds time elapsed
+
+      15.669320000 seconds user
+       0.849962000 seconds sys
+
+

@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:18:08 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/global_lock_writer_max_r4_rep4.txt build/release/concurrent_bench_global_lock --readers 4 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6 --seed 4 --run-id global_lock_writer_max_r4_rep4 --git-sha 615f4357f015 --scenario writer_max --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/global_lock_writer_max_r4_rep4.csv --writer on --writer-cpu 15':
+
+         21,883.85 msec task-clock                                                            
+    77,893,918,695      cycles                                                                  (83.42%)
+    80,811,301,129      instructions                                                            (83.34%)
+     2,225,928,697      cache-references                                                        (83.33%)
+       362,487,907      cache-misses                                                            (83.26%)
+         2,622,693      context-switches                                                      
+                 5      cpu-migrations                                                        
+       212,725,662      branch-misses                                                           (83.36%)
+       845,436,939      L1-dcache-load-misses                                                   (83.30%)
+
+       5.516203471 seconds time elapsed
+
+       5.828731000 seconds user
+      16.075621000 seconds sys
+
+

@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:36:34 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/backlog/rss/backlog_batch64_rep5.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 5 --git-sha 615f4357f015 --csv results/part_d/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim-batch 64 --run-id backlog_batch64_rep5 --scenario batch_64 --hist results/part_d/d2/backlog/hist/backlog_batch64_rep5.csv':
+
+         34,477.23 msec task-clock                                                            
+   136,983,431,242      cycles                                                                  (83.39%)
+   100,774,901,217      instructions                                                            (83.15%)
+    26,526,418,680      cache-references                                                        (83.35%)
+     6,336,952,168      cache-misses                                                            (83.40%)
+           171,538      context-switches                                                      
+                14      cpu-migrations                                                        
+        93,979,812      branch-misses                                                           (83.38%)
+    11,429,164,481      L1-dcache-load-misses                                                   (83.34%)
+
+       3.534076348 seconds time elapsed
+
+      32.639912000 seconds user
+       1.863704000 seconds sys
+
+

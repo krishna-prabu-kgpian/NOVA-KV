@@ -1,0 +1,19 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d3/join/perf_stat/join_t2_active_rep4.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d3/join/rss/join_t2_active_rep4.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/d3/join/runs.csv --hist results/part_d/d3/join/hist/join_t2_active_rep4.csv --run-id join_t2_active_rep4 --git-sha 615f4357f015 --experiment join --threads 2 --cpus 0,2 --writer on --duration 3
+join_bench experiment=join trades=100000 instruments=50 threads=2 writer=on txn_size=1 index=on duration=3.0s
+  joins_per_s                               154.880 1/s        
+  joined_rows_per_s                          15.488 M/s        
+  join_p50_ms                                12.710 ms         
+  join_p99_ms                                14.454 ms         
+  join_p999_ms                               14.720 ms         
+  join_max_ms                                14.720 ms         
+  joins_measured                            466.000 joins      
+  writer_trade_puts_per_s                155321.155 1/s        
+  writer_instrument_txns_per_s             2426.893 1/s        
+  memory_held_max_mib                       135.318 MiB        
+  backlog_max_versions                     4785.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     475072.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               2.652 s          
+valid=1
+# exit_status: 0

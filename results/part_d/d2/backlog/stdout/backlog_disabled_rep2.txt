@@ -1,0 +1,9 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d2/backlog/perf_stat/backlog_disabled_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/backlog/rss/backlog_disabled_rep2.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 2 --git-sha 615f4357f015 --csv results/part_d/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim disabled --retain-limit-mb 8000 --run-id backlog_disabled_rep2 --scenario reclaim_disabled --hist results/part_d/d2/backlog/hist/backlog_disabled_rep2.csv
+reclaim_bench variant=rcu reclaim=disabled batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 1.000 s  reads=43099093 rps=43092481 p50=150 ns p99=281 ns p999=451 ns max=55074 ns
+  writer : ok=164819 failed=0 wps=164794 stopped_at_limit=0  pin_cycles=30
+  backlog: max=248208 at_release=248235  held idle=13.6 MiB max=1711.9 MiB at_end=1712.1 MiB
+  cleanup: drained=0 in 0.000 ms  reads=10875 max=581 ns p999=461 ns
+  reclaim: versions=0 passes=5984 max_per_pass=0 stw_pauses=0 cleaner_cpu=0.000 s
+valid=1
+# exit_status: 0

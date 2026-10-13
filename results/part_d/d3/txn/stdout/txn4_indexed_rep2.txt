@@ -1,0 +1,23 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d3/txn/perf_stat/txn4_indexed_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d3/txn/rss/txn4_indexed_rep2.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/d3/txn/runs.csv --hist results/part_d/d3/txn/hist/txn4_indexed_rep2.csv --run-id txn4_indexed_rep2 --git-sha 615f4357f015 --experiment txn --txn-size 4 --index on --duration 3
+join_bench experiment=txn trades=100000 instruments=50 threads=1 writer=off txn_size=4 index=on duration=3.0s
+  commits_per_s                           17304.338 1/s        
+  rows_per_s                              69217.354 1/s        
+  commit_p50_us                              57.900 us         
+  commit_p99_us                              76.725 us         
+  commit_p999_us                             86.263 us         
+  commit_max_us                             118.314 us         
+  segments_cloned_per_commit                  3.978 1/commit   
+  primary_bytes_copied_per_commit         95676.768 bytes      
+  directory_bytes_copied_per_commit        2048.000 bytes      
+  index_segments_built_per_commit             7.391 1/commit   
+  index_bytes_built_per_commit           425918.639 bytes      
+  bytes_copied_per_commit                523643.407 bytes      
+  bytes_copied_per_row                   130910.852 bytes      
+  owner_refs_per_commit                     278.631 1/commit   
+  memory_held_idle_mib                       10.559 MiB        
+  memory_held_max_mib                        16.256 MiB        
+  backlog_max_versions                       26.000 versions   
+  versions_reclaimed                      51968.000 versions   
+  cleaner_cpu_s                               0.401 s          
+valid=1
+# exit_status: 0

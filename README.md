@@ -14,7 +14,7 @@ A single-node, in-memory key-value store with RCU reads, built for
 | B2 | Epoch-based reclamation, background cleaner, `set_reclaim_batch`; Part B README, compliance checklist, A→B diff | **Done** (`reports/milestones/B2.md`) — Part B complete |
 | C1 | `Transaction` (atomic multi-key commits), `Snapshot`, snapshot-scoped `get`, `keys`; writer serialization; isolation design note | **Done** (`reports/milestones/C1.md`) |
 | C2 | Secondary index inside the version (`create_index`, `index_get`), index-nested-loop join with one snapshot per store, Part C README and B→C diff | **Done** (`reports/milestones/C2.md`) — Part C complete, with one documented deviation |
-| D | Benchmark campaign | Not started |
+| D | Benchmark campaign: D.1 scaling and the 100k target, D.2 reclaim-batch study, D.3 join and transactions; perf stat, flame graphs, perf c2c | **Done** (`reports/milestones/D.md`) — report `reports/part_d_report.pdf` |
 | E | Write-ahead log (optional bonus) | Not started |
 
 **What works:** `put`, `get`, `erase` and `set_reclaim_batch` under four synchronization
@@ -149,6 +149,7 @@ Tests (`ctest`, 47 per build mode):
 | `index_failure_test` | `create_index` and indexed commits with every allocation failing in turn (all or nothing, earlier snapshot intact, no leftover objects); index hash cut to 0/1/3/7 bits |
 | `index_concurrency_test` | Indexed transaction parked before and after the swap; `create_index` parked while building, when built, and after publication; reader parked inside `index_get`; stress: 0 snapshots whose rows and index disagree, 0 partial lookups; `create_index` under load |
 | `join_test` | The join against a model oracle and an index-free snapshot oracle: empty tables, one-to-one, one-to-many, missing, wrong-size records, updates and deletes in both tables, writes during the join, long-lived snapshots with reclamation, concurrent writer (per-table consistency) |
+| `bench_validate_reclaim_*` (3), `bench_validate_join_cow` | Part D harnesses (`reclaim_bench` in epoch, stop-the-world and disabled modes; the copy-on-write cost experiment) run briefly and pass their own validation |
 | `bench_validate_join_*` (6) | `join_bench` experiments run briefly and pass their own validation |
 | `bench_validate_concurrent_rcu*` (6), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build: default, paced, batch 8, single-thread, reclamation disabled, stop-the-world; the memory guard must invalidate a run |
 | `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
@@ -235,6 +236,38 @@ build/release/index_failure_test         # allocation failure; forced hash colli
 build/release/index_concurrency_test     # rows and index in one swap; create_index atomic
 build/release/join_test                  # the join against two index-free oracles
 build/release/join_bench --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15
+```
+
+## Part D: benchmarks
+
+- **Report:** `reports/part_d_report.pdf` (source `reports/part_d_report.md`)
+- **Compliance checklist:** `docs/part_d_compliance.md`; plan and pre-campaign deviations:
+  `docs/part_d_plan.md`
+- **Raw data, summaries, figures:** `results/part_d/` (campaign id in `CAMPAIGN`;
+  `summary/summary.md` has every table)
+
+Headline results (medians of 5 runs; mains power, `performance` governor; details and caveats
+in the report):
+
+| | |
+|---|---|
+| RCU, 8 readers, writer paced at 10,000/s | 99.2 M reads/s, p99.9 0.21 µs — the 100,000/s target is met |
+| RCU, 8 readers, unthrottled writer | 50.1 M reads/s, 101,121 updates/s; the cleaner falls behind and memory grows |
+| Global mutex / shared mutex | stop scaling after 4 readers; the shared mutex starves its writer at 8 |
+| Reclaim batch 1…1024 | no effect on read throughput or stalls; larger batches reclaim faster |
+| Stop-the-world vs bounded reclamation | longest reader stall 28× to 87× worse |
+| Join, 8 joiners | 1,026 joins/s with the writer paused, 580 with it active (one Snapshot per store) |
+| Transactions of 1 / 4 / 16 keys | 238,103 / 101,298 / 26,655 commits/s |
+
+Two tracks are kept apart everywhere: the **supplied generator is preload-only** (no writer
+while its readers run); numbers "with a writer" come from `benchmarks/concurrent_bench.cpp`.
+
+```bash
+scripts/run_part_d.sh check     # prerequisites: mains, governor, perf, idle machine
+scripts/run_part_d.sh all       # about 40 minutes -> results/part_d/ (refuses a dirty tree)
+scripts/aggregate_part_d.py results/part_d
+scripts/part_d_profile_breakdown.py results/part_d
+scripts/build_part_d_report.sh
 ```
 
 ## Part A results and how to reproduce them

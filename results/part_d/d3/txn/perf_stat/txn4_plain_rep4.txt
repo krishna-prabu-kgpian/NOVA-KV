@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:37:56 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d3/txn/rss/txn4_plain_rep4.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/d3/txn/runs.csv --hist results/part_d/d3/txn/hist/txn4_plain_rep4.csv --run-id txn4_plain_rep4 --git-sha 615f4357f015 --experiment txn --txn-size 4 --index off --duration 3':
+
+          5,328.40 msec task-clock                                                            
+    19,027,511,666      cycles                                                                  (83.39%)
+    15,118,840,271      instructions                                                            (83.07%)
+     2,921,637,982      cache-references                                                        (83.55%)
+       624,278,207      cache-misses                                                            (83.04%)
+           168,183      context-switches                                                      
+                 7      cpu-migrations                                                        
+        34,508,828      branch-misses                                                           (83.37%)
+     1,573,416,375      L1-dcache-load-misses                                                   (83.61%)
+
+       3.128153017 seconds time elapsed
+
+       4.526341000 seconds user
+       0.803507000 seconds sys
+
+

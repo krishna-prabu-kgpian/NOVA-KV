@@ -277,6 +277,8 @@ md.append("")
 # What the RCU store's reclamation did during the D.1 runs (from cow.csv).
 cow1 = {r["run_id"]: r for r in read_csv(os.path.join(OUT, "d1/concurrent/cow.csv"))}
 md += ["### RCU store during D.1: copy-on-write and reclamation", "",
+       "\"Backlog max\" and \"Peak RSS\" include the loading of the 100,000 trades before the measured window; \"at end\"",
+       "is the state when the window closes. A backlog at the end that is close to the maximum means it was still growing.", "",
        "| Writer | Readers | Peak RSS MiB | Memory held at end MiB | Backlog max (versions) | Backlog at end | Cleaner CPU s | Bytes copied per update |",
        "|---|---:|---:|---:|---:|---:|---:|---:|"]
 rcu_recl_rows = []
@@ -360,8 +362,9 @@ for r in steady:
 gs = group(steady, lambda r: r["scenario"])
 expect_cells("d2/steady", gs, SETTINGS, "setting")
 md += ["", "## D.2 — reclamation batch, workload A: STEADY point gets", "",
-       "The D.1 track C benchmark (RCU, 8 readers, unthrottled writer, 32-byte values). The cleaner keeps up at",
-       "every setting, so large batches rarely fill.", "",
+       "The D.1 track C benchmark (RCU, 8 readers, unthrottled writer, 32-byte values). \"Steady\" describes the",
+       "workload, not the outcome: at 8 readers the writer retires versions faster than the cleaner destroys them, so",
+       "the backlog and the memory held grow for the whole window (columns \"Backlog max\", \"Memory at end\").", "",
        "| Setting | Reads/s (M) | Writer updates/s | p50 µs | p99 µs | p99.9 µs | Longest reader stall µs (median / worst run) | Passes | Most versions freed in a pass | Backlog max | Memory at end MiB | Cleaner CPU s | Versions reclaimed/s |",
        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
 steady_rows, steady_stats = [], {}

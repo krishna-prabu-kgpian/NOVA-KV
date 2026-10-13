@@ -242,7 +242,13 @@ gates to it as the milestone lands.
   build (its index probe hits 100 %, D-065); the Part C APIs are not required on the lock
   variants (D-067); the Part D plan is `docs/part_d_plan.md` (not executed).
 - **Part C is complete, with one documented deviation** (the join uses one Snapshot per
-  store, D-060). **Next: D** (benchmark campaign). Requires user approval.
+  store, D-060).
+- **D (benchmark campaign): complete** — `reports/milestones/D.md`, tag `part-d-final`, branch
+  `part-d/benchmarks`. Report `reports/part_d_report.pdf` (source `.md`); checklist
+  `docs/part_d_compliance.md`; data `results/part_d/` (campaign
+  `20261013T090846-615f4357f015-all`, measured at 615f435 = the Part C store, no source change
+  under `src/` or `include/`). **Next: E (optional WAL) or final packaging — neither started;
+  both require user approval.**
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
@@ -329,6 +335,21 @@ Part C.2 rules (D-060…D-065, `docs/secondary_index.md`):
 - No index and no Snapshot on the lock baselines (`create_index` false, `index_get` 0).
 - CSV rows written by benchmarks must not contain commas in free-text fields.
 - Mutation records: `results/C2/mutation_check.md` (21/21).
+
+Part D rules (D-068, D-069, `docs/part_d_plan.md`):
+
+- `results/part_d/` is ONE campaign and is frozen evidence: never edit a raw file, never mix
+  in runs from another session or commit (`scripts/run_part_d.sh` refuses; the
+  `part_d_artifacts` gate checks the campaign stamps). A re-measurement is a new campaign.
+- Report what was measured, including where it contradicts the assignment's expectation: the
+  reclaim batch does NOT trade read throughput against stalls here (it changes reclamation
+  throughput and memory); the RCU store with an unthrottled writer at 4/8 readers is not in a
+  steady state (the cleaner falls behind, no back-pressure); audit item R8 is only weakly
+  supported by `perf c2c` and no optimization was made.
+- Track R (supplied generator) is always labelled preload-only; the generator's `use_join`
+  path is an index probe, never a join; joins are one Snapshot per store (two handles).
+- Figures and tables are regenerated from the raw data by `scripts/aggregate_part_d.py`; the
+  PDF by `scripts/build_part_d_report.sh`.
 
 Measurement rules (D-024…D-026, D-029, D-046): never label supplied-generator runs as
 concurrent (they are preload-only); active-writer numbers come from

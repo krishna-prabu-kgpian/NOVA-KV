@@ -1,0 +1,9 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d2/backlog/perf_stat/backlog_batch1024_rep4.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/backlog/rss/backlog_batch1024_rep4.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 4 --git-sha 615f4357f015 --csv results/part_d/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim-batch 1024 --run-id backlog_batch1024_rep4 --scenario batch_1024 --hist results/part_d/d2/backlog/hist/backlog_batch1024_rep4.csv
+reclaim_bench variant=rcu reclaim=epoch batch=1024 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 3.000 s  reads=120424082 rps=40139282 p50=161 ns p99=311 ns p999=481 ns max=103948 ns
+  writer : ok=589221 failed=0 wps=196397 stopped_at_limit=0  pin_cycles=70
+  backlog: max=5497 at_release=5553  held idle=7.9 MiB max=64.6 MiB at_end=26.7 MiB
+  cleanup: drained=1 in 13.926 ms  reads=661801 max=13135 ns p999=391 ns
+  reclaim: versions=688184 passes=2066 max_per_pass=1024 stw_pauses=0 cleaner_cpu=2.673 s
+valid=1
+# exit_status: 0

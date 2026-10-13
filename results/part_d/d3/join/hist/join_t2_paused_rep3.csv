@@ -1,0 +1,11 @@
+series,latency_ns_lower_bound,count
+join,6356992,475
+join,6422528,386
+join,6488064,41
+join,6553600,9
+join,6619136,7
+join,6684672,6
+join,6815744,2
+join,6881280,2
+join,7405568,2
+join,10354688,2

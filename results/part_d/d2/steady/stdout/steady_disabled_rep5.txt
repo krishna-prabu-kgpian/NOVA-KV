@@ -1,0 +1,11 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/d2/steady/perf_stat/steady_disabled_rep5.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/steady/rss/steady_disabled_rep5.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 5 --git-sha 615f4357f015 --csv results/part_d/d2/steady/runs.csv --cow-csv results/part_d/d2/steady/cow.csv --retain-limit-mb 16000 --duration 1 --reclaim disabled --run-id steady_disabled_rep5 --scenario reclaim_disabled --hist results/part_d/d2/steady/hist/steady_disabled_rep5.csv
+rcu          scenario=reclaim_disabled readers=8 writer=thread_max keys=hit seconds=1.000
+  store lock object at 0x567a2b8f9e00, 8 bytes (cache lines 0x567a2b8f9e00..0x567a2b8f9e00)
+  reads : ops=73890970 rps=73886886 hits=73890970 misses=0 corrupt=0
+  read latency ns: p50=70 p99=290 p999=451 max=136259 mean=81.7
+  writes: ok=83456 failed=0 rps=83451 p50=11520 p99=19456 max=83719 ns
+  rcu   : publications=124610 (writes incl. warm-up=124610) commits_failed=0 reclaim=disabled batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23938 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=78.1 value_bytes=32.0
+  rcu reclamation: reclaimed=0 backlog_at_end=224610 backlog_max=224610 passes=6001 epoch_advances=0/0 attempts (0 blocked by a reader) max_versions_in_pass=0 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=0 cleaner_cpu=0.000s (0.0% of one CPU over warm-up + window)
+  rcu memory held: after_load=1185.6 MiB at_end=4419.3 MiB settled=4419.3 MiB (versions + segments + chunks)
+# exit_status: 0

@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:17:29 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/rwlock_refkeys_paced_r8_rep3.txt build/release/concurrent_bench_rwlock --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 3 --run-id rwlock_refkeys_paced_r8_rep3 --git-sha 615f4357f015 --scenario refkeys_paced --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/rwlock_refkeys_paced_r8_rep3.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference':
+
+         43,310.05 msec task-clock                                                            
+   182,568,118,815      cycles                                                                  (83.37%)
+    53,979,461,829      instructions                                                            (83.31%)
+       940,828,637      cache-references                                                        (83.43%)
+       321,920,963      cache-misses                                                            (83.31%)
+           113,902      context-switches                                                      
+                11      cpu-migrations                                                        
+       224,512,170      branch-misses                                                           (83.25%)
+       763,650,636      L1-dcache-load-misses                                                   (83.33%)
+
+       5.513055295 seconds time elapsed
+
+      37.945529000 seconds user
+       5.375730000 seconds sys
+
+

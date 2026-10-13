@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:14:04 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/single_readonly_r1_rep2.txt build/release/concurrent_bench_single --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 2 --run-id single_readonly_r1_rep2 --git-sha 615f4357f015 --scenario readonly --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/single_readonly_r1_rep2.csv --writer off':
+
+          5,512.02 msec task-clock                                                            
+    27,663,172,205      cycles                                                                  (83.33%)
+    36,884,886,692      instructions                                                            (83.33%)
+       444,094,886      cache-references                                                        (83.35%)
+        58,045,717      cache-misses                                                            (83.31%)
+                53      context-switches                                                      
+                 2      cpu-migrations                                                        
+        58,585,748      branch-misses                                                           (83.35%)
+       384,373,438      L1-dcache-load-misses                                                   (83.33%)
+
+       5.514537661 seconds time elapsed
+
+       5.508307000 seconds user
+       0.005038000 seconds sys
+
+

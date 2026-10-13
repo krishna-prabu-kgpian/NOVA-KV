@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:39:21 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d3/join/rss/join_t1_active_rep3.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/d3/join/runs.csv --hist results/part_d/d3/join/hist/join_t1_active_rep3.csv --run-id join_t1_active_rep3 --git-sha 615f4357f015 --experiment join --threads 1 --cpus 0 --writer on --duration 3':
+
+          8,116.50 msec task-clock                                                            
+    33,453,202,359      cycles                                                                  (83.25%)
+    35,400,442,647      instructions                                                            (83.40%)
+     1,923,133,480      cache-references                                                        (83.27%)
+       326,403,914      cache-misses                                                            (83.56%)
+           296,981      context-switches                                                      
+                13      cpu-migrations                                                        
+        54,532,429      branch-misses                                                           (83.05%)
+     1,017,169,147      L1-dcache-load-misses                                                   (83.48%)
+
+       3.113113687 seconds time elapsed
+
+       6.625084000 seconds user
+       1.501275000 seconds sys
+
+

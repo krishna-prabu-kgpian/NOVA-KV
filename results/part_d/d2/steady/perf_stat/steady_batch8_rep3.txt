@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:33:11 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/steady/rss/steady_batch8_rep3.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 3 --git-sha 615f4357f015 --csv results/part_d/d2/steady/runs.csv --cow-csv results/part_d/d2/steady/cow.csv --retain-limit-mb 16000 --duration 3 --reclaim-batch 8 --run-id steady_batch8_rep3 --scenario batch_8 --hist results/part_d/d2/steady/hist/steady_batch8_rep3.csv':
+
+         35,647.73 msec task-clock                                                            
+   149,568,176,715      cycles                                                                  (83.34%)
+    87,012,651,342      instructions                                                            (83.31%)
+     3,331,625,740      cache-references                                                        (83.32%)
+       849,334,258      cache-misses                                                            (83.37%)
+           134,393      context-switches                                                      
+                19      cpu-migrations                                                        
+       129,562,644      branch-misses                                                           (83.35%)
+     1,951,332,688      L1-dcache-load-misses                                                   (83.33%)
+
+       4.174489940 seconds time elapsed
+
+      34.143239000 seconds user
+       1.538998000 seconds sys
+
+

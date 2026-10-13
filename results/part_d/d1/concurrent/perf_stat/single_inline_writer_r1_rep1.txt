@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:11:13 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/single_inline_writer_r1_rep1.txt build/release/concurrent_bench_single --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 1 --run-id single_inline_writer_r1_rep1 --git-sha 615f4357f015 --scenario inline_writer --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/single_inline_writer_r1_rep1.csv --writer inline:100':
+
+          5,511.41 msec task-clock                                                            
+    27,686,725,194      cycles                                                                  (83.33%)
+    36,265,941,812      instructions                                                            (83.33%)
+       455,986,953      cache-references                                                        (83.32%)
+        61,807,218      cache-misses                                                            (83.34%)
+                52      context-switches                                                      
+                 2      cpu-migrations                                                        
+        57,040,832      branch-misses                                                           (83.35%)
+       374,115,978      L1-dcache-load-misses                                                   (83.35%)
+
+       5.512627998 seconds time elapsed
+
+       5.503477000 seconds user
+       0.009082000 seconds sys
+
+

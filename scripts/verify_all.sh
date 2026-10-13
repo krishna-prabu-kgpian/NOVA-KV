@@ -169,7 +169,7 @@ run_gate part_c1_artifacts yes sh -c '
     grep -q "Durability" docs/transactions.md || { echo "MISSING  durability statement"; status=1; }
     # Every tag that is a checkpoint so far still names the commit it was created on.
     for pair in a0-bootstrap:2ef5f19 part-a-core:80bc092 part-a-final:3444f23 part-b-publication:2d9c02c \
-                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10; do
+                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10 part-c-final:27d3161; do
         tag=${pair%%:*}; want=${pair##*:}
         have=$(git rev-parse --short=7 "$tag^{commit}" 2>/dev/null)
         if [ "$have" = "$want" ]; then echo "ok       tag $tag = $want"; else echo "MOVED    tag $tag: $have, expected $want"; status=1; fi
@@ -211,6 +211,42 @@ run_gate part_c_artifacts yes sh -c '
     fi
     exit $status'
 
+# ---- Part D deliverables (milestone D) --------------------------------------------
+run_gate part_d_artifacts yes sh -c '
+    status=0
+    for f in scripts/run_part_d.sh scripts/aggregate_part_d.py scripts/part_d_profile_breakdown.py \
+             benchmarks/concurrent_bench.cpp benchmarks/join_bench.cpp benchmarks/reclaim_bench.cpp \
+             reports/part_d_report.md reports/part_d_report.pdf docs/part_d_compliance.md docs/part_d_plan.md \
+             results/part_d/CAMPAIGN results/part_d/conditions.log results/part_d/env/campaign_config.txt \
+             results/part_d/env/prerequisites.txt results/part_d/summary/summary.md \
+             results/part_d/summary/profile_breakdown.txt results/part_d/d1/concurrent/runs.csv \
+             results/part_d/d1/reference/runs.csv results/part_d/d2/steady/runs.csv results/part_d/d2/backlog/runs.csv \
+             results/part_d/d3/txn/runs.csv results/part_d/d3/join/runs.csv results/part_d/d3/cow/runs.csv; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    [ -e results/part_d/INVALID ] && { echo "INVALID  the campaign is marked invalid"; status=1; }
+    [ -e results/part_d/summary/problems.txt ] && [ ! -s results/part_d/summary/problems.txt ] \
+        && echo "ok       aggregator found no problem" || { echo "PROBLEM  results/part_d/summary/problems.txt is missing or not empty"; status=1; }
+    if grep -v -E "ac_online=1 .*governor=performance " results/part_d/conditions.log | grep -q .; then
+        echo "CHANGED  a condition record is not mains + performance"; status=1
+    else echo "ok       $(grep -c . results/part_d/conditions.log) condition records: mains power, performance governor"; fi
+    campaign=$(cat results/part_d/CAMPAIGN)
+    for d in d1/concurrent d1/reference d2/steady d2/backlog d3/txn d3/join d3/cow d3/generator perf/flamegraphs perf/c2c; do
+        [ "$(cat results/part_d/$d/.campaign 2>/dev/null)" = "$campaign" ] || { echo "MIXED    results/part_d/$d is not from campaign $campaign"; status=1; }
+    done
+    n() { ls "$1" 2>/dev/null | grep -c "$2"; }
+    [ "$(n results/part_d/figures .png)" -ge 12 ] && echo "ok       figures: $(n results/part_d/figures .png)" || { echo "MISSING  figures"; status=1; }
+    [ "$(n results/part_d/perf/flamegraphs "\.svg$")" -ge 9 ] && echo "ok       flame graphs: $(n results/part_d/perf/flamegraphs "\.svg$")" || { echo "MISSING  flame graphs"; status=1; }
+    [ "$(n results/part_d/perf/c2c c2c-report.txt)" -ge 4 ] && echo "ok       perf c2c reports: $(n results/part_d/perf/c2c c2c-report.txt)" || { echo "MISSING  perf c2c reports"; status=1; }
+    runs=$(($(wc -l < results/part_d/d1/concurrent/runs.csv) - 1))
+    [ "$runs" -eq "$(n results/part_d/d1/concurrent/hist .csv)" ] && [ "$runs" -eq "$(n results/part_d/d1/concurrent/perf_stat .txt)" ] \
+        && echo "ok       D.1 track C: $runs runs, each with a histogram and a perf stat file" || { echo "MISMATCH D.1 runs / histograms / perf stat files"; status=1; }
+    # Statements the report must not lose.
+    grep -qi "preload-only" reports/part_d_report.md || { echo "MISSING  preload-only label in the report"; status=1; }
+    grep -qi "two handles" reports/part_d_report.md || { echo "MISSING  one-snapshot-per-store limitation in the report"; status=1; }
+    grep -q "not what was measured" reports/part_d_report.md || { echo "MISSING  the batch trade-off finding"; status=1; }
+    exit $status'
+
 # ---- Informational (do not affect the verdict) ------------------------------
 # Whether profiling can be re-run on this machine (the committed Part A profiles
 # do not depend on it).
@@ -225,7 +261,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1, A2, B1, B2, C1, C2"
+    echo "- milestones covered: A0, A1, A2, B1, B2, C1, C2, D"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"

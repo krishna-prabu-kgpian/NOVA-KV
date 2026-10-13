@@ -942,6 +942,31 @@ repetitions; every run's command and exit status kept; a run that fails its own 
 fails the campaign. Track R (supplied generator, preload-only) and track C (writer active)
 are never placed in one table or one figure.
 
+## D-069 — Part D findings that contradict an expectation, recorded as measured (Part D, 2026-10-13)
+
+Campaign `20261013T090846-615f4357f015-all` (`results/part_d/`, report `reports/part_d_report.md`).
+
+1. **The reclaim batch does not trade read throughput against reader stalls in this design.**
+   The assignment expects "a bigger batch should mean higher throughput but a longer
+   worst-case stall". Measured over batches 1–1024 in two workloads: read throughput and
+   p99.9 independent of the batch; longest stall without a trend (and of the same order with
+   reclamation disabled). The batch changes reclamation throughput and memory: one version per
+   pass is the least efficient. Reported as measured; no trade-off is manufactured.
+2. **With an unthrottled writer and 4 or 8 readers the cleaner cannot keep up** on this
+   machine in `performance` mode: about 101,000 versions retired per second against about
+   87,000 destroyed at 8 readers; the backlog grows by about 25,000 versions (0.65 GiB) per
+   second. The audited Part B binary does the same
+   (`results/part_d_diagnostics/part_b_reference_backlog.txt`). The B2 observation
+   (`powersave`, slower writer) had not shown it. There is no back-pressure (D-040). The
+   paced 10,000 updates/s workload is steady.
+3. **Audit item R8 (owner counts on reader-visible cache lines) is only weakly supported** by
+   `perf c2c`: reader loads that hit a remotely modified line are 6.7 % of such samples and
+   0.07 % of all sampled loads; the dominant coherence traffic is writer versus cleaner. Reads
+   do run at half speed next to an unthrottled writer; the cause is not established beyond
+   "stalled on memory". **No optimization was made**: the store measured is the audited Part C
+   store, and R8 stays an untested idea rather than a known fix.
+4. The supplied generator's index probe matched 100 % in these binaries (D-065).
+
 ---
 
 ## Open items carried forward
@@ -963,6 +988,6 @@ are never placed in one table or one figure.
 | O-16 | RESOLVED in C1 (D-051) | — | — |
 | O-17 | RESOLVED: tag `part-b-audited` (D-050) | — | — |
 | O-18 | RESOLVED: the join re-asks with a larger buffer (D-064) | — | — |
-| O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
+| O-14 | `kernel.perf_event_paranoid` was 1 for the Part D campaign (set by the user; not persistent: it reverts to 4 on reboot) | User, only if profiling is to be repeated | Nothing |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

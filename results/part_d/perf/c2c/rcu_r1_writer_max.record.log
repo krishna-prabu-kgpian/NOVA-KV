@@ -1,0 +1,27 @@
+# command: perf c2c record -o build/perf_data/rcu_r1_writer_max.c2c.data -- build/release/concurrent_bench_rcu --readers 1 --reader-cpus 0 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 615f4357f015 --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rcu          scenario=writer_max_c2c readers=1 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x56558ab9bc80, 8 bytes (cache lines 0x56558ab9bc80..0x56558ab9bc80)
+  reads : ops=43700036 rps=8739810 hits=43700036 misses=0 corrupt=0
+  read latency ns: p50=80 p99=241 p999=461 max=35637 mean=92.2
+  writes: ok=905946 failed=0 rps=181185 p50=4608 p99=11392 max=75864 ns
+  rcu   : publications=1013052 (writes incl. warm-up=1013052) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23933 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=122.1 value_bytes=32.0
+  rcu reclamation: reclaimed=1013037 backlog_at_end=0 backlog_max=196 passes=99173 epoch_advances=94573/98305 attempts (3732 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=124 reader_slots=0 validation_retries=12187 cleaner_cpu=4.173s (75.9% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=31.9 MiB settled=31.9 MiB (versions + segments + chunks)
+[ perf record: Woken up 18 times to write data ]
+[ perf record: Captured and wrote 4.956 MB build/perf_data/rcu_r1_writer_max.c2c.data (62407 samples) ]
+# exit_status: 0

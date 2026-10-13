@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:34:28 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/steady/rss/steady_batch1024_rep5.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 5 --git-sha 615f4357f015 --csv results/part_d/d2/steady/runs.csv --cow-csv results/part_d/d2/steady/cow.csv --retain-limit-mb 16000 --duration 3 --reclaim-batch 1024 --run-id steady_batch1024_rep5 --scenario batch_1024 --hist results/part_d/d2/steady/hist/steady_batch1024_rep5.csv':
+
+         35,642.17 msec task-clock                                                            
+   144,851,907,958      cycles                                                                  (83.38%)
+    89,169,373,124      instructions                                                            (83.30%)
+     3,262,668,145      cache-references                                                        (83.32%)
+       815,506,960      cache-misses                                                            (83.33%)
+            99,589      context-switches                                                      
+                18      cpu-migrations                                                        
+       133,242,861      branch-misses                                                           (83.33%)
+     1,904,912,082      L1-dcache-load-misses                                                   (83.36%)
+
+       4.206694045 seconds time elapsed
+
+      33.937845000 seconds user
+       1.745825000 seconds sys
+
+

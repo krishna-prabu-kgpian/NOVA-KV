@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:20:08 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/rcu_readonly_r1_rep4.txt build/release/concurrent_bench_rcu --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 4 --run-id rcu_readonly_r1_rep4 --git-sha 615f4357f015 --scenario readonly --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/rcu_readonly_r1_rep4.csv --cow-csv results/part_d/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer off':
+
+          6,231.24 msec task-clock                                                            
+    30,515,755,871      cycles                                                                  (83.53%)
+    40,017,463,000      instructions                                                            (82.51%)
+       608,377,695      cache-references                                                        (83.51%)
+        84,229,298      cache-misses                                                            (83.54%)
+            71,452      context-switches                                                      
+                16      cpu-migrations                                                        
+        58,395,748      branch-misses                                                           (83.45%)
+       430,530,870      L1-dcache-load-misses                                                   (83.48%)
+
+       5.914648643 seconds time elapsed
+
+       5.975049000 seconds user
+       0.271123000 seconds sys
+
+

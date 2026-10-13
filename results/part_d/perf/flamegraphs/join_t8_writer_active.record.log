@@ -1,0 +1,35 @@
+# command: perf record -F 1999 --call-graph fp -o build/perf_data/join_t8_writer_active.data -- build/release/join_bench --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --duration 3 --run-id fg_join_t8_active --csv results/part_d/perf/flamegraphs/profiled_join_runs.csv
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+join_bench experiment=join trades=100000 instruments=50 threads=8 writer=on txn_size=1 index=on duration=3.0s
+  joins_per_s                               560.128 1/s        
+  joined_rows_per_s                          56.013 M/s        
+  join_p50_ms                                13.553 ms         
+  join_p99_ms                                22.694 ms         
+  join_p999_ms                               25.050 ms         
+  join_max_ms                                25.126 ms         
+  joins_measured                           1687.000 joins      
+  writer_trade_puts_per_s                129689.793 1/s        
+  writer_instrument_txns_per_s             2026.356 1/s        
+  memory_held_max_mib                       201.923 MiB        
+  backlog_max_versions                     7347.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     397146.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               2.929 s          
+valid=1
+[ perf record: Woken up 22 times to write data ]
+[ perf record: Captured and wrote 6.051 MB build/perf_data/join_t8_writer_active.data (59298 samples) ]
+# exit_status: 0

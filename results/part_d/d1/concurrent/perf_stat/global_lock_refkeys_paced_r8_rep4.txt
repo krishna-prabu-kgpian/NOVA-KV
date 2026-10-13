@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:20:19 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/global_lock_refkeys_paced_r8_rep4.txt build/release/concurrent_bench_global_lock --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 4 --run-id global_lock_refkeys_paced_r8_rep4 --git-sha 615f4357f015 --scenario refkeys_paced --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/global_lock_refkeys_paced_r8_rep4.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference':
+
+         43,481.37 msec task-clock                                                            
+   156,152,801,299      cycles                                                                  (83.42%)
+   123,430,217,542      instructions                                                            (83.33%)
+     2,545,138,374      cache-references                                                        (83.34%)
+       509,175,017      cache-misses                                                            (83.20%)
+         2,449,709      context-switches                                                      
+                 9      cpu-migrations                                                        
+       357,973,236      branch-misses                                                           (83.34%)
+     1,110,761,991      L1-dcache-load-misses                                                   (83.37%)
+
+       5.542125147 seconds time elapsed
+
+      12.131440000 seconds user
+      31.396827000 seconds sys
+
+

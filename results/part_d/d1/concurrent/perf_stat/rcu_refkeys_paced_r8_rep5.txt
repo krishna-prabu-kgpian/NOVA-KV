@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:23:27 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d1/concurrent/rss/rcu_refkeys_paced_r8_rep5.txt build/release/concurrent_bench_rcu --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 5 --run-id rcu_refkeys_paced_r8_rep5 --git-sha 615f4357f015 --scenario refkeys_paced --csv results/part_d/d1/concurrent/runs.csv --hist results/part_d/d1/concurrent/hist/rcu_refkeys_paced_r8_rep5.csv --cow-csv results/part_d/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer on --writer-cpu 15 --writer-rate 10000 --keys reference':
+
+         50,527.22 msec task-clock                                                            
+   207,654,476,966      cycles                                                                  (83.34%)
+   274,490,617,586      instructions                                                            (83.34%)
+     3,446,902,299      cache-references                                                        (83.34%)
+       535,897,876      cache-misses                                                            (83.34%)
+            47,348      context-switches                                                      
+                19      cpu-migrations                                                        
+       448,840,681      branch-misses                                                           (83.29%)
+     2,422,259,944      L1-dcache-load-misses                                                   (83.36%)
+
+       5.827225695 seconds time elapsed
+
+      46.395945000 seconds user
+       4.141242000 seconds sys
+
+

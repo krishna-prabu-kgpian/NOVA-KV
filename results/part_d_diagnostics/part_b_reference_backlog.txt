@@ -1,0 +1,43 @@
+# Diagnostic, NOT part of the Part D campaign tables. 2026-10-13T09:51:55
+# Question: does the reclamation backlog under an unthrottled writer at 8 readers come from Part C?
+# Same command for two binaries, alternating, 3 runs each, same session as the campaign:
+#   part-b-audited : concurrent_bench_rcu built (Release) from 'git archive part-b-audited' (87d38aa)
+#   current        : build/release/concurrent_bench_rcu (615f435 tree, the campaign's executable)
+# conditions: ac_online=1 governor=performance loadavg=0.16 1.40 2.77
+# command: <binary> --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --duration 3 --retain-limit-mb 16000
+== part-b-audited, run 1
+  reads : ops=147411356 rps=49136778 hits=147411356 misses=0 corrupt=0
+  writes: ok=335265 failed=0 rps=111754 p50=7296 p99=16256 max=257289 ns
+  rcu reclamation: reclaimed=314286 backlog_at_end=89253 backlog_max=89530 passes=4996 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=2325.5 MiB settled=21.5 MiB (versions + segments + chunks)
+exit status: 0
+== current, run 1
+  reads : ops=145429772 rps=48476222 hits=145429772 misses=0 corrupt=0
+  writes: ok=315443 failed=0 rps=105147 p50=7744 p99=16384 max=219467 ns
+  rcu reclamation: reclaimed=286627 backlog_at_end=99584 backlog_max=99786 passes=4565 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=2640.5 MiB settled=21.0 MiB (versions + segments + chunks)
+exit status: 0
+== part-b-audited, run 2
+  reads : ops=147359900 rps=49118925 hits=147359900 misses=0 corrupt=0
+  writes: ok=337598 failed=0 rps=112530 p50=7360 p99=16000 max=157128 ns
+  rcu reclamation: reclaimed=330834 backlog_at_end=80880 backlog_max=81160 passes=5352 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=2109.3 MiB settled=21.7 MiB (versions + segments + chunks)
+exit status: 0
+== current, run 2
+  reads : ops=145378862 rps=48458664 hits=145378862 misses=0 corrupt=0
+  writes: ok=331708 failed=0 rps=110567 p50=7488 p99=16256 max=256739 ns
+  rcu reclamation: reclaimed=330846 backlog_at_end=74687 backlog_max=74950 passes=5416 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=1986.4 MiB settled=21.5 MiB (versions + segments + chunks)
+exit status: 0
+== part-b-audited, run 3
+  reads : ops=147273237 rps=49090138 hits=147273237 misses=0 corrupt=0
+  writes: ok=338163 failed=0 rps=112719 p50=7296 p99=16256 max=155545 ns
+  rcu reclamation: reclaimed=326061 backlog_at_end=81198 backlog_max=81476 passes=5173 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=2117.3 MiB settled=21.6 MiB (versions + segments + chunks)
+exit status: 0
+== current, run 3
+  reads : ops=145272308 rps=48423629 hits=145272308 misses=0 corrupt=0
+  writes: ok=335176 failed=0 rps=111724 p50=7360 p99=16256 max=252720 ns
+  rcu reclamation: reclaimed=328902 backlog_at_end=79966 backlog_max=80314 passes=5230 max_versions_in_pass=64
+  rcu memory held: after_load=9.0 MiB at_end=2125.3 MiB settled=21.7 MiB (versions + segments + chunks)
+exit status: 0

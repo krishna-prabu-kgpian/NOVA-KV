@@ -1,0 +1,5 @@
+run,load_operations,load_hitm,shared_cache_lines
+rcu_r1_writer_max,23498,1497,1160
+rcu_r8_readonly,59872,81,80
+rcu_r8_writer_max,76987,804,702
+rwlock_r8_writer_max,42916,1199,85

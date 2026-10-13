@@ -1,0 +1,23 @@
+# command: perf record -F 1999 --call-graph fp -o build/perf_data/global_lock_r8_writer_max.data -- build/release/concurrent_bench_global_lock --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 615f4357f015 --csv results/part_d/perf/flamegraphs/profiled_runs.csv --run-id fg_global_lock_r8_writer_max --scenario writer_max_profiled
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+global_lock  scenario=writer_max_profiled readers=8 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x55bf0f532cd0, 40 bytes (cache lines 0x55bf0f532cc0..0x55bf0f532cc0)
+  reads : ops=35716650 rps=7143239 hits=35716650 misses=0 corrupt=0
+  read latency ns: p50=371 p99=7104 p999=12672 max=380580 mean=1085.3
+  writes: ok=2908061 failed=0 rps=581605 p50=1216 p99=8832 max=286512 ns
+[ perf record: Woken up 56 times to write data ]
+[ perf record: Captured and wrote 15.165 MB build/perf_data/global_lock_r8_writer_max.data (92417 samples) ]
+# exit_status: 0

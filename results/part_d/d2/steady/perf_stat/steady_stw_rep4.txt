@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:34:00 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/d2/steady/rss/steady_stw_rep4.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 4 --git-sha 615f4357f015 --csv results/part_d/d2/steady/runs.csv --cow-csv results/part_d/d2/steady/cow.csv --retain-limit-mb 16000 --duration 3 --reclaim stw --run-id steady_stw_rep4 --scenario reclaim_stw --hist results/part_d/d2/steady/hist/steady_stw_rep4.csv':
+
+         13,838.46 msec task-clock                                                            
+    48,948,820,584      cycles                                                                  (83.33%)
+    27,040,543,531      instructions                                                            (83.41%)
+     2,534,882,193      cache-references                                                        (83.47%)
+       523,465,066      cache-misses                                                            (83.27%)
+           206,362      context-switches                                                      
+                19      cpu-migrations                                                        
+        48,368,704      branch-misses                                                           (83.38%)
+     1,458,074,653      L1-dcache-load-misses                                                   (83.14%)
+
+       3.902564126 seconds time elapsed
+
+      12.806964000 seconds user
+       1.079630000 seconds sys
+
+
