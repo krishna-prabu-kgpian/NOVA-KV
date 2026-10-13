@@ -217,3 +217,63 @@ unchanged (same Git tree, `607e836…`, as `results/part_d/` at tag `part-d-fina
 
 Pilot of the corrected method: `results/part_d_pilot_unwrapped/` (one repetition, 1 s
 windows; passed).
+
+## 11. Lock placement: found by the first unwrapped campaign, controlled in the final one (decision D-072; written before the final campaign)
+
+**What the first unwrapped campaign (`unwrapped-20261013T105136-146b851dc3dd`) showed.** Its
+shared-mutex store at 8 readers with a paced writer ran at 34 M reads/s with a healthy writer,
+where every earlier run of that cell, wrapped or not, had given 21–22 M with a starved writer.
+Controlled runs (`results/part_d_diagnostics/lock_placement_effect.txt`,
+`rwlock_r8_paced_two_regimes.txt`) found the cause: **the position of the store's lock object
+inside its 64-byte cache line.** Varying nothing but the length of a label on the command line
+(which changes a few heap allocations and so moves the store) moves the lock among offsets
+0, 16, 32 and 48, and:
+
+| Lock offset in its line | shared mutex, 8 readers, paced writer | global mutex, same |
+|---|---|---|
+| 48 | 33–34 M reads/s, writer gets its 10,000/s | 11.1–11.8 M |
+| 0, 16, 32 | 21–23 M reads/s, writer starved (1,700–4,700/s) | 9.2–9.8 M |
+
+18 of 18 label lengths and, with the new placement option, 16 of 16 runs follow that rule.
+The same store, the same binary, the same arguments apart from a label.
+
+**Consequences.**
+
+- The lock-based cells of both earlier campaigns were measured at whatever offset each
+  cell's own command line produced; the offset differed from cell to cell (run identifiers
+  and paths differ in length), so their scaling curves mix the two speeds. Neither campaign
+  is a valid source for the lock-based stores' scaling.
+- The `perf stat` effect of D-070 is real and separate: with identical arguments, hence an
+  identical offset, the wrapper still raises the global mutex by about 22 % and lowers the
+  shared mutex by 2–6 % and the stop-the-world comparator by 20–50 %.
+- The RCU store's readers take no lock; its cells agree across all three campaigns.
+
+**What the final campaign does.**
+
+1. `concurrent_bench --lock-offset N` (benchmark only): the store is constructed, and if its
+   lock is not at offset N it is destroyed and constructed again after a small allocation.
+   The store's code is untouched.
+2. Every track C cell of the global-mutex and shared-mutex stores is measured **at both
+   placements**: offset 48 (scenario `<name>`) and offset 0 (`<name>_o0`; a cache-line-aligned
+   lock, and representative of 16 and 32). The harness records the offset of every run and
+   the aggregator rejects a lock-store run at any other offset.
+3. Track R cannot be controlled (the generator's arguments are fixed and the supplied file is
+   not edited); the drivers now print the offset they got, and it is reported beside their
+   numbers (`rwlock` driver: 0; `global_lock` driver: 48).
+4. The stop-the-world comparator's own lock is inside the RCU engine and is not placed; its
+   read throughput varied between 5.6 and 7.4 M/s with the label length. It is a comparator
+   and its stall, not its throughput, is what D.2 and D.3 use; the variation is reported.
+5. Profiling adds, for both lock stores at 8 readers with the paced writer, a flame graph and
+   a `perf c2c` report at each placement.
+
+**Why offset 48 is faster: a hypothesis, not a result.** At 48 only the first 16 bytes of the
+lock (the words every lock and unlock modifies) are in one line and everything from byte 16
+on is in the next. glibc's `pthread_mutex_lock` first reads `__kind` (byte 16) and
+`pthread_rwlock_rdlock` first reads `__cur_writer` (byte 24) before the atomic update of the
+word at byte 0. With both on one line the read fetches the contended line shared and the
+update must then upgrade it; apart, the read is served from a line nobody writes. This fits
+all eight placements measured; it has not been isolated by an experiment.
+
+Part A's accepted results (`results/part_a/`) were measured without placement control and
+are not changed; the same sensitivity applies to them.
+

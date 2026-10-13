@@ -1,0 +1,99 @@
+=================================================
+            Trace Event Information              
+=================================================
+  Total records                     :     171777
+  Locked Load/Store Operations      :       2636
+  Load Operations                   :      27547
+  Loads - uncacheable               :          0
+  Loads - IO                        :          0
+  Loads - Miss                      :          0
+  Loads - no mapping                :      21083
+  Load Fill Buffer Hit              :          0
+  Load L1D hit                      :       3581
+  Load L2D hit                      :        115
+  Load LLC hit                      :       2768
+  Load Local HITM                   :       2744
+  Load Remote HITM                  :          0
+  Load Remote HIT                   :          0
+  Load Local DRAM                   :          0
+  Load Remote DRAM                  :          0
+  Load MESI State Exclusive         :          0
+  Load MESI State Shared            :          0
+  Load LLC Misses                   :          0
+  Load access blocked by data       :          0
+  Load access blocked by address    :          0
+  Load HIT Local Peer               :          0
+  Load HIT Remote Peer              :          0
+  LLC Misses to Local DRAM          :       -nan%
+  LLC Misses to Remote DRAM         :       -nan%
+  LLC Misses to Remote cache (HIT)  :       -nan%
+  LLC Misses to Remote cache (HITM) :       -nan%
+  Store Operations                  :       1592
+  Store - uncacheable               :          0
+  Store - no mapping                :        197
+  Store L1D Hit                     :       1388
+  Store L1D Miss                    :          0
+  Store No available memory level   :          2
+  No Page Map Rejects               :        340
+  Unable to parse data source       :     142638
+
+=================================================
+    Global Shared Cache Line Event Information   
+=================================================
+  Total Shared Cache Lines          :          5
+  Load HITs on shared lines         :       2768
+  Fill Buffer Hits on shared lines  :          0
+  L1D hits on shared lines          :         19
+  L2D hits on shared lines          :          0
+  LLC hits on shared lines          :       2749
+  Load hits on peer cache or nodes  :          0
+  Locked Access on shared lines     :       2632
+  Blocked Access on shared lines    :          0
+  Store HITs on shared lines        :          0
+  Store L1D hits on shared lines    :          0
+  Store No available memory level   :          0
+  Total Merged records              :       2744
+
+=================================================
+                 c2c details                     
+=================================================
+  Events                            : ibs_op/ldlat=0/
+  Cachelines sort on                : Total HITMs
+  Cacheline data grouping           : offset,iaddr
+
+=================================================
+           Shared Data Cache Line Table          
+=================================================
+#
+#        ----------- Cacheline ----------      Tot  ------- Load Hitm -------    Total    Total    Total  --------- Stores --------  ----- Core Load Hit -----  - LLC Load Hit --  - RMT Load Hit --  --- Load Dram ----
+# Index             Address  Node  PA cnt     Hitm    Total  LclHitm  RmtHitm  records    Loads   Stores    L1Hit   L1Miss      N/A       FB       L1       L2    LclHit  LclHitm    RmtHit  RmtHitm       Lcl       Rmt
+# .....  ..................  ....  ......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  ........  .......  ........  .......  ........  ........
+#
+      0      0x559f6b87bcc0     0     233   99.78%     2738     2738        0     2758     2758        0        0        0        0        0       16        0         4     2738         0        0         0         0
+      1  0xffff8b40c1754280     0       5    0.11%        3        3        0        6        6        0        0        0        0        0        2        0         1        3         0        0         0         0
+
+=================================================
+      Shared Cache Line Distribution Pareto      
+=================================================
+#
+#        ----- HITM -----  ------- Store Refs ------  --------- Data address ---------                      ---------- cycles ----------    Total       cpu                                     Shared                                   
+#   Num  RmtHitm  LclHitm   L1 Hit  L1 Miss      N/A              Offset  Node  PA cnt        Code address  rmt hitm  lcl hitm      load  records       cnt                          Symbol     Object                  Source:Line  Node
+# .....  .......  .......  .......  .......  .......  ..................  ....  ......  ..................  ........  ........  ........  .......  ........  ..............................  .........  ...........................  ....
+#
+  ----------------------------------------------------------------------
+      0        0     2738        0        0        0      0x559f6b87bcc0
+  ----------------------------------------------------------------------
+           0.00%   94.12%    0.00%    0.00%    0.00%                 0x0     0       1      0x7432a12aa9eb         0       587         0     2587         8  [.] pthread_rwlock_unlock@@GLI  libc.so.6  pthread_rwlock_common.c:248   0
+           0.00%    1.50%    0.00%    0.00%    0.00%                 0x0     0       1      0x7432a12a9fcd         0       517         0       41         8  [.] pthread_rwlock_rdlock@GLIB  libc.so.6  pthread_rwlock_common.c:347   0
+           0.00%    0.44%    0.00%    0.00%    0.00%                 0x0     0       1      0x7432a12aa9dd         0       587         0       12         7  [.] pthread_rwlock_unlock@@GLI  libc.so.6  pthread_rwlock_common.c:226   0
+           0.00%    0.04%    0.00%    0.00%    0.00%                 0x8     0       1      0x7432a12aa130         0       349         0        2         2  [.] pthread_rwlock_rdlock@GLIB  libc.so.6  pthread_rwlock_common.c:450   0
+           0.00%    0.47%    0.00%    0.00%    0.00%                0x18     0       1      0x7432a12a9fb1         0       497         0       13         5  [.] pthread_rwlock_rdlock@GLIB  libc.so.6  pthread_rwlock_common.c:292   0
+           0.00%    0.44%    0.00%    0.00%    0.00%                0x18     0       1      0x7432a12aa9bf         0       505         0       12         7  [.] pthread_rwlock_unlock@@GLI  libc.so.6  pthread_rwlock_unlock.c:38    0
+           0.00%    0.62%    0.00%    0.00%    0.00%                0x1c     0       1      0x7432a12aa9c2         0       433         0       17         6  [.] pthread_rwlock_unlock@@GLI  libc.so.6  pthread_rwlock_common.c:215   0
+           0.00%    2.37%    0.00%    0.00%    0.00%                0x30     0       1      0x7432a12a9fc2         0       504         0       69         8  [.] pthread_rwlock_rdlock@GLIB  libc.so.6  pthread_rwlock_common.c:304   0
+
+  ----------------------------------------------------------------------
+      1        0        3        0        0        0  0xffff8b40c1754280
+  ----------------------------------------------------------------------
+           0.00%   33.33%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99996c         0       228         0        2         2  [k] 0xffffffffbc99996c  [unknown]         ??:0          0
+           0.00%   66.67%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32e94         0        86       179        3         3  [k] 0xffffffffbdb32e94  [unknown]         ??:0          0

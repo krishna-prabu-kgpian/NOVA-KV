@@ -1,4 +1,4 @@
-# command: perf c2c record -o build/perf_data/rcu_r1_writer_max.c2c.data -- build/release/concurrent_bench_rcu --readers 1 --reader-cpus 0 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/c2c/profiled_runs.csv --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
+# command: perf c2c record -o build/perf_data/rcu_r1_writer_max.c2c.data -- build/release/concurrent_bench_rcu --readers 1 --reader-cpus 0 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 146b851dc3dd-dirty --csv results/part_d_pilot_unwrapped/profiling/c2c/profiled_runs.csv --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
 WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
 check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
 
@@ -14,14 +14,14 @@ Couldn't record kernel reference relocation symbol
 Symbol resolution may be skewed if relocation was used (e.g. kexec).
 Check /proc/kallsyms permission or run as root.
 rcu          scenario=writer_max_c2c readers=1 writer=thread_max keys=hit seconds=5.000
-  store lock object at 0x61ec7a632cc0, 8 bytes (cache lines 0x61ec7a632cc0..0x61ec7a632cc0)
-  reads : ops=42338761 rps=8467600 hits=42338761 misses=0 corrupt=0
-  read latency ns: p50=80 p99=270 p999=481 max=146398 mean=95.6
-  writes: ok=898566 failed=0 rps=179710 p50=4672 p99=11648 max=111983 ns
-  rcu   : publications=1003994 (writes incl. warm-up=1003994) commits_failed=0 reclaim=epoch batch=64
-  rcu per publication: segments_cloned=1.00 index_bytes_copied=23932 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=122.0 value_bytes=32.0
-  rcu reclamation: reclaimed=1003961 backlog_at_end=0 backlog_max=1203 passes=96202 epoch_advances=91604/95489 attempts (3885 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=120 reader_slots=0 validation_retries=9809 cleaner_cpu=4.176s (75.9% of one CPU over warm-up + window)
-  rcu memory held: after_load=9.0 MiB at_end=31.9 MiB settled=31.9 MiB (versions + segments + chunks)
+  store lock object at 0x5ba3e9f8ccc0 (offset 0 in its cache line, not controlled), 8 bytes (cache lines 0x5ba3e9f8ccc0..0x5ba3e9f8ccc0)
+  reads : ops=42115054 rps=8422859 hits=42115054 misses=0 corrupt=0
+  read latency ns: p50=80 p99=280 p999=481 max=142368 mean=96.4
+  writes: ok=889917 failed=0 rps=177980 p50=4736 p99=11776 max=107703 ns
+  rcu   : publications=994832 (writes incl. warm-up=994832) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23933 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=121.9 value_bytes=32.0
+  rcu reclamation: reclaimed=994794 backlog_at_end=0 backlog_max=1099 passes=94732 epoch_advances=90046/93968 attempts (3922 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=115 reader_slots=0 validation_retries=12023 cleaner_cpu=4.150s (75.4% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=31.6 MiB settled=31.6 MiB (versions + segments + chunks)
 [ perf record: Woken up 18 times to write data ]
-[ perf record: Captured and wrote 4.950 MB build/perf_data/rcu_r1_writer_max.c2c.data (62314 samples) ]
+[ perf record: Captured and wrote 4.961 MB build/perf_data/rcu_r1_writer_max.c2c.data (62429 samples) ]
 # exit_status: 0

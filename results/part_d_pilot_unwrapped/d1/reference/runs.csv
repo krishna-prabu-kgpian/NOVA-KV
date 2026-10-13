@@ -1,5 +1,5 @@
-run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate
-single_thread_r1_rep1,single_thread,1,1,1,16572040,16572040,0.0,0.1,0.3,0.001000,0.800200
-global_lock_r8_rep1,global_lock,8,1,1,11934316,11934316,0.1,4.4,7.2,0.001000,0.800200
-rwlock_r8_rep1,rwlock,8,1,1,18656340,18656340,0.4,0.8,1.2,0.001000,0.800200
-rcu_r8_rep1,rcu,8,1,1,77719679,77719679,0.1,0.1,0.2,0.001000,0.800200
+run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate,lock_offset_in_line
+single_thread_r1_rep1,single_thread,1,1,1,16605075,16605075,0.0,0.1,0.3,0.001000,0.800200,16
+global_lock_r8_rep1,global_lock,8,1,1,11335595,11335595,0.1,4.5,8.1,0.001000,0.800200,48
+rwlock_r8_rep1,rwlock,8,1,1,18585373,18585373,0.4,0.8,1.2,0.001000,0.800200,0
+rcu_r8_rep1,rcu,8,1,1,81847963,81847963,0.1,0.1,0.2,0.001000,0.800200,0

@@ -1,0 +1,9 @@
+scenario,readers,reps,max_rss_mib_median,memory_at_end_mib_median,memory_at_end_mib_max,backlog_max_median,backlog_max_worst,backlog_at_end_median,cleaner_cpu_s_median,bytes_copied_per_update_median
+writer_paced,1,5,297.514,10.7338,10.7339,280,5170,0,0.163074,25971
+writer_paced,2,5,196.172,10.7338,10.7339,3104,4874,0,0.232539,25971
+writer_paced,4,5,185.865,10.7338,10.7339,518,4027,0,0.387474,25971
+writer_paced,8,5,201.027,10.7338,10.7339,457,3116,0,0.505506,25971
+writer_max,1,5,187.852,31.2789,31.6522,1061,4215,0,4.69257,25977.3
+writer_max,2,5,133.98,31.0295,33.8763,1591,4057,0,5.28306,25976.9
+writer_max,4,5,1241.71,691.579,1001.42,25490,37263,25218,5.43723,25973.5
+writer_max,8,5,4800.32,4160.75,4809.13,157314,181936,157049,5.30161,25974

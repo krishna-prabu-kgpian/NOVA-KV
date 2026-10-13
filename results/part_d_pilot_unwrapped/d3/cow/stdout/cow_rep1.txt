@@ -1,11 +1,11 @@
-# command: build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/d3/cow/runs.csv --hist results/part_d_pilot_unwrapped/d3/cow/hist/cow_rep1.csv --run-id cow_rep1 --git-sha 9062d838457f-dirty --experiment cow
+# command: build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/d3/cow/runs.csv --hist results/part_d_pilot_unwrapped/d3/cow/hist/cow_rep1.csv --run-id cow_rep1 --git-sha 146b851dc3dd-dirty --experiment cow
 # wrapper: none
-# start: 2026-10-13T10:46:45.586
+# start: 2026-10-13T11:51:20.030
 join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_size=1 index=on duration=2.0s
   rows                                   100000.000 rows       all rows as one transaction
   publications                                1.000 versions   all rows as one transaction
-  elapsed_ms                                 13.142 ms         all rows as one transaction
-  rows_per_s                            7608963.785 1/s        all rows as one transaction
+  elapsed_ms                                 13.593 ms         all rows as one transaction
+  rows_per_s                            7356708.244 1/s        all rows as one transaction
   segments_cloned                           256.000 segments   all rows as one transaction
   bytes_copied                          6146048.000 bytes      all rows as one transaction
   bytes_copied_per_row                       61.460 bytes      all rows as one transaction
@@ -14,18 +14,18 @@ join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_
   memory_held_after_mib                       9.094 MiB        all rows as one transaction
   rows                                   100000.000 rows       all rows as single puts
   publications                           100000.000 versions   all rows as single puts
-  elapsed_ms                                558.134 ms         all rows as single puts
-  rows_per_s                             179168.397 1/s        all rows as single puts
+  elapsed_ms                                555.242 ms         all rows as single puts
+  rows_per_s                             180101.759 1/s        all rows as single puts
   segments_cloned                        100000.000 segments   all rows as single puts
   bytes_copied                       2610262016.000 bytes      all rows as single puts
   bytes_copied_per_row                    26102.620 bytes      all rows as single puts
   payload_bytes_per_row                      32.000 bytes      all rows as single puts
   memory_held_before_mib                      9.030 MiB        all rows as single puts
-  memory_held_after_mib                      17.063 MiB        all rows as single puts
+  memory_held_after_mib                       9.225 MiB        all rows as single puts
   rows                                     4096.000 rows       4096 rows spread over all partitions as one transaction
   publications                                1.000 versions   4096 rows spread over all partitions as one transaction
-  elapsed_ms                                  0.713 ms         4096 rows spread over all partitions as one transaction
-  rows_per_s                            5747932.933 1/s        4096 rows spread over all partitions as one transaction
+  elapsed_ms                                  0.715 ms         4096 rows spread over all partitions as one transaction
+  rows_per_s                            5726460.835 1/s        4096 rows spread over all partitions as one transaction
   segments_cloned                           256.000 segments   4096 rows spread over all partitions as one transaction
   bytes_copied                          6146048.000 bytes      4096 rows spread over all partitions as one transaction
   bytes_copied_per_row                     1500.500 bytes      4096 rows spread over all partitions as one transaction
@@ -34,18 +34,18 @@ join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_
   memory_held_after_mib                      15.126 MiB        4096 rows spread over all partitions as one transaction
   rows                                     4096.000 rows       4096 rows spread as single puts
   publications                             4096.000 versions   4096 rows spread as single puts
-  elapsed_ms                                 24.472 ms         4096 rows spread as single puts
-  rows_per_s                             167377.045 1/s        4096 rows spread as single puts
+  elapsed_ms                                 23.189 ms         4096 rows spread as single puts
+  rows_per_s                             176639.046 1/s        4096 rows spread as single puts
   segments_cloned                          4096.000 segments   4096 rows spread as single puts
   bytes_copied                        106778624.000 bytes      4096 rows spread as single puts
   bytes_copied_per_row                    26069.000 bytes      4096 rows spread as single puts
   payload_bytes_per_row                      32.000 bytes      4096 rows spread as single puts
   memory_held_before_mib                      9.030 MiB        4096 rows spread as single puts
-  memory_held_after_mib                       9.279 MiB        4096 rows spread as single puts
+  memory_held_after_mib                      10.451 MiB        4096 rows spread as single puts
   rows                                       16.000 rows       16 rows as one transaction
   publications                                1.000 versions   16 rows as one transaction
   elapsed_ms                                  0.030 ms         16 rows as one transaction
-  rows_per_s                             533208.918 1/s        16 rows as one transaction
+  rows_per_s                             536264.915 1/s        16 rows as one transaction
   segments_cloned                            15.000 segments   16 rows as one transaction
   bytes_copied                           346112.000 bytes      16 rows as one transaction
   bytes_copied_per_row                    21632.000 bytes      16 rows as one transaction
@@ -54,8 +54,8 @@ join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_
   memory_held_after_mib                       9.367 MiB        16 rows as one transaction
   rows                                       16.000 rows       16 rows as single puts
   publications                               16.000 versions   16 rows as single puts
-  elapsed_ms                                  0.060 ms         16 rows as single puts
-  rows_per_s                             268307.816 1/s        16 rows as single puts
+  elapsed_ms                                  0.065 ms         16 rows as single puts
+  rows_per_s                             247249.351 1/s        16 rows as single puts
   segments_cloned                            16.000 segments   16 rows as single puts
   bytes_copied                           401408.000 bytes      16 rows as single puts
   bytes_copied_per_row                    25088.000 bytes      16 rows as single puts
@@ -64,4 +64,4 @@ join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_
   memory_held_after_mib                       9.427 MiB        16 rows as single puts
 valid=1
 # exit_status: 0
-# end: 2026-10-13T10:46:46.680
+# end: 2026-10-13T11:51:21.121

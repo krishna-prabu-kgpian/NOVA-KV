@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Regroups the Part D profiling data so that the report's statements about it can be checked.
 
-    scripts/part_d_profile_breakdown.py [results/part_d] > results/part_d/summary/profile_breakdown.txt
+    scripts/part_d_profile_breakdown.py <campaign dir> > <campaign dir>/summary/profile_breakdown.txt
+
+In a campaign with an unwrapped timing track (decision D-071) all of this is PROFILING-TRACK
+data: the counters come from the runs under <campaign>/profiling/perf_stat/ and are divided by
+the reads of those same runs. The reads/s column is the timing track's, for orientation.
 
 1. perf stat (D.1 track C runs, medians of the repetitions): per-read cycles, instructions and
    cache misses of the RCU store at 8 readers with no writer, a paced writer and an unthrottled
@@ -22,9 +26,14 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else "results/part_d"
 med = statistics.median
 
 
+V2 = os.path.isdir(f"{OUT}/profiling")
+PBASE = f"{OUT}/profiling/perf_stat" if V2 else OUT
+PROF = "profiling" if V2 else "perf"
+
+
 def perf(run_id):
     d = {}
-    for line in open(f"{OUT}/d1/concurrent/perf_stat/{run_id}.txt"):
+    for line in open(f"{PBASE}/d1/concurrent/perf_stat/{run_id}.txt"):
         m = re.match(r"\s*([\d,.]+)\s+(?:msec\s+)?([A-Za-z0-9_\-]+)", line)
         if m:
             try:
@@ -34,8 +43,10 @@ def perf(run_id):
     return d
 
 
-rows = list(csv.DictReader(open(f"{OUT}/d1/concurrent/runs.csv")))
-print("1. perf stat, whole process, medians of the repetitions (D.1 track C)")
+timing_rows = list(csv.DictReader(open(f"{OUT}/d1/concurrent/runs.csv")))
+rows = list(csv.DictReader(open(f"{PBASE}/d1/concurrent/runs.csv")))
+print("1. perf stat, whole process, medians of the repetitions (D.1 track C)"
+      + (" -- PROFILING TRACK runs; reads/s is the TIMING track median" if V2 else ""))
 print("   NOTE: counters are per PROCESS (readers + writer + cleaner + loading), divided by the reads of the")
 print("   measured window: they bound, but do not isolate, what a read costs.\n")
 for variant in ("rcu", "rwlock", "global_lock"):
@@ -46,7 +57,8 @@ for variant in ("rcu", "rwlock", "global_lock"):
                 continue
             ps = [perf(r["run_id"]) for r in rs]
             reads = [float(r["read_ops"]) for r in rs]
-            print(f"   {variant:11s} {scen:13s} r={readers}: reads/s={med([float(r['read_rps']) for r in rs]) / 1e6:7.2f}M  "
+            ts = [r for r in timing_rows if r["variant"] == variant and r["scenario"] == scen and r["readers"] == readers]
+            print(f"   {variant:11s} {scen:13s} r={readers}: reads/s={med([float(r['read_rps']) for r in ts]) / 1e6:7.2f}M  "
                   f"slowest/fastest reader={med([float(r['reader_min_rps']) for r in rs]) / 1e6:6.2f}/{med([float(r['reader_max_rps']) for r in rs]) / 1e6:6.2f}M  "
                   f"IPC={med([p['instructions'] / p['cycles'] for p in ps]):.2f}  cycles/read={med([p['cycles'] / n for p, n in zip(ps, reads)]):6.0f}  "
                   f"instr/read={med([p['instructions'] / n for p, n in zip(ps, reads)]):5.0f}  cache-miss/read={med([p['cache-misses'] / n for p, n in zip(ps, reads)]):6.3f}  "
@@ -75,7 +87,7 @@ def role(frames):
 
 
 print("\n2. Flame-graph data: share of sampled on-CPU cycles by role (perf record over the whole process)\n")
-fgdir = f"{OUT}/perf/flamegraphs"
+fgdir = f"{OUT}/{PROF}/flamegraphs"
 for f in sorted(os.listdir(fgdir)):
     if not f.endswith(".folded"):
         continue
@@ -91,7 +103,7 @@ for f in sorted(os.listdir(fgdir)):
             print(f"      {100.0 * v / total:5.1f}%  {k}")
 
 print("\n3. perf c2c (AMD IBS load/store sampling)\n")
-c2dir = f"{OUT}/perf/c2c"
+c2dir = f"{OUT}/{PROF}/c2c"
 reports = sorted(os.path.join(c2dir, f) for f in os.listdir(c2dir) if f.endswith(".c2c-report.txt"))
 for rep in reports:
     text = open(rep, errors="replace").read()

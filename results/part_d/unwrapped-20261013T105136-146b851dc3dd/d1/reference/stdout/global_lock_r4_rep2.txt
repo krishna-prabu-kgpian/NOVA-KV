@@ -1,0 +1,4 @@
+# command: taskset -c 0,2,4,6,1,3,5,7 build/release/global_lock 4 5
+global_lock    ops=84901315  rps=16980263   p50=0.1    us p99=1.9    us p999=3.7    us
+reference_reads: mode=put random_key_space=100000 present_in_space=100 random_hit_rate=0.001000 expected_overall_hit_rate=0.800200 (80% hot ids + 20% random)
+# exit_status: 0

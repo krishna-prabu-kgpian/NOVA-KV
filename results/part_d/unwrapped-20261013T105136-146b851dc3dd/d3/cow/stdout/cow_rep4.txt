@@ -1,0 +1,67 @@
+# command: build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d3/cow/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/d3/cow/hist/cow_rep4.csv --run-id cow_rep4 --git-sha 146b851dc3dd --experiment cow
+# wrapper: none
+# start: 2026-10-13T11:24:00.086
+join_bench experiment=cow trades=100000 instruments=50 threads=1 writer=off txn_size=1 index=on duration=2.0s
+  rows                                   100000.000 rows       all rows as one transaction
+  publications                                1.000 versions   all rows as one transaction
+  elapsed_ms                                 13.184 ms         all rows as one transaction
+  rows_per_s                            7584964.113 1/s        all rows as one transaction
+  segments_cloned                           256.000 segments   all rows as one transaction
+  bytes_copied                          6146048.000 bytes      all rows as one transaction
+  bytes_copied_per_row                       61.460 bytes      all rows as one transaction
+  payload_bytes_per_row                      32.000 bytes      all rows as one transaction
+  memory_held_before_mib                      9.030 MiB        all rows as one transaction
+  memory_held_after_mib                       9.094 MiB        all rows as one transaction
+  rows                                   100000.000 rows       all rows as single puts
+  publications                           100000.000 versions   all rows as single puts
+  elapsed_ms                                551.534 ms         all rows as single puts
+  rows_per_s                             181312.330 1/s        all rows as single puts
+  segments_cloned                        100000.000 segments   all rows as single puts
+  bytes_copied                       2610262016.000 bytes      all rows as single puts
+  bytes_copied_per_row                    26102.620 bytes      all rows as single puts
+  payload_bytes_per_row                      32.000 bytes      all rows as single puts
+  memory_held_before_mib                      9.030 MiB        all rows as single puts
+  memory_held_after_mib                      10.254 MiB        all rows as single puts
+  rows                                     4096.000 rows       4096 rows spread over all partitions as one transaction
+  publications                                1.000 versions   4096 rows spread over all partitions as one transaction
+  elapsed_ms                                  0.717 ms         4096 rows spread over all partitions as one transaction
+  rows_per_s                            5715729.000 1/s        4096 rows spread over all partitions as one transaction
+  segments_cloned                           256.000 segments   4096 rows spread over all partitions as one transaction
+  bytes_copied                          6146048.000 bytes      4096 rows spread over all partitions as one transaction
+  bytes_copied_per_row                     1500.500 bytes      4096 rows spread over all partitions as one transaction
+  payload_bytes_per_row                      32.000 bytes      4096 rows spread over all partitions as one transaction
+  memory_held_before_mib                      9.030 MiB        4096 rows spread over all partitions as one transaction
+  memory_held_after_mib                      15.126 MiB        4096 rows spread over all partitions as one transaction
+  rows                                     4096.000 rows       4096 rows spread as single puts
+  publications                             4096.000 versions   4096 rows spread as single puts
+  elapsed_ms                                 23.429 ms         4096 rows spread as single puts
+  rows_per_s                             174823.876 1/s        4096 rows spread as single puts
+  segments_cloned                          4096.000 segments   4096 rows spread as single puts
+  bytes_copied                        106778624.000 bytes      4096 rows spread as single puts
+  bytes_copied_per_row                    26069.000 bytes      4096 rows spread as single puts
+  payload_bytes_per_row                      32.000 bytes      4096 rows spread as single puts
+  memory_held_before_mib                      9.030 MiB        4096 rows spread as single puts
+  memory_held_after_mib                      10.624 MiB        4096 rows spread as single puts
+  rows                                       16.000 rows       16 rows as one transaction
+  publications                                1.000 versions   16 rows as one transaction
+  elapsed_ms                                  0.030 ms         16 rows as one transaction
+  rows_per_s                             540796.323 1/s        16 rows as one transaction
+  segments_cloned                            15.000 segments   16 rows as one transaction
+  bytes_copied                           346112.000 bytes      16 rows as one transaction
+  bytes_copied_per_row                    21632.000 bytes      16 rows as one transaction
+  payload_bytes_per_row                      32.000 bytes      16 rows as one transaction
+  memory_held_before_mib                      9.030 MiB        16 rows as one transaction
+  memory_held_after_mib                       9.367 MiB        16 rows as one transaction
+  rows                                       16.000 rows       16 rows as single puts
+  publications                               16.000 versions   16 rows as single puts
+  elapsed_ms                                  0.060 ms         16 rows as single puts
+  rows_per_s                             266875.719 1/s        16 rows as single puts
+  segments_cloned                            16.000 segments   16 rows as single puts
+  bytes_copied                           401408.000 bytes      16 rows as single puts
+  bytes_copied_per_row                    25088.000 bytes      16 rows as single puts
+  payload_bytes_per_row                      32.000 bytes      16 rows as single puts
+  memory_held_before_mib                      9.030 MiB        16 rows as single puts
+  memory_held_after_mib                       9.427 MiB        16 rows as single puts
+valid=1
+# exit_status: 0
+# end: 2026-10-13T11:24:01.179

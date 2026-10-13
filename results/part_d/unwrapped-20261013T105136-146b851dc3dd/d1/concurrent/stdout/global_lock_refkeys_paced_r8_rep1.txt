@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_global_lock --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id global_lock_refkeys_paced_r8_rep1 --git-sha 146b851dc3dd --scenario refkeys_paced --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/hist/global_lock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+# wrapper: none
+# start: 2026-10-13T10:54:22.858
+global_lock  scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=5.000
+  store lock object at 0x62683e748df0, 40 bytes (cache lines 0x62683e748dc0..0x62683e748e00)
+  reads : ops=70905596 rps=14180972 hits=56736434 misses=14169162 corrupt=0
+  read latency ns: p50=90 p99=4096 p999=7232 max=187987 mean=526.7
+  writes: ok=49999 failed=0 rps=10000 p50=1312 p99=7040 max=142461 ns
+# exit_status: 0
+# end: 2026-10-13T10:54:28.376

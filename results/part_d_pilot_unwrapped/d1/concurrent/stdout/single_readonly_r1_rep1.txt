@@ -1,10 +1,10 @@
-# command: build/release/concurrent_bench_single --readers 1 --duration 1 --warmup 0.5 --reader-cpus 0 --seed 1 --run-id single_readonly_r1_rep1 --git-sha 9062d838457f-dirty --scenario readonly --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/single_readonly_r1_rep1.csv --writer off
+# command: build/release/concurrent_bench_single --readers 1 --duration 1 --warmup 0.5 --reader-cpus 0 --seed 1 --run-id single_readonly_r1_rep1 --git-sha 146b851dc3dd-dirty --scenario readonly --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/single_readonly_r1_rep1.csv --writer off
 # wrapper: none
-# start: 2026-10-13T10:45:46.827
+# start: 2026-10-13T11:50:18.204
 single       scenario=readonly readers=1 writer=none keys=hit seconds=1.000
-  store lock object at 0x5a12973b1d70, 1 bytes (cache lines 0x5a12973b1d40..0x5a12973b1d40)
-  reads : ops=18176509 rps=18175346 hits=18176509 misses=0 corrupt=0
-  read latency ns: p50=30 p99=141 p999=321 max=133413 mean=34.3
+  store lock object at 0x593ed55d8d70 (offset 48 in its cache line, not controlled), 1 bytes (cache lines 0x593ed55d8d40..0x593ed55d8d40)
+  reads : ops=18374500 rps=18373255 hits=18374500 misses=0 corrupt=0
+  read latency ns: p50=30 p99=140 p999=301 max=130285 mean=33.7
   writes: ok=0 failed=0 rps=0 p50=0 p99=0 max=0 ns
 # exit_status: 0
-# end: 2026-10-13T10:45:48.342
+# end: 2026-10-13T11:50:19.723

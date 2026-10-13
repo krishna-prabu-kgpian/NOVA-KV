@@ -1,4 +1,4 @@
 run_id,driver,mode,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,probe_hit_rate
-rcu_put_r8_rep1,rcu,put,8,1,1,82383685,82383685,0.1,0.1,0.2,
-rcu_txn_16_r8_rep1,rcu,txn:16,8,1,1,76567599,76567599,0.1,0.1,0.2,
-rcu_join_r8_rep1,rcu,join,8,1,1,61598159,61598159,0.1,0.1,0.2,1.000000
+rcu_put_r8_rep1,rcu,put,8,1,1,82212891,82212891,0.1,0.1,0.2,
+rcu_txn_16_r8_rep1,rcu,txn:16,8,1,1,76751498,76751498,0.1,0.1,0.2,
+rcu_join_r8_rep1,rcu,join,8,1,1,62211745,62211745,0.1,0.1,0.2,1.000000

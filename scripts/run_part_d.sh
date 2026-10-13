@@ -39,6 +39,14 @@
 #     stage with the campaign id; scripts/aggregate_part_d.py refuses a
 #     directory whose stages carry different ids.
 #
+# LOCK PLACEMENT (decision D-072). The lock-based stores run at two speeds
+# depending on where their lock object lies inside its 64-byte cache line, and
+# without control that depends on the lengths of the command-line strings.
+# Every track C run of global_lock and rwlock therefore fixes it with
+# --lock-offset, and every such cell is measured at both placements:
+#   scenario <name>       lock at offset 48 (its first 16 bytes end a line: the faster placement)
+#   scenario <name>_o0    lock at offset 0  (cache-line aligned: the slower placement)
+#
 # CPU placement (AMD Ryzen AI 7 350: logical CPUs N and N+8 are SMT siblings;
 # cores 0,2,4,6 are the fast cores, 1,3,5,7 the slower ones): readers and
 # joiners take one logical CPU per physical core, fast cores first; the writer
@@ -187,6 +195,7 @@ build_release() {
         echo "git_sha: $GIT_SHA"
         echo "mode: $MODE"
         echo "timing_track=unwrapped (measured executables started directly; no perf, no /usr/bin/time)"
+        echo "lock_placement=controlled (track C, global_lock and rwlock: --lock-offset 48 for <scenario>, 0 for <scenario>_o0)"
         echo "profiling_track=separate (profiling/perf_stat, profiling/flamegraphs, profiling/c2c) perf_stat_reps=$PERF_REPS"
         echo "build_dir: $BUILD (CMAKE_BUILD_TYPE=Release)"
         echo "compile command (kvstore.cpp, rcu variant):"
@@ -262,11 +271,17 @@ stage_d1_concurrent() {
     log "D.1 track C: {global_lock,rwlock,rcu} x {$READER_COUNTS} readers x {paced,unthrottled} writer, $NREPS reps of ${DURATION}s"
     local rep variant readers W="--writer on --writer-cpu $WRITER_CPU"
     for rep in $(seq 1 "$NREPS"); do     # repetitions outermost: drift is spread over all cells
-        for variant in global_lock rwlock rcu; do
+        for variant in global_lock rwlock; do
             for readers in $READER_COUNTS; do
-                d1c "$variant" writer_paced "$readers" "$rep" $W --writer-rate "$PACED_RATE"
-                d1c "$variant" writer_max "$readers" "$rep" $W
+                d1c "$variant" writer_paced "$readers" "$rep" $W --writer-rate "$PACED_RATE" --lock-offset 48
+                d1c "$variant" writer_max "$readers" "$rep" $W --lock-offset 48
+                d1c "$variant" writer_paced_o0 "$readers" "$rep" $W --writer-rate "$PACED_RATE" --lock-offset 0
+                d1c "$variant" writer_max_o0 "$readers" "$rep" $W --lock-offset 0
             done
+        done
+        for readers in $READER_COUNTS; do   # no reader-side lock: nothing to place
+            d1c rcu writer_paced "$readers" "$rep" $W --writer-rate "$PACED_RATE"
+            d1c rcu writer_max "$readers" "$rep" $W
         done
         # The unsynchronized store: ONE thread only (a concurrent run would be invalid).
         d1c single readonly 1 "$rep" --writer off
@@ -276,9 +291,13 @@ stage_d1_concurrent() {
             echo " $READER_COUNTS " | grep -q " $readers " && d1c rcu readonly "$readers" "$rep" --writer off
         done
         # The generator's own key distribution (80 % hot, 20 % mostly-missing random) WITH a writer.
-        for variant in global_lock rwlock rcu; do
-            echo " $READER_COUNTS " | grep -q " 8 " && d1c "$variant" refkeys_paced 8 "$rep" $W --writer-rate "$PACED_RATE" --keys reference
-        done
+        if echo " $READER_COUNTS " | grep -q " 8 "; then
+            for variant in global_lock rwlock; do
+                d1c "$variant" refkeys_paced 8 "$rep" $W --writer-rate "$PACED_RATE" --keys reference --lock-offset 48
+                d1c "$variant" refkeys_paced_o0 8 "$rep" $W --writer-rate "$PACED_RATE" --keys reference --lock-offset 0
+            done
+            d1c rcu refkeys_paced 8 "$rep" $W --writer-rate "$PACED_RATE" --keys reference
+        fi
         conditions "${IDP}d1_concurrent:rep$rep"
         log "  repetition $rep/$NREPS done"
     done
@@ -288,9 +307,9 @@ stage_d1_concurrent() {
 stage_d1_reference() {
     local dir="$BASE/d1/reference"
     rm -rf "$dir"; stamp "$dir"; mkdir -p "$dir/stdout"
-    echo "run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate" > "$dir/runs.csv"
+    echo "run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate,lock_offset_in_line" > "$dir/runs.csv"
     log "D.1 track R: supplied generator, default parameters, PRELOAD-ONLY (no writer while readers run)"
-    local rep driver readers counts id line hit
+    local rep driver readers counts id line hit lockoff
     for rep in $(seq 1 "$NREPS"); do
         for driver in single_thread global_lock rwlock rcu; do
             counts="$READER_COUNTS"
@@ -306,7 +325,8 @@ stage_d1_reference() {
                 hit="$(grep -E '^reference_reads:' "$dir/stdout/$id.txt" | tail -1)"
                 if [ -z "$line" ] || [ -z "$hit" ] || ! grep -q '^# exit_status: 0$' "$dir/stdout/$id.txt"; then fail "$id"; continue; fi
                 echo "$line" | sed -E "s/.*ops=([0-9]+) +rps=([0-9.]+) +p50=([0-9.]+) *us p99=([0-9.]+) *us p999=([0-9.]+) *us.*/$id,$driver,$readers,$REF_DURATION,$rep,\1,\2,\3,\4,\5/" | tr -d '\n' >> "$dir/runs.csv"
-                echo "$hit" | sed -E 's/.*random_hit_rate=([0-9.]+) expected_overall_hit_rate=([0-9.]+).*/,\1,\2/' >> "$dir/runs.csv"
+                lockoff="$(grep -E '^reference_lock:' "$dir/stdout/$id.txt" | sed -E 's/.*offset_in_line=([0-9]+).*/\1/')"
+                echo "$hit" | sed -E "s/.*random_hit_rate=([0-9.]+) expected_overall_hit_rate=([0-9.]+).*/,\1,\2,${lockoff}/" >> "$dir/runs.csv"
             done
         done
         conditions "d1_reference:rep$rep"
@@ -505,9 +525,15 @@ stage_flamegraphs() {
             --run-id fg_rcu_r8_readonly --scenario readonly_profiled
         local variant
         for variant in global_lock rwlock; do
-            fg "${variant}_r8_writer_max" "NOVA-KV Part D: $variant, 8 readers + unthrottled writer (on-CPU cycles)" \
-                "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c \
+            fg "${variant}_r8_writer_max" "NOVA-KV Part D: $variant, 8 readers + unthrottled writer, lock at offset 48 (on-CPU cycles)" \
+                "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --lock-offset 48 \
                 --run-id "fg_${variant}_r8_writer_max" --scenario writer_max_profiled
+            fg "${variant}_r8_writer_paced" "NOVA-KV Part D: $variant, 8 readers + paced writer, lock at offset 48 (on-CPU cycles)" \
+                "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W --writer-rate "$PACED_RATE" $c --lock-offset 48 \
+                --run-id "fg_${variant}_r8_writer_paced" --scenario writer_paced_profiled
+            fg "${variant}_r8_writer_paced_o0" "NOVA-KV Part D: $variant, 8 readers + paced writer, lock at offset 0 (on-CPU cycles)" \
+                "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W --writer-rate "$PACED_RATE" $c --lock-offset 0 \
+                --run-id "fg_${variant}_r8_writer_paced_o0" --scenario writer_paced_o0_profiled
         done
         fg rcu_r8_stw "NOVA-KV Part D: rcu, 8 readers + unthrottled writer, stop-the-world comparator (on-CPU cycles)" \
             "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --reclaim stw \
@@ -541,8 +567,13 @@ stage_c2c() {
     c2c rcu_r8_writer_max "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_rcu_r8_writer_max --scenario writer_max_c2c
     c2c rcu_r8_readonly "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" --writer off $c --run-id c2c_rcu_r8_readonly --scenario readonly_c2c
     c2c rcu_r1_writer_max "$BUILD/concurrent_bench_rcu" --readers 1 --reader-cpus "$(reader_cpus_for 1)" $W $c --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
-    c2c rwlock_r8_writer_max "$BUILD/concurrent_bench_rwlock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_rwlock_r8_writer_max --scenario writer_max_c2c
-    c2c global_lock_r8_writer_max "$BUILD/concurrent_bench_global_lock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_global_lock_r8_writer_max --scenario writer_max_c2c
+    local variant
+    for variant in rwlock global_lock; do    # paced writer, both lock placements: the same store at its two speeds
+        c2c "${variant}_r8_writer_paced" "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W --writer-rate "$PACED_RATE" $c --lock-offset 48 --run-id "c2c_${variant}_r8_writer_paced" --scenario writer_paced_c2c
+        c2c "${variant}_r8_writer_paced_o0" "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W --writer-rate "$PACED_RATE" $c --lock-offset 0 --run-id "c2c_${variant}_r8_writer_paced_o0" --scenario writer_paced_o0_c2c
+    done
+    c2c rwlock_r8_writer_max "$BUILD/concurrent_bench_rwlock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --lock-offset 48 --run-id c2c_rwlock_r8_writer_max --scenario writer_max_c2c
+    c2c global_lock_r8_writer_max "$BUILD/concurrent_bench_global_lock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --lock-offset 48 --run-id c2c_global_lock_r8_writer_max --scenario writer_max_c2c
     conditions "c2c:end"
 }
 

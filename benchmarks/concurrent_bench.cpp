@@ -39,6 +39,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
+#include <optional>
 #include <thread>
 
 namespace {
@@ -229,6 +231,16 @@ int main(int argc, char** argv) {
     const long reclaim_batch = args.get_long("--reclaim-batch", 0);  // 0 = store default
     const std::string reclaim = args.get("--reclaim", "epoch");
     const long work_per_version = args.get_long("--reclaim-work-per-version", 0);
+    // --lock-offset N (0, 16, 32 or 48): place the store's lock object at that
+    // offset inside a 64-byte cache line. Without it the offset is whatever the
+    // heap happens to give, which depends on the lengths of the command-line
+    // strings, and the lock-based stores run at two different speeds depending
+    // on it (results/part_d_diagnostics/lock_placement_effect.txt).
+    const long lock_offset_wanted = args.get_long("--lock-offset", -1);
+    if (lock_offset_wanted >= 0 && (lock_offset_wanted > 48 || lock_offset_wanted % 16 != 0)) {
+        std::fprintf(stderr, "--lock-offset must be 0, 16, 32 or 48\n");
+        return 2;
+    }
     const bool csv_header_only = args.has_flag("--csv-header");
     if (!args.first_unused().empty()) {
         std::fprintf(stderr, "unknown argument: %s\n", args.first_unused().c_str());
@@ -240,7 +252,8 @@ int main(int argc, char** argv) {
         "record_count,warmup_s,seconds_actual,read_ops,read_hits,read_misses,read_corrupt,"
         "read_rps,write_ok,write_failed,write_rps,p50_ns,p99_ns,p999_ns,max_ns,mean_ns,"
         "reader_min_rps,reader_max_rps,write_p50_ns,write_p99_ns,write_max_ns,pinned,"
-        "reader_cpus,writer_cpu,chunks_live,chunk_bytes_reserved,value_bytes_live\n";
+        "reader_cpus,writer_cpu,chunks_live,chunk_bytes_reserved,value_bytes_live,"
+        "lock_offset_in_line,lock_bytes,lock_placement\n";
     if (csv_header_only) {
         std::fputs(header, stdout);
         return 0;
@@ -297,7 +310,26 @@ int main(int argc, char** argv) {
                                              cfg.inline_every > 0 ? 2 : 0);
 
     // ---- Load (not measured): same keys and hot set as the supplied generator.
-    KVStore store;
+    // The store is constructed, and if its lock is not where --lock-offset asks,
+    // destroyed and constructed again after a small allocation that shifts the
+    // heap. Only the position of the store changes; the store itself does not.
+    std::optional<KVStore> store_slot;
+    for (int attempt = 0;; ++attempt) {
+        store_slot.emplace();
+        if (lock_offset_wanted < 0) break;
+        const std::uintptr_t at = reinterpret_cast<std::uintptr_t>(NovaKvInspector::lock_address(*store_slot));
+        if (static_cast<long>(at % 64) == lock_offset_wanted) break;
+        store_slot.reset();
+        if (attempt >= 512) {
+            std::fprintf(stderr, "could not place the lock at offset %ld of a cache line\n", lock_offset_wanted);
+            return 1;
+        }
+        // Kept until exit on purpose: it is what moves the next store.
+        void* pad = std::malloc(static_cast<std::size_t>(16 + 16 * (attempt % 61)));
+        if (pad == nullptr) return 1;
+        static_cast<volatile char*>(pad)[0] = 0;
+    }
+    KVStore& store = *store_slot;
     if (reclaim_batch > 0) store.set_reclaim_batch(static_cast<int>(reclaim_batch));
     if (work_per_version > 0) {
         NovaKvInspector::set_reclaim_work_per_version(store, static_cast<unsigned>(work_per_version));
@@ -396,8 +428,9 @@ int main(int argc, char** argv) {
     const std::uintptr_t lock_addr =
         reinterpret_cast<std::uintptr_t>(NovaKvInspector::lock_address(store));
     // The lock object may straddle two 64-byte cache lines.
-    std::printf("  store lock object at 0x%llx, %zu bytes (cache lines 0x%llx..0x%llx)\n",
-                static_cast<unsigned long long>(lock_addr), NovaKvInspector::lock_size(),
+    std::printf("  store lock object at 0x%llx (offset %u in its cache line, %s), %zu bytes (cache lines 0x%llx..0x%llx)\n",
+                static_cast<unsigned long long>(lock_addr), static_cast<unsigned>(lock_addr % 64),
+                lock_offset_wanted >= 0 ? "placed by --lock-offset" : "not controlled", NovaKvInspector::lock_size(),
                 static_cast<unsigned long long>(lock_addr & ~std::uintptr_t{63}),
                 static_cast<unsigned long long>((lock_addr + NovaKvInspector::lock_size() - 1) &
                                                 ~std::uintptr_t{63}));
@@ -533,7 +566,7 @@ int main(int argc, char** argv) {
         std::fprintf(
             f,
             "%s,%s,%s,%s,%d,%s,%ld,%s,%d,%.3f,%.6f,%llu,%llu,%llu,%llu,%.1f,%llu,%llu,%.1f,"
-            "%llu,%llu,%llu,%llu,%.1f,%.1f,%.1f,%llu,%llu,%llu,%d,%s,%d,%llu,%llu,%llu\n",
+            "%llu,%llu,%llu,%llu,%.1f,%.1f,%.1f,%llu,%llu,%llu,%d,%s,%d,%llu,%llu,%llu,%u,%zu,%s\n",
             run_id.c_str(), git_sha.c_str(), variant.c_str(), scenario.c_str(), cfg.readers,
             writer_mode.c_str(), cfg.writer_rate, keys.c_str(), cfg.m * cfg.n, cfg.warmup_s,
             seconds, static_cast<unsigned long long>(ops), static_cast<unsigned long long>(hits),
@@ -550,7 +583,8 @@ int main(int argc, char** argv) {
             cpus.c_str(), cfg.pin ? cfg.writer_cpu : -1,
             static_cast<unsigned long long>(st.chunks_live),
             static_cast<unsigned long long>(st.chunk_bytes_reserved),
-            static_cast<unsigned long long>(st.value_bytes_live));
+            static_cast<unsigned long long>(st.value_bytes_live), static_cast<unsigned>(lock_addr % 64),
+            NovaKvInspector::lock_size(), lock_offset_wanted >= 0 ? "controlled" : "uncontrolled");
         std::fclose(f);
     }
     if (!hist_path.empty()) {

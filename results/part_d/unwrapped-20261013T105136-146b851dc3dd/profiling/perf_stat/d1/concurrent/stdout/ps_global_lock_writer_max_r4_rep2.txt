@@ -1,0 +1,8 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/perf_stat/ps_global_lock_writer_max_r4_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_writer_max_r4_rep2.txt build/release/concurrent_bench_global_lock --readers 4 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6 --seed 2 --run-id ps_global_lock_writer_max_r4_rep2 --git-sha 146b851dc3dd --scenario writer_max --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_writer_max_r4_rep2.csv --writer on --writer-cpu 15
+global_lock  scenario=writer_max readers=4 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x628591b84d70, 40 bytes (cache lines 0x628591b84d40..0x628591b84d80)
+  reads : ops=40767031 rps=8153296 hits=40767031 misses=0 corrupt=0
+  read latency ns: p50=51 p99=5312 p999=10112 max=1779870 mean=464.8
+  writes: ok=7800854 failed=0 rps=1560150 p50=190 p99=7040 max=154351 ns
+# exit_status: 0

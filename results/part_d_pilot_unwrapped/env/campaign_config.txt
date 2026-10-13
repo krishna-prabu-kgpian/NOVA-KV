@@ -1,7 +1,8 @@
-campaign: 20261013T104529-9062d838457f-dirty-pilot
-git_sha: 9062d838457f-dirty
+campaign: 20261013T114954-146b851dc3dd-dirty-pilot
+git_sha: 146b851dc3dd-dirty
 mode: pilot
 timing_track=unwrapped (measured executables started directly; no perf, no /usr/bin/time)
+lock_placement=controlled (track C, global_lock and rwlock: --lock-offset 48 for <scenario>, 0 for <scenario>_o0)
 profiling_track=separate (profiling/perf_stat, profiling/flamegraphs, profiling/c2c) perf_stat_reps=1
 build_dir: build/release (CMAKE_BUILD_TYPE=Release)
 compile command (kvstore.cpp, rcu variant):
@@ -12,13 +13,13 @@ reader_cpus=0,2,4,6,1,3,5,7 writer_cpu=15 (cleaner thread not pinned) paced_writ
 perf_events=task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses perf_record_freq_hz=1999
 perf: perf version 7.0.12   perf_event_paranoid=1 kptr_restrict=1
 sha256 of the measured executables:
-  99ab4413be8c7b0edbacaaba916f6d35baf3677dcb9cdb483749fcf166b15c7b  concurrent_bench_single
-  fee3001c5aa9efefa1e3765d83b9ce514828f6fdb95e7d523c5ba1d54d0b56d0  concurrent_bench_global_lock
-  81e63603ba51c8b84594a166c9e91af07191df7ae91a75fccaf5463361862241  concurrent_bench_rwlock
-  83634b9bfbd6aade0fc97022cad931415f3bbd477ab974c6a0a9978baa5b80c6  concurrent_bench_rcu
+  f4f259e8bde8815babd209074c03fafcca44a32e74601162f29f4ec9764d230e  concurrent_bench_single
+  b2524464cd98af6fde0e20b394b330417516aeafb72cc1591184eaa0cd0567fb  concurrent_bench_global_lock
+  615347d2f50c8443a8feb5525c413bafbf6fb43f172ec2e90b8bc0b644dd2950  concurrent_bench_rwlock
+  9931ba55b2467994eed8cc74a71498a1edb9e8c3bd10a133747774273fac0068  concurrent_bench_rcu
   b48a07661db6ea82a3b5b14bb44d64b5e24a5b5fe3ffbf7acab539b59e412b6a  join_bench
-  bb612d0e12f53def17b9726e63e6c2e25e87ea8397572aa6f5a2694a481f29de  reclaim_bench
-  9eee2256d2a8c0dc2dfd24b95c5acbeadafa3ca28f9d796d3da5befbd6d33c79  single_thread
-  3a39f3db8104d2c4b69c7bdd0078b52cdb7009b4ec4e4c397d5457dcc82435a6  global_lock
-  7b521a211f2c1e3ca6f6172221bbd49d305566fefef88c5b3358c8ce6f1858b9  rwlock
-  9760f1e986ff27c7a9ba8628a9ffc0e3a171da29431e356dd5c1b70524373083  rcu
+  20ee9eda8f8fe942f8232d1dc12b3312c50ed06ca99084cc6fb2ea52a58816ab  reclaim_bench
+  3e12e822b34b2638ff4717f3757e74d3944bcbe76efd58a32bf02518400bb58c  single_thread
+  67bfb0771c945a9ab480516689323e754a212fa3ce1967e44f9f30a566612699  global_lock
+  764566a294705f6b2b6a359232c3ebd3f245a0484275a1e2e68084f40930aed5  rwlock
+  9203606c5f4010639207798ad2dc2c8d16494af54681f8804f8eac06499706b1  rcu

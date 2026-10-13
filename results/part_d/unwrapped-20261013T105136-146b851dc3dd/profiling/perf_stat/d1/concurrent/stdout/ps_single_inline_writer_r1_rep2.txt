@@ -1,0 +1,8 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/perf_stat/ps_single_inline_writer_r1_rep2.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/rss/ps_single_inline_writer_r1_rep2.txt build/release/concurrent_bench_single --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 2 --run-id ps_single_inline_writer_r1_rep2 --git-sha 146b851dc3dd --scenario inline_writer --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/hist/ps_single_inline_writer_r1_rep2.csv --writer inline:100
+single       scenario=inline_writer readers=1 writer=inline_same_thread keys=hit seconds=5.000
+  store lock object at 0x62a1a58f8d80, 1 bytes (cache lines 0x62a1a58f8d80..0x62a1a58f8d80)
+  reads : ops=83321161 rps=16663943 hits=83321161 misses=0 corrupt=0
+  read latency ns: p50=30 p99=221 p999=391 max=133301 mean=38.3
+  writes: ok=833212 failed=0 rps=166640 p50=0 p99=0 max=0 ns
+# exit_status: 0

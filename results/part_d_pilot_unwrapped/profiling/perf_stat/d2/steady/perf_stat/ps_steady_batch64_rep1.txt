@@ -1,21 +1,21 @@
-# started on Tue Oct 13 10:47:22 2026
+# started on Tue Oct 13 11:52:06 2026
 
 
- Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/rss/ps_steady_batch64_rep1.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/runs.csv --cow-csv results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/cow.csv --retain-limit-mb 16000 --duration 1 --reclaim-batch 64 --run-id ps_steady_batch64_rep1 --scenario batch_64 --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/hist/ps_steady_batch64_rep1.csv':
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/rss/ps_steady_batch64_rep1.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 146b851dc3dd-dirty --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/runs.csv --cow-csv results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/cow.csv --retain-limit-mb 16000 --duration 1 --reclaim-batch 64 --run-id ps_steady_batch64_rep1 --scenario batch_64 --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d2/steady/hist/ps_steady_batch64_rep1.csv':
 
-         15,632.53 msec task-clock                                                            
-    63,623,885,278      cycles                                                                  (83.34%)
-    40,269,048,814      instructions                                                            (83.39%)
-     1,519,752,606      cache-references                                                        (83.38%)
-       375,171,070      cache-misses                                                            (83.25%)
-            83,878      context-switches                                                      
-                29      cpu-migrations                                                        
-        60,806,632      branch-misses                                                           (83.32%)
-       874,072,626      L1-dcache-load-misses                                                   (83.34%)
+         15,578.46 msec task-clock                                                            
+    63,422,614,033      cycles                                                                  (83.25%)
+    39,950,072,191      instructions                                                            (83.34%)
+     1,508,496,796      cache-references                                                        (83.38%)
+       372,931,189      cache-misses                                                            (83.33%)
+            74,939      context-switches                                                      
+                25      cpu-migrations                                                        
+        60,149,143      branch-misses                                                           (83.39%)
+       869,874,884      L1-dcache-load-misses                                                   (83.32%)
 
-       2.060893815 seconds time elapsed
+       1.985068323 seconds time elapsed
 
-      14.671664000 seconds user
-       0.992285000 seconds sys
+      14.676027000 seconds user
+       0.931973000 seconds sys
 
 

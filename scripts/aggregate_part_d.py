@@ -97,6 +97,9 @@ if os.path.isfile(cfg_path):
 else:
     problem(f"missing: {cfg_path}")
 V2 = os.path.isfile(cfg_path) and "timing_track=unwrapped" in open(cfg_path).read()
+# Since decision D-072 the lock object of the lock-based stores is placed explicitly and every
+# such cell exists twice: scenario <name> (offset 48 in its cache line) and <name>_o0 (offset 0).
+PLACED = os.path.isfile(cfg_path) and "lock_placement=controlled" in open(cfg_path).read()
 PROF = "profiling" if V2 else "perf"                 # where flame graphs and c2c reports are
 PSTAT = os.path.join(OUT, "profiling", "perf_stat") if V2 else OUT   # base of the perf stat runs
 REPS = int(cfg.get("reps", 0))
@@ -293,7 +296,18 @@ g1 = group(d1, lambda r: (r["variant"], r["scenario"], int(r["readers"])))
 p1 = prof_rows("d1/concurrent")
 gp1 = group(p1, lambda r: (r["variant"], r["scenario"], int(r["readers"]))) if p1 is not None else g1
 cells = [(v, s, n) for v in ("global_lock", "rwlock", "rcu") for s in ("writer_paced", "writer_max") for n in READERS]
+if PLACED:
+    cells += [(v, s + "_o0", n) for v in ("global_lock", "rwlock") for s in ("writer_paced", "writer_max") for n in READERS]
+    for r in d1:
+        lock_variant = r["variant"] in ("global_lock", "rwlock")
+        want = "0" if r["scenario"].endswith("_o0") else "48"
+        if lock_variant and (r.get("lock_placement") != "controlled" or r.get("lock_offset_in_line") != want):
+            problem(f"d1/concurrent: {r['run_id']}: lock at offset {r.get('lock_offset_in_line')} ({r.get('lock_placement')}), expected {want}")
 cells += [("single", "readonly", 1), ("single", "inline_writer", 1)]
+# The series of every D.1 table and figure: (variant, scenario suffix, name)
+SERIES = ([("global_lock", "", "global_lock, lock at offset 48"), ("global_lock", "_o0", "global_lock, lock at offset 0"),
+           ("rwlock", "", "rwlock, lock at offset 48"), ("rwlock", "_o0", "rwlock, lock at offset 0"), ("rcu", "", "rcu")]
+          if PLACED else [("global_lock", "", "global_lock"), ("rwlock", "", "rwlock"), ("rcu", "", "rcu")])
 expect_cells("d1/concurrent", g1, cells, "(variant, scenario, readers)")
 d1_rows = []
 d1_stats = {}
@@ -341,17 +355,23 @@ if V2:
     md += ["**Timing track: every executable was started directly, with no profiler or other wrapper.** The two columns",
            "marked *(prof.)* are perf stat counters from the separate profiling track (other runs of the same commands);",
            "throughput and latency are never taken from those runs.", ""]
+if PLACED:
+    md += ["**Lock placement.** The two lock-based stores run at two different speeds depending on where their lock object",
+           "lies inside its 64-byte cache line (decision D-072). Every such cell is therefore measured twice, with the lock",
+           "placed at offset 48 (its first 16 bytes end one line, the rest begins the next: the faster placement) and at",
+           "offset 0 (cache-line aligned: the slower one; offsets 16 and 32 behave like 0). The RCU store's readers take",
+           "no lock, so it has one row.", ""]
 PF = " *(prof.)*" if V2 else ""
 for scen, title in (("writer_paced", "Writer paced at 10,000 updates/s"), ("writer_max", "Writer unthrottled")):
     md += [f"### {title}", "",
            f"| Store | Readers | Reads/s (M) | Hit rate | Writer updates/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | CPUs used{PF} | ctx switches{PF} |",
            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
-    for v in ("global_lock", "rwlock", "rcu"):
+    for v, sfx, name in SERIES:
         for n in READERS:
-            st = d1_stats.get((v, scen, n))
+            st = d1_stats.get((v, scen + sfx, n))
             if not st:
                 continue
-            md.append(f"| {v} | {n} | {mmm(st['read_rps'], 2, 1e-6)} | {fmt(med(st['hit_rate']) * 100, 0)} % | {mmm(st['write_rps'], 0)} | {fmt(med(st['p50']) / 1e3, 3)} | "
+            md.append(f"| {name} | {n} | {mmm(st['read_rps'], 2, 1e-6)} | {fmt(med(st['hit_rate']) * 100, 0)} % | {mmm(st['write_rps'], 0)} | {fmt(med(st['p50']) / 1e3, 3)} | "
                       f"{fmt(med(st['p99']) / 1e3, 3)} | {fmt(med(st['p999']) / 1e3, 3)} | {fmt(med(st['max']) / 1e3, 0)} / {fmt(max(st['max']) / 1e3, 0)} | "
                       f"{fmt(med(st['cpus']), 2)} | {fmt(med(st['ctx']), 0)} |")
     md.append("")
@@ -365,10 +385,10 @@ for key in sorted(g1):
 md += ["", "### The generator's key distribution, with a writer (8 readers, paced writer)", "",
        "80 % hot ids (present) and 20 % `rng % (m*n)` (almost all absent), as in the supplied generator.", "",
        "| Store | Lookups/s (M) | Successful reads/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs |", "|---|---:|---:|---:|---:|---:|---:|"]
-for v in ("global_lock", "rwlock", "rcu"):
-    st = d1_stats.get((v, "refkeys_paced", 8))
+for v, sfx, name in SERIES:
+    st = d1_stats.get((v, "refkeys_paced" + sfx, 8))
     if st:
-        md.append(f"| {v} | {mmm(st['read_rps'], 2, 1e-6)} | {mmm(st['hits_rps'], 2, 1e-6)} | {fmt(med(st['hit_rate']) * 100, 2)} % | "
+        md.append(f"| {name} | {mmm(st['read_rps'], 2, 1e-6)} | {mmm(st['hits_rps'], 2, 1e-6)} | {fmt(med(st['hit_rate']) * 100, 2)} % | "
                   f"{fmt(med(st['p50']) / 1e3, 3)} | {fmt(med(st['p99']) / 1e3, 3)} | {fmt(med(st['p999']) / 1e3, 3)} |")
 md.append("")
 
@@ -378,8 +398,8 @@ md += ["### Where scaling stops (track C)", "",
        "count; beyond it adding readers does not help.", "",
        "| Store | Writer | Median reads/s (M) at 1 / 2 / 4 / 8 readers | Stops scaling after |", "|---|---|---|---|"]
 scaling = {}
-for v in ("global_lock", "rwlock", "rcu"):
-    for scen in ("writer_paced", "writer_max"):
+for v, sfx, name in SERIES:
+    for scen in ("writer_paced" + sfx, "writer_max" + sfx):
         meds = [(n, med(d1_stats[(v, scen, n)]["read_rps"])) for n in READERS if (v, scen, n) in d1_stats]
         if not meds:
             continue
@@ -389,7 +409,7 @@ for v in ("global_lock", "rwlock", "rcu"):
                 stop, best = n, m
         scaling[(v, scen)] = stop
         tail = "" if stop != meds[-1][0] else " (still rising at the largest count measured)"
-        md.append(f"| {v} | {scen.replace('writer_', '')} | {' / '.join(fmt(m / 1e6, 2) for _, m in meds)} | {stop} reader(s){tail} |")
+        md.append(f"| {name} | {scen.replace('writer_', '').replace('_o0', '')} | {' / '.join(fmt(m / 1e6, 2) for _, m in meds)} | {stop} reader(s){tail} |")
 md.append("")
 
 # What the RCU store's reclamation did during the D.1 runs (from cow.csv).
@@ -452,7 +472,10 @@ md += ["", "## D.1 — track R: supplied generator — PRELOAD-ONLY", "",
        "reader starts: no writer is active in these numbers.** 20 % of its reads use `rng() % (m*n)` while trade ids",
        "are `i*100000 + j`, so they almost all miss; the hit rate below is measured from the store after the run.",
        "The generator prints latencies with one decimal of a microsecond, so sub-100 ns values appear as 0.0 or 0.1.", "",
-       "| Driver | Readers | Lookups/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs |", "|---|---:|---:|---:|---:|---:|---:|"]
+       *(["The drivers' lock placement cannot be chosen (the generator's arguments are fixed); the offset each driver",
+          "happened to get is shown, because it decides which of their two speeds the lock-based drivers run at.", ""]
+         if ref and "lock_offset_in_line" in ref[0] else []),
+       "| Driver | Readers | Lookups/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs | Lock offset in line (not controlled) |", "|---|---:|---:|---:|---:|---:|---:|---:|"]
 ref_stats = {}
 for key in sorted(gr):
     runs = gr[key]
@@ -460,7 +483,8 @@ for key in sorted(gr):
     ref_stats[key] = rps
     md.append(f"| {key[0]} | {key[1]} | {mmm(rps, 2, 1e-6)} | {fmt(med([float(r['expected_overall_hit_rate']) for r in runs]) * 100, 2)} % | "
               f"{fmt(med([float(r['p50_us']) for r in runs]), 1)} | {fmt(med([float(r['p99_us']) for r in runs]), 1)} | "
-              f"{fmt(med([float(r['p999_us']) for r in runs]), 1)} |")
+              f"{fmt(med([float(r['p999_us']) for r in runs]), 1)} | "
+              f"{'/'.join(sorted({r.get('lock_offset_in_line') or '—' for r in runs})) if key[0] in ('global_lock', 'rwlock') else 'no reader lock'} |")
 if ("rcu", 8) in ref_stats:
     md += ["", f"RCU at 8 readers, track R: median {fmt(med(ref_stats[('rcu', 8)]), 0)} lookups/s, minimum "
                f"{fmt(min(ref_stats[('rcu', 8)]), 0)}: target of 100,000/s "
@@ -776,11 +800,11 @@ if V2:
            "where time goes. Their throughput is shown only in the table of profiler effects."]
 md += ["", "## perf stat (track C, 8 readers, unthrottled writer; whole process)", "",
        "| Store | CPUs utilized | Instructions per cycle | Cache misses per read | Context switches per second | Peak RSS MiB |", "|---|---:|---:|---:|---:|---:|"]
-for v in ("global_lock", "rwlock", "rcu"):
-    st = d1_stats.get((v, "writer_max", 8))
+for v, sfx, name in SERIES:
+    st = d1_stats.get((v, "writer_max" + sfx, 8))
     if st:
         dur = float(cfg.get("d1_duration_s", 1)) + 0.5
-        md.append(f"| {v} | {fmt(med(st['cpus']), 2)} | {fmt(med(st['ipc']), 2)} | {fmt(med(st['cache_miss_per_read']), 4)} | "
+        md.append(f"| {name} | {fmt(med(st['cpus']), 2)} | {fmt(med(st['ipc']), 2)} | {fmt(med(st['cache_miss_per_read']), 4)} | "
                   f"{fmt(med(st['ctx']) / dur, 0)} | {fmt(med(st['rss']), 0)} |")
 fgdir = os.path.join(OUT, PROF, "flamegraphs")
 svgs = sorted(f for f in os.listdir(fgdir) if f.endswith(".svg")) if os.path.isdir(fgdir) else []
@@ -905,18 +929,19 @@ if plt is not None:
         ax.grid(True, axis="y", color=GRID, linewidth=0.8)
         ax.set_axisbelow(True)
 
-    def line(ax, xs, ys, lo, hi, color, lab, end_label=True):
-        ax.plot(xs, ys, color=color, linewidth=2, marker="o", markersize=6, markeredgecolor=SURFACE, markeredgewidth=1.5,
-                label=lab, solid_capstyle="round")
+    def line(ax, xs, ys, lo, hi, color, lab, end_label=True, dashed=False):
+        ax.plot(xs, ys, color=color, linewidth=2, marker="o", markersize=6, markeredgecolor=color if dashed else SURFACE,
+                markerfacecolor=SURFACE if dashed else color, markeredgewidth=1.5, label=lab, solid_capstyle="round",
+                linestyle=(0, (4, 2)) if dashed else "-")
         ax.fill_between(xs, lo, hi, color=color, alpha=0.12, linewidth=0)
 
     def d1_series(scen, metric, scale):
         out = {}
-        for v in ("global_lock", "rwlock", "rcu"):
-            pts = [(n, d1_stats[(v, scen, n)][metric]) for n in READERS if (v, scen, n) in d1_stats]
+        for v, sfx, name in SERIES:
+            pts = [(n, d1_stats[(v, scen + sfx, n)][metric]) for n in READERS if (v, scen + sfx, n) in d1_stats]
             if pts:
-                out[v] = ([p[0] for p in pts], [med(p[1]) * scale for p in pts], [min(p[1]) * scale for p in pts],
-                          [max(p[1]) * scale for p in pts])
+                out[(v, sfx)] = ([p[0] for p in pts], [med(p[1]) * scale for p in pts], [min(p[1]) * scale for p in pts],
+                                 [max(p[1]) * scale for p in pts])
         return out
 
     note_c = "Track C: writer active during the measured window. Median of the repetitions; band = min–max."
@@ -927,8 +952,10 @@ if plt is not None:
                 ("write_rps", 1.0, "successful writer updates per second", "d1_writer_throughput.png", "D.1 Writer throughput vs reader threads", True)):
             fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.7), sharey=True)
             for ax, scen, sub in zip(axes, ("writer_paced", "writer_max"), ("writer paced at 10,000 updates/s", "writer unthrottled")):
-                for v, (xs, ys, lo, hi) in d1_series(scen, metric, scale).items():
-                    line(ax, xs, ys, lo, hi, COLOR[v], NAME[v])
+                for (v, sfx), (xs, ys, lo, hi) in d1_series(scen, metric, scale).items():
+                    # Colour follows the store; the second lock placement is the same colour, dashed and hollow.
+                    lab = NAME[v] + ((", lock at offset 48" if not sfx else ", lock at offset 0") if PLACED and v != "rcu" else "")
+                    line(ax, xs, ys, lo, hi, COLOR[v], lab, dashed=bool(sfx))
                 style(ax, "reader threads", ylabel if ax is axes[0] else "", sub)
                 ax.set_xscale("log", base=2)
                 ax.set_xticks(READERS)
@@ -938,9 +965,9 @@ if plt is not None:
                 if metric == "read_rps":
                     ax.axhline(0.1, color=MUTED, linewidth=1)
                     ax.text(READERS[0], 0.1, " 100,000 reads/s target", color=MUTED, fontsize=7, va="bottom")
-            axes[1].legend(loc="best", fontsize=8)
+            axes[1].legend(loc="best", fontsize=7 if PLACED else 8)
             fig.suptitle(title, x=0.01, ha="left", fontsize=11, fontweight="bold")
-            finish(fig, fname, note_c + " Log scales.")
+            finish(fig, fname, note_c + " Log scales." + (" Timing track: no profiler." if V2 else ""))
 
         # Track R, its own figure: never on the same axes as track C.
         fig, ax = plt.subplots(figsize=(5.6, 3.7))

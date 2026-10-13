@@ -27,8 +27,10 @@
 #pragma once
 
 #include "build_info.h"
+#include "inspect.h"
 #include "workload_gen.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -94,6 +96,11 @@ inline int run_driver(const char* expected_variant, int fixed_readers, int argc,
     std::printf("reference_reads: mode=%s random_key_space=%ld present_in_space=%ld random_hit_rate=%.6f "
                 "expected_overall_hit_rate=%.6f (80%% hot ids + 20%% random)\n",
                 mode, space, present, random_hit, 0.8 + 0.2 * random_hit);
+    // Where the store's lock object lies in its cache line: the lock-based
+    // stores run at two speeds depending on it (decision D-072). Not controlled
+    // here: the generator constructs nothing and its arguments are fixed.
+    std::printf("reference_lock: bytes=%zu offset_in_line=%u (not controlled)\n", NovaKvInspector::lock_size(),
+                static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(NovaKvInspector::lock_address(trades)) % 64));
     if (cfg.use_join) {
         long stored = 0, eighth_zero = 0, probe_hits = 0;
         for (int i = 0; i < cfg.m; ++i) {

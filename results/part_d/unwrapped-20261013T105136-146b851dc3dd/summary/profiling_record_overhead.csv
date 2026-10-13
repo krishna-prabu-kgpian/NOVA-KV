@@ -1,0 +1,15 @@
+run,read_rps_profiled,read_rps_timing_median,ratio
+fg_rcu_r1_writer_max,8.53716e+06,8.36924e+06,1.0201
+fg_rcu_r2_writer_max,1.69256e+07,1.55123e+07,1.0911
+fg_rcu_r4_writer_max,2.83435e+07,2.83815e+07,0.9987
+fg_rcu_r8_writer_max,4.85413e+07,4.79868e+07,1.0116
+fg_rcu_r8_writer_paced,9.83945e+07,9.85235e+07,0.9987
+fg_rcu_r8_readonly,1.12e+08,1.12581e+08,0.9948
+fg_global_lock_r8_writer_max,6.80878e+06,6.60159e+06,1.0314
+fg_rwlock_r8_writer_max,2.62083e+07,2.19495e+07,1.1940
+fg_rcu_r8_stw,7.46312e+06,7.04794e+06,1.0589
+c2c_rcu_r8_writer_max,4.83028e+07,4.79868e+07,1.0066
+c2c_rcu_r8_readonly,1.11609e+08,1.12581e+08,0.9914
+c2c_rcu_r1_writer_max,8.35113e+06,8.36924e+06,0.9978
+c2c_rwlock_r8_writer_max,2.61349e+07,2.19495e+07,1.1907
+c2c_global_lock_r8_writer_max,6.81563e+06,6.60159e+06,1.0324

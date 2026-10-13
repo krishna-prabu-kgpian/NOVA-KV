@@ -1,4 +1,4 @@
-# Part D summary — campaign `20261013T104529-9062d838457f-dirty-pilot`
+# Part D summary — campaign `20261013T114954-146b851dc3dd-dirty-pilot`
 
 **Corrected campaign: UNWRAPPED timing track.** Every throughput, latency and stall figure comes from an executable
 started directly. Profiler output (perf stat, perf record, perf c2c) comes from separate runs and is confined to
@@ -16,29 +16,39 @@ unless stated), one writer thread overwriting existing trades for the whole wind
 marked *(prof.)* are perf stat counters from the separate profiling track (other runs of the same commands);
 throughput and latency are never taken from those runs.
 
+**Lock placement.** The two lock-based stores run at two different speeds depending on where their lock object
+lies inside its 64-byte cache line (decision D-072). Every such cell is therefore measured twice, with the lock
+placed at offset 48 (its first 16 bytes end one line, the rest begins the next: the faster placement) and at
+offset 0 (cache-line aligned: the slower one; offsets 16 and 32 behave like 0). The RCU store's readers take
+no lock, so it has one row.
+
 ### Writer paced at 10,000 updates/s
 
 | Store | Readers | Reads/s (M) | Hit rate | Writer updates/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | CPUs used *(prof.)* | ctx switches *(prof.)* |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| global_lock | 8 | 9.65 [9.65–9.65] | 100 % | 9,999 [9,999–9,999] | 0.181 | 5.248 | 9.472 | 184 / 184 | 7.65 | 802,043 |
-| rwlock | 8 | 22.23 [22.23–22.23] | 100 % | 3,647 [3,647–3,647] | 0.320 | 0.742 | 5.760 | 185 / 185 | 7.73 | 54,673 |
-| rcu | 8 | 100.82 [100.82–100.82] | 100 % | 9,999 [9,999–9,999] | 0.050 | 0.141 | 0.210 | 137 / 137 | 7.91 | 17,882 |
+| global_lock, lock at offset 48 | 8 | 11.02 [11.02–11.02] | 100 % | 9,999 [9,999–9,999] | 0.100 | 4.736 | 8.576 | 221 / 221 | 7.87 | 672,329 |
+| global_lock, lock at offset 0 | 8 | 9.57 [9.57–9.57] | 100 % | 9,999 [9,999–9,999] | 0.180 | 5.312 | 9.600 | 154 / 154 | 7.73 | 752,763 |
+| rwlock, lock at offset 48 | 8 | 34.61 [34.61–34.61] | 100 % | 9,998 [9,998–9,998] | 0.131 | 0.641 | 4.160 | 135 / 135 | 8.37 | 131,020 |
+| rwlock, lock at offset 0 | 8 | 22.04 [22.04–22.04] | 100 % | 8,752 [8,752–8,752] | 0.301 | 0.702 | 6.272 | 152 / 152 | 7.69 | 61,031 |
+| rcu | 8 | 99.87 [99.87–99.87] | 100 % | 9,998 [9,998–9,998] | 0.050 | 0.150 | 0.230 | 158 / 158 | 7.61 | 46,120 |
 
 ### Writer unthrottled
 
 | Store | Readers | Reads/s (M) | Hit rate | Writer updates/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | CPUs used *(prof.)* | ctx switches *(prof.)* |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| global_lock | 8 | 6.44 [6.44–6.44] | 100 % | 563,209 [563,209–563,209] | 0.721 | 7.424 | 14.464 | 312 / 312 | 7.06 | 1,125,445 |
-| rwlock | 8 | 22.80 [22.80–22.80] | 100 % | 10,986 [10,986–10,986] | 0.291 | 0.691 | 6.272 | 777 / 777 | 5.46 | 877,425 |
-| rcu | 8 | 49.49 [49.49–49.49] | 100 % | 114,139 [114,139–114,139] | 0.120 | 0.391 | 0.571 | 137 / 137 | 7.64 | 86,721 |
+| global_lock, lock at offset 48 | 8 | 6.88 [6.88–6.88] | 100 % | 604,441 [604,441–604,441] | 0.511 | 6.912 | 12.672 | 295 / 295 | 7.17 | 1,070,638 |
+| global_lock, lock at offset 0 | 8 | 6.87 [6.87–6.87] | 100 % | 610,671 [610,671–610,671] | 0.652 | 6.912 | 13.824 | 302 / 302 | 7.20 | 1,038,360 |
+| rwlock, lock at offset 48 | 8 | 21.85 [21.85–21.85] | 100 % | 110,359 [110,359–110,359] | 0.130 | 4.352 | 6.080 | 278 / 278 | 5.78 | 755,509 |
+| rwlock, lock at offset 0 | 8 | 22.17 [22.17–22.17] | 100 % | 4,069 [4,069–4,069] | 0.311 | 0.731 | 5.888 | 132 / 132 | 7.69 | 68,921 |
+| rcu | 8 | 49.83 [49.83–49.83] | 100 % | 108,052 [108,052–108,052] | 0.120 | 0.391 | 0.571 | 158 / 158 | 7.60 | 87,510 |
 
 ### One thread, and reads only
 
 | Store | Scenario | Readers | Reads/s (M) | Writer updates/s | p50 µs | p99 µs | p99.9 µs |
 |---|---|---:|---:|---:|---:|---:|---:|
-| rcu | readonly | 8 | 113.34 [113.34–113.34] | 0 [0–0] | 0.040 | 0.090 | 0.150 |
-| single | inline_writer | 1 | 16.97 [16.97–16.97] | 169,692 [169,692–169,692] | 0.030 | 0.181 | 0.381 |
-| single | readonly | 1 | 18.18 [18.18–18.18] | 0 [0–0] | 0.030 | 0.141 | 0.321 |
+| rcu | readonly | 8 | 113.55 [113.55–113.55] | 0 [0–0] | 0.041 | 0.090 | 0.150 |
+| single | inline_writer | 1 | 17.04 [17.04–17.04] | 170,357 [170,357–170,357] | 0.030 | 0.190 | 0.390 |
+| single | readonly | 1 | 18.37 [18.37–18.37] | 0 [0–0] | 0.030 | 0.140 | 0.301 |
 
 ### The generator's key distribution, with a writer (8 readers, paced writer)
 
@@ -46,9 +56,11 @@ throughput and latency are never taken from those runs.
 
 | Store | Lookups/s (M) | Successful reads/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs |
 |---|---:|---:|---:|---:|---:|---:|
-| global_lock | 10.45 [10.45–10.45] | 8.36 [8.36–8.36] | 80.00 % | 0.140 | 4.928 | 8.960 |
-| rwlock | 23.23 [23.23–23.23] | 18.59 [18.59–18.59] | 80.02 % | 0.291 | 0.741 | 6.016 |
-| rcu | 106.33 [106.33–106.33] | 85.08 [85.08–85.08] | 80.02 % | 0.050 | 0.120 | 0.170 |
+| global_lock, lock at offset 48 | 14.09 [14.09–14.09] | 11.28 [11.28–11.28] | 80.01 % | 0.090 | 4.096 | 7.296 |
+| global_lock, lock at offset 0 | 10.65 [10.65–10.65] | 8.52 [8.52–8.52] | 80.00 % | 0.130 | 4.928 | 8.320 |
+| rwlock, lock at offset 48 | 34.81 [34.81–34.81] | 27.85 [27.85–27.85] | 80.02 % | 0.131 | 0.641 | 4.000 |
+| rwlock, lock at offset 0 | 23.06 [23.06–23.06] | 18.45 [18.45–18.45] | 80.02 % | 0.291 | 0.742 | 6.144 |
+| rcu | 105.35 [105.35–105.35] | 84.31 [84.31–84.31] | 80.02 % | 0.050 | 0.130 | 0.180 |
 
 ### Where scaling stops (track C)
 
@@ -57,12 +69,16 @@ count; beyond it adding readers does not help.
 
 | Store | Writer | Median reads/s (M) at 1 / 2 / 4 / 8 readers | Stops scaling after |
 |---|---|---|---|
-| global_lock | paced | 9.65 | 8 reader(s) (still rising at the largest count measured) |
-| global_lock | max | 6.44 | 8 reader(s) (still rising at the largest count measured) |
-| rwlock | paced | 22.23 | 8 reader(s) (still rising at the largest count measured) |
-| rwlock | max | 22.80 | 8 reader(s) (still rising at the largest count measured) |
-| rcu | paced | 100.82 | 8 reader(s) (still rising at the largest count measured) |
-| rcu | max | 49.49 | 8 reader(s) (still rising at the largest count measured) |
+| global_lock, lock at offset 48 | paced | 11.02 | 8 reader(s) (still rising at the largest count measured) |
+| global_lock, lock at offset 48 | max | 6.88 | 8 reader(s) (still rising at the largest count measured) |
+| global_lock, lock at offset 0 | paced | 9.57 | 8 reader(s) (still rising at the largest count measured) |
+| global_lock, lock at offset 0 | max | 6.87 | 8 reader(s) (still rising at the largest count measured) |
+| rwlock, lock at offset 48 | paced | 34.61 | 8 reader(s) (still rising at the largest count measured) |
+| rwlock, lock at offset 48 | max | 21.85 | 8 reader(s) (still rising at the largest count measured) |
+| rwlock, lock at offset 0 | paced | 22.04 | 8 reader(s) (still rising at the largest count measured) |
+| rwlock, lock at offset 0 | max | 22.17 | 8 reader(s) (still rising at the largest count measured) |
+| rcu | paced | 99.87 | 8 reader(s) (still rising at the largest count measured) |
+| rcu | max | 49.83 | 8 reader(s) (still rising at the largest count measured) |
 
 ### RCU store during D.1: copy-on-write and reclamation
 
@@ -73,15 +89,15 @@ is the state when the window closes. A backlog at the end that is close to the m
 
 | Writer | Readers | Peak RSS MiB | Memory held at end MiB | Backlog max (versions) | Backlog at end | Cleaner CPU s | Bytes copied per update |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| paced | 8 | 28 [28–28] | 10 [10–10] | 413 [413–413] | 0 | 0.12 | 25,976 |
-| max | 8 | 1,324 [1,324–1,324] | 599 [599–599] | 22,574 [22,574–22,574] | 22,294 | 1.45 | 25,982 |
+| paced | 8 | 145 [145–145] | 10 [10–10] | 3,438 [3,438–3,438] | 0 | 0.12 | 25,976 |
+| max | 8 | 1,558 [1,558–1,558] | 897 [897–897] | 33,989 [33,989–33,989] | 33,699 | 1.44 | 25,980 |
 
 ### The 100,000 reads/s target (RCU, 8 readers)
 
 | Measurement | Median reads/s | Minimum of the repetitions | Target met |
 |---|---:|---:|---|
-| track C, writer paced | 100,821,109 | 100,821,109 | YES |
-| track C, writer max | 49,490,217 | 49,490,217 | YES |
+| track C, writer paced | 99,868,278 | 99,868,278 | YES |
+| track C, writer max | 49,834,432 | 49,834,432 | YES |
 
 ## D.1 — track R: supplied generator — PRELOAD-ONLY
 
@@ -90,14 +106,17 @@ reader starts: no writer is active in these numbers.** 20 % of its reads use `rn
 are `i*100000 + j`, so they almost all miss; the hit rate below is measured from the store after the run.
 The generator prints latencies with one decimal of a microsecond, so sub-100 ns values appear as 0.0 or 0.1.
 
-| Driver | Readers | Lookups/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs |
-|---|---:|---:|---:|---:|---:|---:|
-| global_lock | 8 | 11.93 [11.93–11.93] | 80.02 % | 0.1 | 4.4 | 7.2 |
-| rcu | 8 | 77.72 [77.72–77.72] | 80.02 % | 0.1 | 0.1 | 0.2 |
-| rwlock | 8 | 18.66 [18.66–18.66] | 80.02 % | 0.4 | 0.8 | 1.2 |
-| single_thread | 1 | 16.57 [16.57–16.57] | 80.02 % | 0.0 | 0.1 | 0.3 |
+The drivers' lock placement cannot be chosen (the generator's arguments are fixed); the offset each driver
+happened to get is shown, because it decides which of their two speeds the lock-based drivers run at.
 
-RCU at 8 readers, track R: median 77,719,679 lookups/s, minimum 77,719,679: target of 100,000/s met (preload-only).
+| Driver | Readers | Lookups/s (M) | Hit rate | p50 µs | p99 µs | p99.9 µs | Lock offset in line (not controlled) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| global_lock | 8 | 11.34 [11.34–11.34] | 80.02 % | 0.1 | 4.5 | 8.1 | 48 |
+| rcu | 8 | 81.85 [81.85–81.85] | 80.02 % | 0.1 | 0.1 | 0.2 | no reader lock |
+| rwlock | 8 | 18.59 [18.59–18.59] | 80.02 % | 0.4 | 0.8 | 1.2 | 0 |
+| single_thread | 1 | 16.61 [16.61–16.61] | 80.02 % | 0.0 | 0.1 | 0.3 | no reader lock |
+
+RCU at 8 readers, track R: median 81,847,963 lookups/s, minimum 81,847,963: target of 100,000/s met (preload-only).
 
 ## D.2 — reclamation batch, workload A: STEADY point gets
 
@@ -107,9 +126,9 @@ the backlog and the memory held grow for the whole window (columns "Backlog max"
 
 | Setting | Reads/s (M) | Writer updates/s | p50 µs | p99 µs | p99.9 µs | Longest reader stall µs (median / worst run) | Passes | Most versions freed in a pass | Backlog max | Memory at end MiB | Cleaner CPU s | Versions reclaimed/s |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| batch 64 | 49.53 [49.53–49.53] | 111,114 [111,114–111,114] | 0.120 | 0.391 | 0.571 | 549 / 549 | 2,470 | 64 | 31,953 | 844.1 | 1.43 | 143,929 |
-| stop-the-world | 7.92 [7.92–7.92] | 165,343 [165,343–165,343] | 0.291 | 0.981 | 1.728 | 4,217 / 4,217 | 2,736 | 0 | 3,833 | 28.2 | 1.03 | 256,187 |
-| disabled | 73.92 [73.92–73.92] | 83,243 [83,243–83,243] | 0.070 | 0.291 | 0.461 | 285 / 285 | 5,945 | 0 | 226,133 | 4,458 | 0.00 | 0 |
+| batch 64 | 49.33 [49.33–49.33] | 112,737 [112,737–112,737] | 0.120 | 0.400 | 0.571 | 140 / 140 | 2,517 | 64 | 28,833 | 762.8 | 1.44 | 149,568 |
+| stop-the-world | 7.12 [7.12–7.12] | 164,125 [164,125–164,125] | 0.310 | 0.992 | 1.776 | 5,039 / 5,039 | 2,642 | 0 | 1,899 | 43.0 | 1.02 | 254,640 |
+| disabled | 74.40 [74.40–74.40] | 81,723 [81,723–81,723] | 0.070 | 0.291 | 0.451 | 401 / 401 | 6,005 | 0 | 224,929 | 4,426 | 0.00 | 0 |
 
 ## D.2 — reclamation batch, workload B: BACKLOG-BUILDING
 
@@ -120,16 +139,16 @@ so a backlog of thousands of versions builds and is released in passes. **Not co
 
 | Setting | Reads/s (M) | Writer updates/s | p50 µs | p99 µs | p99.9 µs | Longest reader stall µs (median / worst run) | Passes | Most versions freed in a pass | Backlog max | Memory max MiB | Cleaner CPU s | Versions reclaimed/s | Final cleanup: backlog → ms to drain | Longest stall during cleanup µs |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| batch 64 | 40.38 [40.38–40.38] | 228,714 [228,714–228,714] | 0.161 | 0.321 | 0.491 | 147 / 147 | 6,039 | 64 | 4,801 | 59.9 | 1.24 | 338,781 | 4,692 → 15.1 | 9 |
-| stop-the-world | 8.03 [8.03–8.03] | 291,577 [291,577–291,577] | 0.280 | 0.741 | 5.632 | 19,535 / 19,535 | 2,071 | 0 | 8,938 | 88.6 | 0.83 | 434,706 | 6,980 → 10.5 | 10,530 |
-| disabled | 39.71 [39.71–39.71] | 169,201 [169,201–169,201] | 0.151 | 0.290 | 0.471 | 158 / 158 | 6,003 | 0 | 249,872 | 1,723 | 0.00 | 0 | — | — |
+| batch 64 | 37.94 [37.94–37.94] | 224,503 [224,503–224,503] | 0.160 | 0.311 | 0.481 | 563 / 563 | 6,405 | 64 | 8,085 | 82.0 | 1.10 | 333,060 | 8,130 → 19.5 | 8 |
+| stop-the-world | 8.73 [8.73–8.73] | 298,168 [298,168–298,168] | 0.280 | 0.741 | 5.248 | 15,097 / 15,097 | 2,097 | 0 | 7,436 | 77.6 | 0.83 | 443,547 | 6,911 → 10.3 | 10,218 |
+| disabled | 39.92 [39.92–39.92] | 170,086 [170,086–170,086] | 0.151 | 0.290 | 0.470 | 442 / 442 | 6,001 | 0 | 251,664 | 1,736 | 0.00 | 0 | — | — |
 
 ### Bounded reclamation against stop-the-world: worst reader pause
 
 | Workload | Stop-the-world: longest stall µs (median / worst) | Epoch-based, worst of all batch sizes: longest stall µs (median / worst) | Ratio of medians |
 |---|---:|---:|---:|
-| A (steady) | 4,217 / 4,217 | 549 / 549 | 7.7× |
-| B (backlog-building) | 19,535 / 19,535 | 147 / 147 | 132.6× |
+| A (steady) | 5,039 / 5,039 | 140 / 140 | 36.0× |
+| B (backlog-building) | 15,097 / 15,097 | 563 / 563 | 26.8× |
 
 ## D.3 — multi-key transaction commit throughput
 
@@ -138,8 +157,8 @@ over the table, every write changes the symbol). "Index off" is the Trades table
 
 | Keys | Secondary index | Commits/s | Rows/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | Segments cloned / commit | Bytes copied / commit | Bytes copied / row | Memory max MiB | Backlog max |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 4 | off | 102,895 [102,895–102,895] | 411,580 [411,580–411,580] | 9.0 | 17.4 | 21.9 | 50 / 50 | 3.98 | 97,728 | 24,432 | 15.4 | 39 |
-| 4 | on | 17,649 [17,649–17,649] | 70,596 [70,596–70,596] | 57.3 | 76.5 | 83.2 | 99 / 99 | 3.98 | 517,963 | 129,491 | 15.3 | 22 |
+| 4 | off | 96,369 [96,369–96,369] | 385,475 [385,475–385,475] | 9.9 | 18.9 | 22.3 | 125 / 125 | 3.98 | 97,726 | 24,431 | 15.3 | 41 |
+| 4 | on | 17,526 [17,526–17,526] | 70,104 [70,104–70,104] | 57.7 | 78.0 | 92.7 | 120 / 120 | 3.98 | 517,803 | 129,451 | 15.3 | 22 |
 
 ## D.3 — index-nested-loop join, writer active and paused
 
@@ -152,10 +171,10 @@ Writer when active: single Trade puts that change the symbol, plus one whole-tab
 
 | Joiners | Writer | Joins/s | Joined rows/s (M) | p50 ms | p99 ms | p99.9 ms | max ms (median / worst) | Trade puts/s | Instrument txns/s | Memory max MiB | Backlog max |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 8 | paused | 1,044 [1,044–1,044] | 104.36 [104.36–104.36] | 6.94 | 9.72 | 11.62 | 11.94 / 11.94 | — | — | 9.1 | 0 |
-| 8 | active | 540.4 [540.4–540.4] | 54.04 [54.04–54.04] | 15.00 | 24.11 | 25.66 | 25.66 / 25.66 | 119,370 | 1,865 | 221.4 | 8,117 |
+| 8 | paused | 1,036 [1,036–1,036] | 103.59 [103.59–103.59] | 6.95 | 10.29 | 11.61 | 11.64 / 11.64 | — | — | 9.1 | 0 |
+| 8 | active | 560.6 [560.6–560.6] | 56.06 [56.06–56.06] | 13.83 | 22.36 | 25.00 | 25.00 / 25.00 | 108,629 | 1,697 | 405.6 | 15,226 |
 
-At 8 joiners the active writer costs a join 2.16× its paused median latency (6.94 → 15.00 ms) and 48 % of its throughput.
+At 8 joiners the active writer costs a join 1.99× its paused median latency (6.95 → 13.83 ms) and 46 % of its throughput.
 
 ## D.3 — where copy-on-write hurts
 
@@ -164,12 +183,12 @@ puts, 100,000-row table, 256 hash partitions.
 
 | Case | Rows | Publications | Elapsed ms | Rows/s | Segments cloned | Bytes copied | Bytes copied per row |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| all rows as one transaction | 100,000 | 1 | 13.14 [13.14–13.14] | 7,608,964 | 256 | 6,146,048 | 61 |
-| all rows as single puts | 100,000 | 100,000 | 558.13 [558.13–558.13] | 179,168 | 100,000 | 2,610,262,016 | 26,103 |
-| 4096 rows spread over all partitions as one transaction | 4,096 | 1 | 0.71 [0.71–0.71] | 5,747,933 | 256 | 6,146,048 | 1,500 |
-| 4096 rows spread as single puts | 4,096 | 4,096 | 24.47 [24.47–24.47] | 167,377 | 4,096 | 106,778,624 | 26,069 |
-| 16 rows as one transaction | 16 | 1 | 0.03 [0.03–0.03] | 533,209 | 15 | 346,112 | 21,632 |
-| 16 rows as single puts | 16 | 16 | 0.06 [0.06–0.06] | 268,308 | 16 | 401,408 | 25,088 |
+| all rows as one transaction | 100,000 | 1 | 13.59 [13.59–13.59] | 7,356,708 | 256 | 6,146,048 | 61 |
+| all rows as single puts | 100,000 | 100,000 | 555.24 [555.24–555.24] | 180,102 | 100,000 | 2,610,262,016 | 26,103 |
+| 4096 rows spread over all partitions as one transaction | 4,096 | 1 | 0.72 [0.72–0.72] | 5,726,461 | 256 | 6,146,048 | 1,500 |
+| 4096 rows spread as single puts | 4,096 | 4,096 | 23.19 [23.19–23.19] | 176,639 | 4,096 | 106,778,624 | 26,069 |
+| 16 rows as one transaction | 16 | 1 | 0.03 [0.03–0.03] | 536,265 | 15 | 346,112 | 21,632 |
+| 16 rows as single puts | 16 | 16 | 0.06 [0.06–0.06] | 247,249 | 16 | 401,408 | 25,088 |
 
 ## Track R — the generator's own transaction and index-probe paths (RCU store, 8 readers, PRELOAD-ONLY)
 
@@ -179,9 +198,9 @@ probe hit rate is measured from the store after the run (decision D-065).
 
 | Generator mode | Operations/s (M) | p50 µs | p99 µs | p99.9 µs | Index-probe hit rate |
 |---|---:|---:|---:|---:|---:|
-| put | 82.38 [82.38–82.38] | 0.1 | 0.1 | 0.2 | — |
-| txn:16 | 76.57 [76.57–76.57] | 0.1 | 0.1 | 0.2 | — |
-| join | 61.60 [61.60–61.60] | 0.1 | 0.1 | 0.2 | 100.0 % |
+| put | 82.21 [82.21–82.21] | 0.1 | 0.1 | 0.2 | — |
+| txn:16 | 76.75 [76.75–76.75] | 0.1 | 0.1 | 0.2 | — |
+| join | 62.21 [62.21–62.21] | 0.1 | 0.1 | 0.2 | 100.0 % |
 
 # PROFILING TRACK (separate runs; not timing results)
 
@@ -192,21 +211,27 @@ where time goes. Their throughput is shown only in the table of profiler effects
 
 | Store | CPUs utilized | Instructions per cycle | Cache misses per read | Context switches per second | Peak RSS MiB |
 |---|---:|---:|---:|---:|---:|
-| global_lock | 7.06 | 0.68 | 18.5528 | 750,297 | 38 |
-| rwlock | 5.46 | 0.67 | 4.9615 | 584,950 | 16 |
-| rcu | 7.64 | 0.59 | 7.7334 | 57,814 | 1,324 |
+| global_lock, lock at offset 48 | 7.17 | 0.67 | 18.1419 | 713,759 | 39 |
+| global_lock, lock at offset 0 | 7.20 | 0.65 | 17.9734 | 692,240 | 39 |
+| rwlock, lock at offset 48 | 5.78 | 0.62 | 4.9270 | 503,673 | 16 |
+| rwlock, lock at offset 0 | 7.69 | 0.30 | 4.3699 | 45,947 | 14 |
+| rcu | 7.60 | 0.63 | 7.1436 | 58,340 | 1,558 |
 
-Flame graphs (7): `profiling/flamegraphs/global_lock_r8_writer_max.svg`, `profiling/flamegraphs/join_t8_writer_active.svg`, `profiling/flamegraphs/rcu_r8_readonly.svg`, `profiling/flamegraphs/rcu_r8_stw.svg`, `profiling/flamegraphs/rcu_r8_writer_max.svg`, `profiling/flamegraphs/rcu_r8_writer_paced.svg`, `profiling/flamegraphs/rwlock_r8_writer_max.svg`.
+Flame graphs (11): `profiling/flamegraphs/global_lock_r8_writer_max.svg`, `profiling/flamegraphs/global_lock_r8_writer_paced.svg`, `profiling/flamegraphs/global_lock_r8_writer_paced_o0.svg`, `profiling/flamegraphs/join_t8_writer_active.svg`, `profiling/flamegraphs/rcu_r8_readonly.svg`, `profiling/flamegraphs/rcu_r8_stw.svg`, `profiling/flamegraphs/rcu_r8_writer_max.svg`, `profiling/flamegraphs/rcu_r8_writer_paced.svg`, `profiling/flamegraphs/rwlock_r8_writer_max.svg`, `profiling/flamegraphs/rwlock_r8_writer_paced.svg`, `profiling/flamegraphs/rwlock_r8_writer_paced_o0.svg`.
 
 ## perf c2c (cache lines written by one core and loaded by others)
 
 | Run | Load samples | Loads that hit a line modified by another core (HITM) | Shared cache lines |
 |---|---:|---:|---:|
-| global_lock_r8_writer_max | 36,937 | 3,405 (9.22 %) | 172 |
-| rcu_r1_writer_max | 23,323 | 1,437 (6.16 %) | 1,118 |
-| rcu_r8_readonly | 60,015 | 60 (0.10 %) | 59 |
-| rcu_r8_writer_max | 77,460 | 785 (1.01 %) | 693 |
-| rwlock_r8_writer_max | 30,217 | 2,061 (6.82 %) | 5 |
+| global_lock_r8_writer_max | 37,447 | 3,457 (9.23 %) | 162 |
+| global_lock_r8_writer_paced | 39,381 | 3,008 (7.64 %) | 110 |
+| global_lock_r8_writer_paced_o0 | 37,618 | 3,106 (8.26 %) | 130 |
+| rcu_r1_writer_max | 23,605 | 1,492 (6.32 %) | 1,106 |
+| rcu_r8_readonly | 59,330 | 68 (0.11 %) | 63 |
+| rcu_r8_writer_max | 77,639 | 805 (1.04 %) | 676 |
+| rwlock_r8_writer_max | 42,665 | 1,192 (2.79 %) | 76 |
+| rwlock_r8_writer_paced | 47,128 | 1,244 (2.64 %) | 9 |
+| rwlock_r8_writer_paced_o0 | 27,547 | 2,744 (9.96 %) | 5 |
 
 ## What the profilers do to the numbers
 
@@ -216,60 +241,74 @@ run to run by more than this effect; the reads/s rows are the ones to read.
 
 | Experiment | Cell | Measure | Timing track (median of n) | Under perf stat (median of n) | Profiled / timing |
 |---|---|---|---:|---:|---:|
-| D.1 | global_lock, refkeys_paced, 8 reader(s) | reads/s | 10,453,637 (1) | 13,157,705 (1) | 1.26 |
-| D.1 | global_lock, writer_max, 8 reader(s) | reads/s | 6,439,728 (1) | 7,788,946 (1) | 1.21 |
-| D.1 | global_lock, writer_paced, 8 reader(s) | reads/s | 9,651,519 (1) | 11,583,733 (1) | 1.20 |
-| D.1 | rcu, readonly, 8 reader(s) | reads/s | 113,343,632 (1) | 112,719,555 (1) | 0.99 |
-| D.1 | rcu, refkeys_paced, 8 reader(s) | reads/s | 106,326,552 (1) | 105,081,751 (1) | 0.99 |
-| D.1 | rcu, writer_max, 8 reader(s) | reads/s | 49,490,217 (1) | 50,036,368 (1) | 1.01 |
-| D.1 | rcu, writer_paced, 8 reader(s) | reads/s | 100,821,109 (1) | 99,277,360 (1) | 0.98 |
-| D.1 | rwlock, refkeys_paced, 8 reader(s) | reads/s | 23,226,387 (1) | 22,400,978 (1) | 0.96 |
-| D.1 | rwlock, writer_max, 8 reader(s) | reads/s | 22,803,706 (1) | 15,191,315 (1) | 0.67 |
-| D.1 | rwlock, writer_paced, 8 reader(s) | reads/s | 22,228,609 (1) | 22,043,157 (1) | 0.99 |
-| D.1 | single, inline_writer, 1 reader(s) | reads/s | 16,969,214 (1) | 16,981,464 (1) | 1.00 |
-| D.1 | single, readonly, 1 reader(s) | reads/s | 18,175,346 (1) | 18,336,408 (1) | 1.01 |
-| D.2 A | batch 64 | reads/s | 49,534,729 (1) | 52,176,345 (1) | 1.05 |
-| D.2 A | batch 64 | longest stall ns | 548,853 (1) | 139,876 (1) | 0.25 |
-| D.2 A | stop-the-world | reads/s | 7,921,712 (1) | 5,209,239 (1) | 0.66 |
-| D.2 A | stop-the-world | longest stall ns | 4,216,789 (1) | 6,613,152 (1) | 1.57 |
-| D.2 A | disabled | reads/s | 73,923,059 (1) | 73,675,830 (1) | 1.00 |
-| D.2 A | disabled | longest stall ns | 285,262 (1) | 266,466 (1) | 0.93 |
-| D.2 B | batch 64 | reads/s | 40,378,329 (1) | 40,986,289 (1) | 1.02 |
-| D.2 B | batch 64 | longest stall ns | 147,309 (1) | 202,885 (1) | 1.38 |
-| D.2 B | stop-the-world | reads/s | 8,033,109 (1) | 3,409,349 (1) | 0.42 |
-| D.2 B | stop-the-world | longest stall ns | 19,534,847 (1) | 23,258,530 (1) | 1.19 |
-| D.2 B | disabled | reads/s | 39,705,694 (1) | 39,675,719 (1) | 1.00 |
-| D.2 B | disabled | longest stall ns | 157,810 (1) | 145,877 (1) | 0.92 |
-| D.3 txn | 4 key(s), index off | commits/s | 102,895 (1) | 103,810 (1) | 1.01 |
-| D.3 txn | 4 key(s), index on | commits/s | 17,649 (1) | 17,579 (1) | 1.00 |
-| D.3 join | 8 joiner(s), writer paused | joins/s | 1,044 (1) | 1,035 (1) | 0.99 |
-| D.3 join | 8 joiner(s), writer active | joins/s | 540.4 (1) | 586.3 (1) | 1.08 |
+| D.1 | global_lock, refkeys_paced, 8 reader(s) | reads/s | 14,091,988 (1) | 21,273,428 (1) | 1.51 |
+| D.1 | global_lock, refkeys_paced_o0, 8 reader(s) | reads/s | 10,648,817 (1) | 13,292,685 (1) | 1.25 |
+| D.1 | global_lock, writer_max, 8 reader(s) | reads/s | 6,875,040 (1) | 8,242,033 (1) | 1.20 |
+| D.1 | global_lock, writer_max_o0, 8 reader(s) | reads/s | 6,865,259 (1) | 8,018,312 (1) | 1.17 |
+| D.1 | global_lock, writer_paced, 8 reader(s) | reads/s | 11,023,265 (1) | 14,877,795 (1) | 1.35 |
+| D.1 | global_lock, writer_paced_o0, 8 reader(s) | reads/s | 9,565,974 (1) | 11,901,078 (1) | 1.24 |
+| D.1 | rcu, readonly, 8 reader(s) | reads/s | 113,545,905 (1) | 111,977,592 (1) | 0.99 |
+| D.1 | rcu, refkeys_paced, 8 reader(s) | reads/s | 105,354,355 (1) | 104,835,387 (1) | 1.00 |
+| D.1 | rcu, writer_max, 8 reader(s) | reads/s | 49,834,432 (1) | 51,280,351 (1) | 1.03 |
+| D.1 | rcu, writer_paced, 8 reader(s) | reads/s | 99,868,278 (1) | 99,169,636 (1) | 0.99 |
+| D.1 | rwlock, refkeys_paced, 8 reader(s) | reads/s | 34,810,340 (1) | 32,316,707 (1) | 0.93 |
+| D.1 | rwlock, refkeys_paced_o0, 8 reader(s) | reads/s | 23,060,144 (1) | 23,565,524 (1) | 1.02 |
+| D.1 | rwlock, writer_max, 8 reader(s) | reads/s | 21,849,939 (1) | 16,171,948 (1) | 0.74 |
+| D.1 | rwlock, writer_max_o0, 8 reader(s) | reads/s | 22,167,154 (1) | 21,610,810 (1) | 0.97 |
+| D.1 | rwlock, writer_paced, 8 reader(s) | reads/s | 34,609,999 (1) | 31,721,767 (1) | 0.92 |
+| D.1 | rwlock, writer_paced_o0, 8 reader(s) | reads/s | 22,042,103 (1) | 21,162,659 (1) | 0.96 |
+| D.1 | single, inline_writer, 1 reader(s) | reads/s | 17,035,726 (1) | 16,979,236 (1) | 1.00 |
+| D.1 | single, readonly, 1 reader(s) | reads/s | 18,373,255 (1) | 18,188,842 (1) | 0.99 |
+| D.2 A | batch 64 | reads/s | 49,329,647 (1) | 52,079,596 (1) | 1.06 |
+| D.2 A | batch 64 | longest stall ns | 139,783 (1) | 141,807 (1) | 1.01 |
+| D.2 A | stop-the-world | reads/s | 7,117,316 (1) | 5,754,050 (1) | 0.81 |
+| D.2 A | stop-the-world | longest stall ns | 5,039,162 (1) | 5,246,812 (1) | 1.04 |
+| D.2 A | disabled | reads/s | 74,395,347 (1) | 73,420,070 (1) | 0.99 |
+| D.2 A | disabled | longest stall ns | 401,094 (1) | 140,484 (1) | 0.35 |
+| D.2 B | batch 64 | reads/s | 37,944,999 (1) | 40,869,309 (1) | 1.08 |
+| D.2 B | batch 64 | longest stall ns | 562,688 (1) | 147,818 (1) | 0.26 |
+| D.2 B | stop-the-world | reads/s | 8,728,312 (1) | 3,391,631 (1) | 0.39 |
+| D.2 B | stop-the-world | longest stall ns | 15,096,946 (1) | 25,484,841 (1) | 1.69 |
+| D.2 B | disabled | reads/s | 39,919,404 (1) | 39,546,810 (1) | 0.99 |
+| D.2 B | disabled | longest stall ns | 442,453 (1) | 365,858 (1) | 0.83 |
+| D.3 txn | 4 key(s), index off | commits/s | 96,369 (1) | 99,809 (1) | 1.04 |
+| D.3 txn | 4 key(s), index on | commits/s | 17,526 (1) | 17,485 (1) | 1.00 |
+| D.3 join | 8 joiner(s), writer paused | joins/s | 1,036 (1) | 1,030 (1) | 0.99 |
+| D.3 join | 8 joiner(s), writer active | joins/s | 560.6 (1) | 579.2 (1) | 1.03 |
 
 Runs under `perf record` (flame graphs) and `perf c2c record`, against the timing median of the same cell:
 
 | Profiled run | Reads/s under the profiler (M) | Timing-track median (M) | Profiled / timing |
 |---|---:|---:|---:|
-| fg_rcu_r8_writer_max | 48.39 | 49.49 | 0.98 |
-| fg_rcu_r8_writer_paced | 98.89 | 100.82 | 0.98 |
-| fg_rcu_r8_readonly | 112.36 | 113.34 | 0.99 |
-| fg_global_lock_r8_writer_max | 7.21 | 6.44 | 1.12 |
-| fg_rwlock_r8_writer_max | 23.01 | 22.80 | 1.01 |
-| fg_rcu_r8_stw | 7.22 | 7.92 | 0.91 |
-| c2c_rcu_r8_writer_max | 48.21 | 49.49 | 0.97 |
-| c2c_rcu_r8_readonly | 112.05 | 113.34 | 0.99 |
-| c2c_rcu_r1_writer_max | 8.47 | — | — |
-| c2c_rwlock_r8_writer_max | 23.01 | 22.80 | 1.01 |
-| c2c_global_lock_r8_writer_max | 6.52 | 6.44 | 1.01 |
+| fg_rcu_r8_writer_max | 48.46 | 49.83 | 0.97 |
+| fg_rcu_r8_writer_paced | 97.66 | 99.87 | 0.98 |
+| fg_rcu_r8_readonly | 111.85 | 113.55 | 0.99 |
+| fg_global_lock_r8_writer_max | 6.99 | 6.88 | 1.02 |
+| fg_global_lock_r8_writer_paced | 11.82 | 11.02 | 1.07 |
+| fg_global_lock_r8_writer_paced_o0 | 9.35 | 9.57 | 0.98 |
+| fg_rwlock_r8_writer_max | 27.83 | 21.85 | 1.27 |
+| fg_rwlock_r8_writer_paced | 33.45 | 34.61 | 0.97 |
+| fg_rwlock_r8_writer_paced_o0 | 23.07 | 22.04 | 1.05 |
+| fg_rcu_r8_stw | 7.03 | 7.12 | 0.99 |
+| c2c_rcu_r8_writer_max | 48.36 | 49.83 | 0.97 |
+| c2c_rcu_r8_readonly | 112.00 | 113.55 | 0.99 |
+| c2c_rcu_r1_writer_max | 8.42 | — | — |
+| c2c_rwlock_r8_writer_paced | 33.58 | 34.61 | 0.97 |
+| c2c_rwlock_r8_writer_paced_o0 | 21.28 | 22.04 | 0.97 |
+| c2c_global_lock_r8_writer_paced | 11.60 | 11.02 | 1.05 |
+| c2c_global_lock_r8_writer_paced_o0 | 9.51 | 9.57 | 0.99 |
+| c2c_rwlock_r8_writer_max | 16.88 | 21.85 | 0.77 |
+| c2c_global_lock_r8_writer_max | 6.89 | 6.88 | 1.00 |
 
 ## Conditions
 
 - 39 condition records; all on mains power with the `performance` governor: yes.
-- 1-minute load average while the campaign ran its own threads: 0.06–5.29; ACPI temperature 44–79 °C; first record `2026-10-13T10:45:34 campaign:start ac_online=1 governor=performance epp=performance loadavg=0.06 0.33 1.07 battery=Full/100% temp=44C mem_available_mb=27073 swap_free_mb=8191 idle_pct_1s=98 top_cpu=claude:4.3`; last `2026-10-13T10:49:42 campaign:end ac_online=1 governor=performance epp=performance loadavg=4.87 2.54 1.78 battery=Full/100% temp=66C mem_available_mb=27118 swap_free_mb=8191 idle_pct_1s=98 top_cpu=claude:4.3`.
+- 1-minute load average while the campaign ran its own threads: 0.75–5.80; ACPI temperature 40–79 °C; first record `2026-10-13T11:50:00 campaign:start ac_online=1 governor=performance epp=performance loadavg=0.75 2.78 3.70 battery=Full/100% temp=40C mem_available_mb=27079 swap_free_mb=8191 idle_pct_1s=98 top_cpu=claude:4.3`; last `2026-10-13T11:55:36 campaign:end ac_online=1 governor=performance epp=performance loadavg=5.80 4.38 4.12 battery=Full/100% temp=72C mem_available_mb=27122 swap_free_mb=8191 idle_pct_1s=98 top_cpu=claude:4.3`.
 
 ## Completeness
 
 - Repetitions per cell: 1. Problems found: 0.
-- Timing runs checked (recorded command, exit status 0, histogram, started without any wrapper): 30. Profiling runs checked (perf stat output present): 22.
-- Runs whose reported p50 / p99 / p99.9 were recomputed from the raw histogram: 22 (point reads: equal;
+- Timing runs checked (recorded command, exit status 0, histogram, started without any wrapper): 36. Profiling runs checked (perf stat output present): 28.
+- Runs whose reported p50 / p99 / p99.9 were recomputed from the raw histogram: 28 (point reads: equal;
   commits and joins, which the harness computes from the sorted samples: within the histogram bucket, width at most 1.6 %).
 - No duplicate run id and no malformed row in any raw CSV, unless listed below.

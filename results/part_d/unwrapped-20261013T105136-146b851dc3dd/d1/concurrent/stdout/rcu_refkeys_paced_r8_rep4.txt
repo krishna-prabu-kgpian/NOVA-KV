@@ -1,0 +1,14 @@
+# command: build/release/concurrent_bench_rcu --readers 8 --duration 5 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 4 --run-id rcu_refkeys_paced_r8_rep4 --git-sha 146b851dc3dd --scenario refkeys_paced --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/hist/rcu_refkeys_paced_r8_rep4.csv --cow-csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/cow.csv --retain-limit-mb 16000 --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+# wrapper: none
+# start: 2026-10-13T11:03:21.727
+rcu          scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=5.000
+  store lock object at 0x5fb63fadff40, 8 bytes (cache lines 0x5fb63fadff40..0x5fb63fadff40)
+  reads : ops=524450064 rps=104888835 hits=419662460 misses=104787604 corrupt=0
+  read latency ns: p50=50 p99=130 p999=180 max=158589 mean=51.2
+  writes: ok=49999 failed=0 rps=10000 p50=4992 p99=6848 max=43903 ns
+  rcu   : publications=55001 (writes incl. warm-up=55001) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23918 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=62.6 value_bytes=32.0
+  rcu reclamation: reclaimed=55001 backlog_at_end=0 backlog_max=3260 passes=64774 epoch_advances=44447/45703 attempts (1256 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=67345 cleaner_cpu=0.434s (7.9% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=10.7 MiB settled=10.7 MiB (versions + segments + chunks)
+# exit_status: 0
+# end: 2026-10-13T11:03:27.492

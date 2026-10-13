@@ -13,7 +13,7 @@ Core(s) per socket:                      8
 Socket(s):                               1
 Stepping:                                0
 Frequency boost:                         enabled
-CPU(s) scaling MHz:                      52%
+CPU(s) scaling MHz:                      73%
 CPU max MHz:                             5090.9102
 CPU min MHz:                             623.3770
 BogoMIPS:                                3992.07
@@ -64,7 +64,7 @@ CPU CORE SOCKET    MAXMHZ   MINMHZ
  15    7      0 3506.4939 623.3770
 
                total        used        free      shared  buff/cache   available
-Mem:           30856        3711       22872         244        4967       27144
+Mem:           30856        3691       22733         244        5126       27164
 Swap:           8191           0        8191
 
 Linux overmind-Yoga-Pro-7-14AKP10 7.0.0-28-generic #28-Ubuntu SMP PREEMPT_DYNAMIC Sun Jun 21 01:01:36 UTC 2026 x86_64 GNU/Linux

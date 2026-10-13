@@ -1,5 +1,5 @@
-captured_utc: 2026-10-13T05:15:34Z
-git_sha: 9062d838457ff9b521bee9b7a5fbc91a47bccabf
+captured_utc: 2026-10-13T06:19:59Z
+git_sha: 146b851dc3dddcaed89d03f9a178c2fcfc67fed5
 git_dirty: yes
 
 == kernel / OS ==
@@ -23,7 +23,7 @@ Core(s) per socket:                      8
 Socket(s):                               1
 Stepping:                                0
 Frequency boost:                         enabled
-CPU(s) scaling MHz:                      55%
+CPU(s) scaling MHz:                      54%
 CPU max MHz:                             5090.9102
 CPU min MHz:                             623.3770
 BogoMIPS:                                3992.07
@@ -64,7 +64,7 @@ NUMA node0 CPU(s):                       0-15
 
 == memory ==
                total        used        free      shared  buff/cache   available
-Mem:            30Gi       3.6Gi        22Gi       244Mi       4.9Gi        26Gi
+Mem:            30Gi       3.6Gi        22Gi       244Mi       5.0Gi        26Gi
 Swap:          8.0Gi          0B       8.0Gi
 
 == cpufreq governor ==
@@ -105,7 +105,7 @@ CPU CORE    MAXMHZ   MINMHZ ONLINE
 always [madvise] never
 
 == load average ==
-0.06 0.33 1.07 1/856 1370623
+0.75 2.78 3.70 1/839 1395501
 
 == compiler ==
 g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0

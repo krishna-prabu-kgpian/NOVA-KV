@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="1400" height="278" onload="init(evt)" viewBox="0 0 1400 278" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg version="1.1" width="1400" height="294" onload="init(evt)" viewBox="0 0 1400 294" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
 <!-- NOTES:  -->
 <defs>
@@ -422,833 +422,881 @@
 	}
 ]]>
 </script>
-<rect x="0.0" y="0" width="1400.0" height="278.0" fill="url(#background)"  />
+<rect x="0.0" y="0" width="1400.0" height="294.0" fill="url(#background)"  />
 <text id="title" x="700.00" y="24" >NOVA-KV Part D: index-nested-loop join, 8 joiners + writer (on-CPU cycles)</text>
-<text id="details" x="10.00" y="261" > </text>
+<text id="details" x="10.00" y="277" > </text>
 <text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
 <text id="search" x="1290.00" y="24" >Search</text>
 <text id="ignorecase" x="1374.00" y="24" >ic</text>
-<text id="matched" x="1290.00" y="261" > </text>
+<text id="matched" x="1290.00" y="277" > </text>
 <g id="frames">
 <g >
-<title>[kernel] (440,352,831 cycles, 0.38%)</title><rect x="1123.0" y="85" width="5.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1126.02" y="95.5" ></text>
+<title>[kernel] (11,514,502 cycles, 0.01%)</title><rect x="1388.8" y="37" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1391.84" y="47.5" ></text>
 </g>
 <g >
-<title>_mid_memalign (455,648,544 cycles, 0.39%)</title><rect x="1375.8" y="85" width="5.3" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
-<text  x="1378.75" y="95.5" ></text>
-</g>
-<g >
-<title>nova::SegmentBuilder::finish (10,335,617 cycles, 0.01%)</title><rect x="1389.3" y="85" width="0.1" height="15.0" fill="rgb(244,179,42)" rx="2" ry="2" />
-<text  x="1392.29" y="95.5" ></text>
-</g>
-<g >
-<title>_int_free_merge_chunk (21,714,730 cycles, 0.02%)</title><rect x="1377.2" y="53" width="0.2" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
-<text  x="1380.19" y="63.5" ></text>
-</g>
-<g >
-<title>nova::index_hash (9,373,931,476 cycles, 8.00%)</title><rect x="805.9" y="117" width="110.4" height="15.0" fill="rgb(208,15,3)" rx="2" ry="2" />
-<text  x="808.91" y="127.5" >nova::index_h..</text>
-</g>
-<g >
-<title>__lll_lock_wake_private (9,083,133 cycles, 0.01%)</title><rect x="1004.0" y="101" width="0.1" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1006.97" y="111.5" ></text>
-</g>
-<g >
-<title>__memmove_avx512_unaligned_erms (70,508,032 cycles, 0.06%)</title><rect x="1387.7" y="85" width="0.8" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="1390.67" y="95.5" ></text>
-</g>
-<g >
-<title>nova::VersionedStore::pin_of (2,063,545,554 cycles, 1.76%)</title><rect x="1199.3" y="149" width="24.3" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
-<text  x="1202.26" y="159.5" >n..</text>
-</g>
-<g >
-<title>[kernel] (18,084,740 cycles, 0.02%)</title><rect x="971.8" y="149" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="974.77" y="159.5" ></text>
-</g>
-<g >
-<title>_start (338,679,042 cycles, 0.29%)</title><rect x="1386.0" y="197" width="4.0" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
-<text  x="1389.01" y="207.5" ></text>
-</g>
-<g >
-<title>cfree@GLIBC_2.2.5 (60,960,539 cycles, 0.05%)</title><rect x="1136.4" y="101" width="0.7" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
-<text  x="1139.42" y="111.5" ></text>
-</g>
-<g >
-<title>_int_free_merge_chunk (124,848,437 cycles, 0.11%)</title><rect x="1149.0" y="69" width="1.4" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
-<text  x="1151.98" y="79.5" ></text>
-</g>
-<g >
-<title>Transaction::commit (1,180,736,034 cycles, 1.01%)</title><rect x="1272.6" y="133" width="13.9" height="15.0" fill="rgb(241,166,39)" rx="2" ry="2" />
-<text  x="1275.59" y="143.5" ></text>
-</g>
-<g >
-<title>__printf_buffer_write (16,558,198 cycles, 0.01%)</title><rect x="1288.3" y="85" width="0.2" height="15.0" fill="rgb(220,73,17)" rx="2" ry="2" />
-<text  x="1291.28" y="95.5" ></text>
-</g>
-<g >
-<title>start_thread (116,797,308,985 cycles, 99.69%)</title><rect x="10.3" y="181" width="1375.7" height="15.0" fill="rgb(212,34,8)" rx="2" ry="2" />
-<text  x="13.26" y="191.5" >start_thread</text>
-</g>
-<g >
-<title>memcpy@plt (68,516,450 cycles, 0.06%)</title><rect x="255.1" y="133" width="0.8" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
-<text  x="258.12" y="143.5" ></text>
-</g>
-<g >
-<title>_int_free_maybe_trim (10,140,111 cycles, 0.01%)</title><rect x="1285.9" y="69" width="0.2" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1288.95" y="79.5" ></text>
-</g>
-<g >
-<title>_int_free_maybe_trim (23,995,855 cycles, 0.02%)</title><rect x="1285.4" y="53" width="0.3" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1288.37" y="63.5" ></text>
-</g>
-<g >
-<title>nova::VersionedStore::index_read (1,189,863,390 cycles, 1.02%)</title><rect x="916.3" y="133" width="14.0" height="15.0" fill="rgb(227,103,24)" rx="2" ry="2" />
-<text  x="919.32" y="143.5" ></text>
-</g>
-<g >
-<title>__libc_malloc2 (57,893,254 cycles, 0.05%)</title><rect x="1282.9" y="69" width="0.7" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1285.94" y="79.5" ></text>
-</g>
-<g >
-<title>_itoa_word (16,378,329 cycles, 0.01%)</title><rect x="1288.7" y="101" width="0.1" height="15.0" fill="rgb(246,191,45)" rx="2" ry="2" />
-<text  x="1291.65" y="111.5" ></text>
-</g>
-<g >
-<title>__nanosleep (50,480,597 cycles, 0.04%)</title><rect x="996.2" y="133" width="0.6" height="15.0" fill="rgb(252,217,52)" rx="2" ry="2" />
-<text  x="999.17" y="143.5" ></text>
-</g>
-<g >
-<title>nova::VersionedStore::commit_locked (7,517,289,191 cycles, 6.42%)</title><rect x="1296.7" y="117" width="88.5" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1299.65" y="127.5" >nova::Vers..</text>
-</g>
-<g >
-<title>__memset_avx512_unaligned (1,021,750,136 cycles, 0.87%)</title><rect x="972.2" y="149" width="12.0" height="15.0" fill="rgb(214,41,9)" rx="2" ry="2" />
-<text  x="975.18" y="159.5" ></text>
-</g>
-<g >
-<title>nova::alloc_bytes (16,495,425 cycles, 0.01%)</title><rect x="1286.1" y="85" width="0.2" height="15.0" fill="rgb(246,188,45)" rx="2" ry="2" />
-<text  x="1289.11" y="95.5" ></text>
-</g>
-<g >
-<title>[kernel] (9,083,133 cycles, 0.01%)</title><rect x="1004.0" y="85" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1006.97" y="95.5" ></text>
-</g>
-<g >
-<title>__memmove_avx512_unaligned_erms (2,252,237,997 cycles, 1.92%)</title><rect x="1345.4" y="101" width="26.5" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="1348.37" y="111.5" >_..</text>
-</g>
-<g >
-<title>nova::VersionedStore::drain (28,835,346 cycles, 0.02%)</title><rect x="1386.0" y="117" width="0.4" height="15.0" fill="rgb(217,56,13)" rx="2" ry="2" />
-<text  x="1389.01" y="127.5" ></text>
-</g>
-<g >
-<title>[kernel] (10,731,371 cycles, 0.01%)</title><rect x="1389.6" y="53" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1392.57" y="63.5" ></text>
-</g>
-<g >
-<title>[kernel] (20,329,860 cycles, 0.02%)</title><rect x="1122.4" y="101" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1125.35" y="111.5" ></text>
-</g>
-<g >
-<title>__mprotect (38,947,981 cycles, 0.03%)</title><rect x="1376.7" y="53" width="0.4" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
-<text  x="1379.67" y="63.5" ></text>
-</g>
-<g >
-<title>[kernel] (372,412,347 cycles, 0.32%)</title><rect x="1142.7" y="69" width="4.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1145.66" y="79.5" ></text>
-</g>
-<g >
-<title>__vsnprintf_internal (163,357,224 cycles, 0.14%)</title><rect x="1286.9" y="117" width="1.9" height="15.0" fill="rgb(237,150,35)" rx="2" ry="2" />
-<text  x="1289.92" y="127.5" ></text>
-</g>
-<g >
-<title>_int_malloc (305,156,853 cycles, 0.26%)</title><rect x="1377.4" y="53" width="3.6" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1380.45" y="63.5" ></text>
-</g>
-<g >
-<title>__libc_malloc2 (14,959,314 cycles, 0.01%)</title><rect x="1274.0" y="85" width="0.2" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1276.99" y="95.5" ></text>
-</g>
-<g >
-<title>nova::SegmentBuilder::prepare_finish (184,766,361 cycles, 0.16%)</title><rect x="1382.7" y="101" width="2.2" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
-<text  x="1385.69" y="111.5" ></text>
-</g>
-<g >
-<title>[unknown] (22,323,093 cycles, 0.02%)</title><rect x="10.0" y="197" width="0.3" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<title>[unknown] (18,701,093 cycles, 0.02%)</title><rect x="10.0" y="197" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
 <text  x="13.00" y="207.5" ></text>
 </g>
 <g >
-<title>nova::index_hash (11,727,595 cycles, 0.01%)</title><rect x="1286.3" y="101" width="0.2" height="15.0" fill="rgb(208,15,3)" rx="2" ry="2" />
-<text  x="1289.34" y="111.5" ></text>
+<title>_int_free_maybe_trim (19,438,204 cycles, 0.02%)</title><rect x="1002.2" y="117" width="0.3" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1005.24" y="127.5" ></text>
 </g>
 <g >
-<title>[kernel] (11,376,532 cycles, 0.01%)</title><rect x="1004.1" y="85" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1007.13" y="95.5" ></text>
+<title>[kernel] (24,723,743 cycles, 0.02%)</title><rect x="1273.8" y="69" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1276.79" y="79.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::publish_locked (18,255,936 cycles, 0.02%)</title><rect x="1385.2" y="117" width="0.2" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1388.20" y="127.5" ></text>
+<title>nova::VersionedStore::epoch_pass (80,455,092 cycles, 0.07%)</title><rect x="1385.3" y="101" width="0.9" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="1388.28" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (28,704,749 cycles, 0.02%)</title><rect x="1275.0" y="69" width="0.3" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1277.97" y="79.5" ></text>
+<title>Transaction::commit (286,367,456 cycles, 0.25%)</title><rect x="1386.4" y="149" width="3.4" height="15.0" fill="rgb(241,166,39)" rx="2" ry="2" />
+<text  x="1389.41" y="159.5" ></text>
 </g>
 <g >
-<title>[kernel] (11,300,171 cycles, 0.01%)</title><rect x="10.0" y="149" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="13.02" y="159.5" ></text>
+<title>__libc_start_main@@GLIBC_2.34 (408,109,538 cycles, 0.35%)</title><rect x="1385.2" y="197" width="4.8" height="15.0" fill="rgb(229,113,27)" rx="2" ry="2" />
+<text  x="1388.15" y="207.5" ></text>
 </g>
 <g >
-<title>_int_free_maybe_trim (13,986,081 cycles, 0.01%)</title><rect x="1136.2" y="101" width="0.2" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1139.22" y="111.5" ></text>
+<title>nova::SegmentBuilder::finish (31,307,575 cycles, 0.03%)</title><rect x="1381.4" y="117" width="0.4" height="15.0" fill="rgb(244,179,42)" rx="2" ry="2" />
+<text  x="1384.38" y="127.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::get_pinned (4,029,137,802 cycles, 3.44%)</title><rect x="1150.6" y="149" width="47.5" height="15.0" fill="rgb(212,36,8)" rx="2" ry="2" />
-<text  x="1153.62" y="159.5" >nova..</text>
+<title>unlink_chunk.isra.0 (35,128,691 cycles, 0.03%)</title><rect x="1002.9" y="101" width="0.4" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1005.87" y="111.5" ></text>
 </g>
 <g >
-<title>join_bench (117,160,706,477 cycles, 100.00%)</title><rect x="10.0" y="213" width="1380.0" height="15.0" fill="rgb(251,214,51)" rx="2" ry="2" />
-<text  x="13.00" y="223.5" >join_bench</text>
+<title>__lll_lock_wait_private (14,805,404 cycles, 0.01%)</title><rect x="1282.5" y="85" width="0.2" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1285.54" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (101,609,181 cycles, 0.09%)</title><rect x="253.9" y="117" width="1.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="256.92" y="127.5" ></text>
+<title>nova::HashSegment::prepare_upsert (9,301,733 cycles, 0.01%)</title><rect x="1389.0" y="101" width="0.1" height="15.0" fill="rgb(245,188,45)" rx="2" ry="2" />
+<text  x="1391.98" y="111.5" ></text>
 </g>
 <g >
-<title>__memmove_avx512_unaligned_erms (26,151,523 cycles, 0.02%)</title><rect x="1274.3" y="85" width="0.3" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="1277.31" y="95.5" ></text>
+<title>[kernel] (34,659,777 cycles, 0.03%)</title><rect x="1283.3" y="69" width="0.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1286.28" y="79.5" ></text>
 </g>
 <g >
-<title>cfree@GLIBC_2.2.5 (12,699,887 cycles, 0.01%)</title><rect x="996.8" y="133" width="0.1" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
-<text  x="999.76" y="143.5" ></text>
+<title>_int_malloc (19,363,995 cycles, 0.02%)</title><rect x="1388.7" y="53" width="0.3" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1391.75" y="63.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::run_job (6,972,079,915 cycles, 5.95%)</title><rect x="1068.4" y="117" width="82.2" height="15.0" fill="rgb(213,40,9)" rx="2" ry="2" />
-<text  x="1071.45" y="127.5" >nova::Ver..</text>
+<title>[kernel] (65,705,117 cycles, 0.06%)</title><rect x="1274.1" y="69" width="0.8" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1277.10" y="79.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (110,265,580 cycles, 0.09%)</title><rect x="1342.1" y="101" width="1.3" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1345.09" y="111.5" ></text>
+<title>nova::index_hash (10,122,748 cycles, 0.01%)</title><rect x="1285.0" y="117" width="0.1" height="15.0" fill="rgb(208,15,3)" rx="2" ry="2" />
+<text  x="1288.01" y="127.5" ></text>
 </g>
 <g >
-<title>unlink_chunk.isra.0 (59,922,955 cycles, 0.05%)</title><rect x="1135.5" y="69" width="0.7" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
-<text  x="1138.46" y="79.5" ></text>
+<title>[kernel] (99,816,171 cycles, 0.09%)</title><rect x="1374.9" y="53" width="1.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1377.95" y="63.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (31,831,237 cycles, 0.03%)</title><rect x="1284.6" y="69" width="0.3" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1287.56" y="79.5" ></text>
+<title>__lll_lock_wake_private (365,682,519 cycles, 0.31%)</title><rect x="1118.8" y="117" width="4.3" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1121.80" y="127.5" ></text>
 </g>
 <g >
-<title>nova::HashSegment::prepare_upsert (10,112,950 cycles, 0.01%)</title><rect x="1279.6" y="85" width="0.1" height="15.0" fill="rgb(245,188,45)" rx="2" ry="2" />
-<text  x="1282.55" y="95.5" ></text>
+<title>nova::SegmentBuilder::commit_put (9,818,918 cycles, 0.01%)</title><rect x="1281.0" y="101" width="0.1" height="15.0" fill="rgb(250,207,49)" rx="2" ry="2" />
+<text  x="1283.96" y="111.5" ></text>
 </g>
 <g >
-<title>[kernel] (110,265,580 cycles, 0.09%)</title><rect x="1342.1" y="85" width="1.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1345.09" y="95.5" ></text>
+<title>unlink_chunk.isra.0 (8,587,949 cycles, 0.01%)</title><rect x="1127.9" y="101" width="0.1" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1130.91" y="111.5" ></text>
 </g>
 <g >
-<title>unlink_chunk.isra.0 (46,798,945 cycles, 0.04%)</title><rect x="1004.9" y="85" width="0.6" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
-<text  x="1007.93" y="95.5" ></text>
+<title>KVStore::acquire_snapshot (10,630,253 cycles, 0.01%)</title><rect x="82.0" y="165" width="0.1" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="84.97" y="175.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (458,924,805 cycles, 0.39%)</title><rect x="1137.2" y="85" width="5.4" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1140.17" y="95.5" ></text>
+<title>__printf_buffer_write (18,117,880 cycles, 0.02%)</title><rect x="1286.8" y="101" width="0.2" height="15.0" fill="rgb(220,73,17)" rx="2" ry="2" />
+<text  x="1289.78" y="111.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::~SegmentBuilder (14,222,798 cycles, 0.01%)</title><rect x="1389.7" y="85" width="0.2" height="15.0" fill="rgb(207,11,2)" rx="2" ry="2" />
-<text  x="1392.69" y="95.5" ></text>
+<title>[kernel] (256,161,464 cycles, 0.22%)</title><rect x="997.0" y="117" width="3.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1000.01" y="127.5" ></text>
 </g>
 <g >
-<title>_int_free_maybe_trim (18,196,757 cycles, 0.02%)</title><rect x="1134.5" y="85" width="0.2" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1137.45" y="95.5" ></text>
+<title>[kernel] (69,415,030 cycles, 0.06%)</title><rect x="260.4" y="133" width="0.8" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="263.37" y="143.5" ></text>
 </g>
 <g >
-<title>_int_free_maybe_trim (14,691,347 cycles, 0.01%)</title><rect x="1148.8" y="69" width="0.2" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1151.80" y="79.5" ></text>
+<title>nova::SegmentBuilder::begin (11,503,790 cycles, 0.01%)</title><rect x="1380.7" y="117" width="0.2" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
+<text  x="1383.73" y="127.5" ></text>
 </g>
 <g >
-<title>_int_free_chunk (292,456,452 cycles, 0.25%)</title><rect x="1147.1" y="85" width="3.4" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1150.05" y="95.5" ></text>
+<title>__vsnprintf_internal (157,690,984 cycles, 0.14%)</title><rect x="1285.4" y="133" width="1.9" height="15.0" fill="rgb(237,150,35)" rx="2" ry="2" />
+<text  x="1288.43" y="143.5" ></text>
 </g>
 <g >
-<title>__snprintf_chk (179,730,818 cycles, 0.15%)</title><rect x="1286.7" y="133" width="2.1" height="15.0" fill="rgb(209,20,4)" rx="2" ry="2" />
-<text  x="1289.73" y="143.5" ></text>
+<title>_int_free_chunk (285,801,588 cycles, 0.25%)</title><rect x="1000.0" y="133" width="3.4" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1003.05" y="143.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (66,868,791 cycles, 0.06%)</title><rect x="1281.7" y="69" width="0.7" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1284.66" y="79.5" ></text>
+<title>clock_nanosleep@GLIBC_2.2.5 (47,471,734 cycles, 0.04%)</title><rect x="993.4" y="133" width="0.6" height="15.0" fill="rgb(240,165,39)" rx="2" ry="2" />
+<text  x="996.39" y="143.5" ></text>
 </g>
 <g >
-<title>[kernel] (52,276,439 cycles, 0.04%)</title><rect x="1380.3" y="37" width="0.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1383.35" y="47.5" ></text>
+<title>nova::SegmentBuilder::~SegmentBuilder (15,527,139 cycles, 0.01%)</title><rect x="1389.6" y="101" width="0.2" height="15.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="1392.61" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (167,927,160 cycles, 0.14%)</title><rect x="1343.4" y="101" width="2.0" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1346.39" y="111.5" ></text>
+<title>[kernel] (175,427,643 cycles, 0.15%)</title><rect x="1371.9" y="85" width="2.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1374.85" y="95.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (286,552,864 cycles, 0.24%)</title><rect x="1128.2" y="101" width="3.4" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1131.21" y="111.5" ></text>
+<title>[kernel] (16,915,708 cycles, 0.01%)</title><rect x="10.0" y="165" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="13.00" y="175.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (209,029,495 cycles, 0.18%)</title><rect x="999.2" y="117" width="2.5" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1002.22" y="127.5" ></text>
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;(anonymous namespace)::experiment_join (9,600,409,792 cycles, 8.26%)</title><rect x="1271.0" y="165" width="114.1" height="15.0" fill="rgb(231,122,29)" rx="2" ry="2" />
+<text  x="1274.02" y="175.5" >std::thread::_..</text>
 </g>
 <g >
-<title>_mid_memalign (16,829,229 cycles, 0.01%)</title><rect x="1388.7" y="69" width="0.2" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
-<text  x="1391.73" y="79.5" ></text>
+<title>nova::SegmentBuilder::~SegmentBuilder (154,082,986 cycles, 0.13%)</title><rect x="1283.0" y="101" width="1.8" height="15.0" fill="rgb(207,11,2)" rx="2" ry="2" />
+<text  x="1286.01" y="111.5" ></text>
 </g>
 <g >
-<title>__memset_avx512_unaligned_erms (738,375,165 cycles, 0.63%)</title><rect x="984.2" y="149" width="8.7" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
-<text  x="987.22" y="159.5" ></text>
+<title>cfree@GLIBC_2.2.5 (53,839,038 cycles, 0.05%)</title><rect x="1128.1" y="117" width="0.6" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
+<text  x="1131.09" y="127.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::begin (220,515,860 cycles, 0.19%)</title><rect x="1279.9" y="85" width="2.6" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
-<text  x="1282.89" y="95.5" ></text>
+<title>pthread_mutex_unlock@@GLIBC_2.2.5 (13,028,758 cycles, 0.01%)</title><rect x="1384.9" y="149" width="0.2" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
+<text  x="1387.92" y="159.5" ></text>
 </g>
 <g >
-<title>nova::StagedWrites::put (13,310,340 cycles, 0.01%)</title><rect x="1286.6" y="117" width="0.1" height="15.0" fill="rgb(222,79,19)" rx="2" ry="2" />
-<text  x="1289.57" y="127.5" ></text>
+<title>[kernel] (110,753,613 cycles, 0.10%)</title><rect x="1341.0" y="101" width="1.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1344.01" y="111.5" ></text>
 </g>
 <g >
-<title>[kernel] (11,275,981 cycles, 0.01%)</title><rect x="992.8" y="133" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="995.78" y="143.5" ></text>
+<title>__lll_lock_wait_private (456,404,357 cycles, 0.39%)</title><rect x="1128.8" y="101" width="5.4" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1131.75" y="111.5" ></text>
 </g>
 <g >
-<title>__memmove_avx512_unaligned_erms (12,793,903 cycles, 0.01%)</title><rect x="972.0" y="149" width="0.2" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="975.03" y="159.5" ></text>
+<title>_int_free_merge_chunk (20,020,464 cycles, 0.02%)</title><rect x="1284.3" y="69" width="0.3" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1287.35" y="79.5" ></text>
 </g>
 <g >
-<title>[kernel] (38,947,981 cycles, 0.03%)</title><rect x="1376.7" y="37" width="0.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1379.67" y="47.5" ></text>
+<title>nova::index_hash (9,509,504,097 cycles, 8.19%)</title><rect x="810.3" y="133" width="113.0" height="15.0" fill="rgb(208,15,3)" rx="2" ry="2" />
+<text  x="813.32" y="143.5" >nova::index_h..</text>
 </g>
 <g >
-<title>[kernel] (65,210,278 cycles, 0.06%)</title><rect x="1281.7" y="53" width="0.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1284.68" y="63.5" ></text>
+<title>[kernel] (12,834,303 cycles, 0.01%)</title><rect x="150.6" y="149" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="153.58" y="159.5" ></text>
 </g>
 <g >
-<title>__libc_start_call_main (338,679,042 cycles, 0.29%)</title><rect x="1386.0" y="165" width="4.0" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
-<text  x="1389.01" y="175.5" ></text>
+<title>[kernel] (10,034,064 cycles, 0.01%)</title><rect x="973.2" y="165" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="976.24" y="175.5" ></text>
 </g>
 <g >
-<title>nova::index_find (1,907,725,220 cycles, 1.63%)</title><rect x="783.4" y="117" width="22.5" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
-<text  x="786.44" y="127.5" >n..</text>
+<title>__lll_lock_wake_private (258,412,399 cycles, 0.22%)</title><rect x="997.0" y="133" width="3.0" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="999.98" y="143.5" ></text>
 </g>
 <g >
-<title>__memset_avx512_unaligned_erms (13,245,604 cycles, 0.01%)</title><rect x="1288.1" y="85" width="0.1" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
-<text  x="1291.09" y="95.5" ></text>
+<title>__memset_avx512_unaligned (819,787,296 cycles, 0.71%)</title><rect x="973.6" y="165" width="9.7" height="15.0" fill="rgb(214,41,9)" rx="2" ry="2" />
+<text  x="976.58" y="175.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::reclaim_pass (28,835,346 cycles, 0.02%)</title><rect x="1386.0" y="101" width="0.4" height="15.0" fill="rgb(230,117,28)" rx="2" ry="2" />
-<text  x="1389.01" y="111.5" ></text>
+<title>KVStore::keys (3,686,950,716 cycles, 3.17%)</title><rect x="929.4" y="165" width="43.8" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
+<text  x="932.42" y="175.5" >KVSt..</text>
 </g>
 <g >
-<title>nova::destroy_segment (1,137,465,961 cycles, 0.97%)</title><rect x="1137.2" y="101" width="13.4" height="15.0" fill="rgb(230,119,28)" rx="2" ry="2" />
-<text  x="1140.16" y="111.5" ></text>
+<title>nova::VersionedStore::index_get_pinned (24,129,930,384 cycles, 20.77%)</title><rect x="636.6" y="149" width="286.7" height="15.0" fill="rgb(236,146,34)" rx="2" ry="2" />
+<text  x="639.63" y="159.5" >nova::VersionedStore::index_get_pinned</text>
 </g>
 <g >
-<title>__lll_lock_wake_private (84,829,688 cycles, 0.07%)</title><rect x="1275.3" y="69" width="1.0" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1278.30" y="79.5" ></text>
+<title>_int_free_merge_chunk (15,099,816 cycles, 0.01%)</title><rect x="1376.2" y="69" width="0.2" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1379.23" y="79.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::pin_add (29,950,474 cycles, 0.03%)</title><rect x="1381.9" y="85" width="0.3" height="15.0" fill="rgb(240,161,38)" rx="2" ry="2" />
-<text  x="1384.86" y="95.5" ></text>
+<title>nova::HashSegment::clone_from (873,557,033 cycles, 0.75%)</title><rect x="1370.0" y="117" width="10.4" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
+<text  x="1373.04" y="127.5" ></text>
 </g>
 <g >
-<title>[kernel] (26,805,237 cycles, 0.02%)</title><rect x="1068.1" y="101" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1071.13" y="111.5" ></text>
+<title>_int_malloc (33,190,347 cycles, 0.03%)</title><rect x="1278.9" y="69" width="0.4" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1281.93" y="79.5" ></text>
 </g>
 <g >
-<title>nova::HashSegment::clone_from (391,269,745 cycles, 0.33%)</title><rect x="1274.9" y="85" width="4.6" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
-<text  x="1277.93" y="95.5" ></text>
+<title>_int_malloc (186,365,577 cycles, 0.16%)</title><rect x="1338.6" y="101" width="2.3" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1341.64" y="111.5" ></text>
 </g>
 <g >
-<title>clock_nanosleep@GLIBC_2.2.5 (48,066,156 cycles, 0.04%)</title><rect x="996.2" y="117" width="0.6" height="15.0" fill="rgb(240,165,39)" rx="2" ry="2" />
-<text  x="999.20" y="127.5" ></text>
+<title>nova::SegmentBuilder::prepare_finish (211,443,092 cycles, 0.18%)</title><rect x="1381.8" y="117" width="2.5" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
+<text  x="1384.77" y="127.5" ></text>
 </g>
 <g >
-<title>_int_free_maybe_trim (19,931,510 cycles, 0.02%)</title><rect x="1004.3" y="101" width="0.2" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1007.27" y="111.5" ></text>
+<title>unlink_chunk.isra.0 (16,857,733 cycles, 0.01%)</title><rect x="1340.7" y="85" width="0.2" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1343.65" y="95.5" ></text>
 </g>
 <g >
-<title>_int_memalign (12,861,143 cycles, 0.01%)</title><rect x="1388.8" y="53" width="0.1" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
-<text  x="1391.78" y="63.5" ></text>
+<title>nova::VersionedStore::read (4,206,414,528 cycles, 3.62%)</title><rect x="1221.0" y="165" width="50.0" height="15.0" fill="rgb(253,224,53)" rx="2" ry="2" />
+<text  x="1224.03" y="175.5" >nova:..</text>
 </g>
 <g >
-<title>nova::PinnedArena::add_ref (87,918,933 cycles, 0.08%)</title><rect x="1386.5" y="101" width="1.0" height="15.0" fill="rgb(207,12,2)" rx="2" ry="2" />
-<text  x="1389.51" y="111.5" ></text>
+<title>[kernel] (116,021,820 cycles, 0.10%)</title><rect x="1370.4" y="85" width="1.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1373.37" y="95.5" ></text>
 </g>
 <g >
-<title>__libc_malloc2 (13,187,314 cycles, 0.01%)</title><rect x="1389.4" y="69" width="0.2" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1392.41" y="79.5" ></text>
+<title>__libc_malloc2 (95,809,896 cycles, 0.08%)</title><rect x="1382.1" y="101" width="1.1" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1385.10" y="111.5" ></text>
 </g>
 <g >
-<title>_int_malloc (35,074,097 cycles, 0.03%)</title><rect x="1280.7" y="53" width="0.4" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1283.71" y="63.5" ></text>
+<title>nova::SegmentBuilder::pin_add (19,681,470 cycles, 0.02%)</title><rect x="1381.1" y="101" width="0.3" height="15.0" fill="rgb(240,161,38)" rx="2" ry="2" />
+<text  x="1384.15" y="111.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::~SegmentBuilder (170,992,078 cycles, 0.15%)</title><rect x="1284.1" y="85" width="2.0" height="15.0" fill="rgb(207,11,2)" rx="2" ry="2" />
-<text  x="1287.09" y="95.5" ></text>
+<title>nova::VersionedStore::validate (11,230,068 cycles, 0.01%)</title><rect x="1386.3" y="133" width="0.1" height="15.0" fill="rgb(226,96,23)" rx="2" ry="2" />
+<text  x="1389.28" y="143.5" ></text>
 </g>
 <g >
-<title>[kernel] (14,040,194 cycles, 0.01%)</title><rect x="146.8" y="133" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="149.84" y="143.5" ></text>
+<title>__lll_lock_wake_private (153,328,829 cycles, 0.13%)</title><rect x="1342.3" y="117" width="1.8" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1345.33" y="127.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::commit (286,058,713 cycles, 0.24%)</title><rect x="1386.5" y="117" width="3.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
-<text  x="1389.49" y="127.5" ></text>
+<title>_int_malloc (65,514,012 cycles, 0.06%)</title><rect x="1281.7" y="69" width="0.8" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1284.74" y="79.5" ></text>
 </g>
 <g >
-<title>NovaKvInspector::validate (12,111,606 cycles, 0.01%)</title><rect x="1386.4" y="133" width="0.1" height="15.0" fill="rgb(225,92,22)" rx="2" ry="2" />
-<text  x="1389.35" y="143.5" ></text>
+<title>nova::VersionedStore::read (9,695,990 cycles, 0.01%)</title><rect x="973.4" y="149" width="0.1" height="15.0" fill="rgb(253,224,53)" rx="2" ry="2" />
+<text  x="976.36" y="159.5" ></text>
 </g>
 <g >
-<title>_int_malloc (60,057,386 cycles, 0.05%)</title><rect x="1383.0" y="69" width="0.7" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1386.02" y="79.5" ></text>
+<title>_int_free_maybe_trim (10,164,020 cycles, 0.01%)</title><rect x="1275.9" y="53" width="0.1" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1278.90" y="63.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::commit_locked (1,126,910,380 cycles, 0.96%)</title><rect x="1273.0" y="101" width="13.3" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1276.03" y="111.5" ></text>
+<title>_int_free_chunk (266,379,692 cycles, 0.23%)</title><rect x="1138.4" y="101" width="3.1" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1141.38" y="111.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::run_job (22,418,979 cycles, 0.02%)</title><rect x="1386.1" y="69" width="0.3" height="15.0" fill="rgb(213,40,9)" rx="2" ry="2" />
-<text  x="1389.09" y="79.5" ></text>
+<title>_int_malloc (151,719,764 cycles, 0.13%)</title><rect x="1276.1" y="53" width="1.8" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1279.12" y="63.5" ></text>
 </g>
 <g >
-<title>_int_free_maybe_trim (9,968,355 cycles, 0.01%)</title><rect x="1277.4" y="37" width="0.1" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
-<text  x="1280.40" y="47.5" ></text>
+<title>Transaction::commit (1,174,559,103 cycles, 1.01%)</title><rect x="1271.2" y="149" width="13.9" height="15.0" fill="rgb(241,166,39)" rx="2" ry="2" />
+<text  x="1274.18" y="159.5" ></text>
 </g>
 <g >
-<title>[kernel] (164,598,913 cycles, 0.14%)</title><rect x="1343.4" y="85" width="2.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1346.43" y="95.5" ></text>
+<title>[kernel] (49,349,324 cycles, 0.04%)</title><rect x="1383.7" y="85" width="0.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1386.70" y="95.5" ></text>
 </g>
 <g >
-<title>_int_free_merge_chunk (126,836,300 cycles, 0.11%)</title><rect x="1134.7" y="85" width="1.5" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
-<text  x="1137.67" y="95.5" ></text>
+<title>memset@plt (199,293,783 cycles, 0.17%)</title><rect x="990.9" y="165" width="2.4" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="993.91" y="175.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (18,277,422 cycles, 0.02%)</title><rect x="1283.6" y="69" width="0.2" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1286.62" y="79.5" ></text>
+<title>__lll_lock_wake_private (49,349,324 cycles, 0.04%)</title><rect x="1383.7" y="101" width="0.6" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1386.70" y="111.5" ></text>
 </g>
 <g >
-<title>__memmove_avx512_unaligned_erms (9,178,521,012 cycles, 7.83%)</title><rect x="147.0" y="133" width="108.1" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="150.01" y="143.5" >__memmove_avx..</text>
+<title>[unknown] (9,695,990 cycles, 0.01%)</title><rect x="973.4" y="165" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="976.36" y="175.5" ></text>
 </g>
 <g >
-<title>_int_memalign (209,724,897 cycles, 0.18%)</title><rect x="1277.0" y="53" width="2.5" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
-<text  x="1280.05" y="63.5" ></text>
+<title>_int_free_maybe_trim (41,772,849 cycles, 0.04%)</title><rect x="1283.9" y="69" width="0.4" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1286.85" y="79.5" ></text>
 </g>
 <g >
-<title>[kernel] (15,009,271 cycles, 0.01%)</title><rect x="1283.7" y="53" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1286.66" y="63.5" ></text>
+<title>unlink_chunk.isra.0 (13,006,790 cycles, 0.01%)</title><rect x="1003.3" y="117" width="0.1" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1006.29" y="127.5" ></text>
 </g>
 <g >
-<title>[kernel] (26,842,302 cycles, 0.02%)</title><rect x="1275.0" y="53" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1277.99" y="63.5" ></text>
+<title>[kernel] (14,806,694 cycles, 0.01%)</title><rect x="1111.7" y="117" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1114.68" y="127.5" ></text>
 </g>
 <g >
-<title>pthread_mutex_unlock@@GLIBC_2.2.5 (28,630,303 cycles, 0.02%)</title><rect x="1385.5" y="117" width="0.3" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
-<text  x="1388.49" y="127.5" ></text>
+<title>nova::VersionedStore::commit (1,168,042,004 cycles, 1.01%)</title><rect x="1271.3" y="133" width="13.8" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1274.26" y="143.5" ></text>
 </g>
 <g >
-<title>[kernel] (169,830,041 cycles, 0.14%)</title><rect x="997.2" y="101" width="2.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1000.22" y="111.5" ></text>
+<title>[kernel] (62,821,729 cycles, 0.05%)</title><rect x="610.3" y="133" width="0.8" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="613.31" y="143.5" ></text>
 </g>
 <g >
-<title>unlink_chunk.isra.0 (11,675,080 cycles, 0.01%)</title><rect x="1341.9" y="69" width="0.1" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
-<text  x="1344.90" y="79.5" ></text>
+<title>cfree@GLIBC_2.2.5 (14,409,060 cycles, 0.01%)</title><rect x="994.0" y="149" width="0.1" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
+<text  x="996.97" y="159.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::commit_put (15,056,246 cycles, 0.01%)</title><rect x="1282.5" y="85" width="0.2" height="15.0" fill="rgb(250,207,49)" rx="2" ry="2" />
-<text  x="1285.49" y="95.5" ></text>
+<title>[kernel] (91,728,028 cycles, 0.08%)</title><rect x="1279.9" y="69" width="1.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1282.85" y="79.5" ></text>
 </g>
 <g >
-<title>[kernel] (9,735,828 cycles, 0.01%)</title><rect x="1339.3" y="101" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1342.27" y="111.5" ></text>
+<title>nova::VersionedStore::commit_locked (7,513,180,063 cycles, 6.47%)</title><rect x="1295.2" y="133" width="89.3" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1298.21" y="143.5" >nova::Vers..</text>
 </g>
 <g >
-<title>__printf_buffer (127,404,011 cycles, 0.11%)</title><rect x="1287.0" y="101" width="1.5" height="15.0" fill="rgb(219,68,16)" rx="2" ry="2" />
-<text  x="1290.02" y="111.5" ></text>
+<title>[kernel] (359,803,906 cycles, 0.31%)</title><rect x="1365.3" y="101" width="4.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1368.31" y="111.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::put (8,225,067,734 cycles, 7.02%)</title><rect x="1288.9" y="133" width="96.9" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
-<text  x="1291.95" y="143.5" >nova::Versi..</text>
+<title>nova::VersionedStore::epoch_pass (12,415,725,029 cycles, 10.69%)</title><rect x="994.2" y="149" width="147.5" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="997.22" y="159.5" >nova::VersionedSto..</text>
 </g>
 <g >
-<title>__lll_lock_wake_private (56,499,653 cycles, 0.05%)</title><rect x="1384.2" y="85" width="0.7" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1387.20" y="95.5" ></text>
+<title>__memmove_avx512_unaligned_erms (2,141,485,013 cycles, 1.84%)</title><rect x="1344.1" y="117" width="25.5" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="1347.15" y="127.5" >_..</text>
 </g>
 <g >
-<title>[kernel] (12,793,903 cycles, 0.01%)</title><rect x="972.0" y="133" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="975.03" y="143.5" ></text>
+<title>__lll_lock_wait_private (39,937,679 cycles, 0.03%)</title><rect x="1279.3" y="85" width="0.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1282.34" y="95.5" ></text>
 </g>
 <g >
-<title>memcmp@plt (60,562,434 cycles, 0.05%)</title><rect x="671.6" y="117" width="0.7" height="15.0" fill="rgb(251,214,51)" rx="2" ry="2" />
-<text  x="674.57" y="127.5" ></text>
+<title>KVStore::index_get (26,798,403,049 cycles, 23.07%)</title><rect x="611.1" y="165" width="318.3" height="15.0" fill="rgb(239,158,37)" rx="2" ry="2" />
+<text  x="614.05" y="175.5" >KVStore::index_get</text>
 </g>
 <g >
-<title>nova::VersionedStore::read (29,855,568,201 cycles, 25.48%)</title><rect x="256.0" y="133" width="351.6" height="15.0" fill="rgb(253,224,53)" rx="2" ry="2" />
-<text  x="258.95" y="143.5" >nova::VersionedStore::read</text>
+<title>nova::SegmentBuilder::begin (221,369,071 cycles, 0.19%)</title><rect x="1278.3" y="101" width="2.7" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
+<text  x="1281.33" y="111.5" ></text>
 </g>
 <g >
-<title>Transaction::commit (286,058,713 cycles, 0.24%)</title><rect x="1386.5" y="133" width="3.4" height="15.0" fill="rgb(241,166,39)" rx="2" ry="2" />
-<text  x="1389.49" y="143.5" ></text>
+<title>__lll_lock_wake_private (183,931,322 cycles, 0.16%)</title><rect x="1371.7" y="101" width="2.2" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1374.75" y="111.5" ></text>
 </g>
 <g >
-<title>all (117,160,708,174 cycles, 100%)</title><rect x="10.0" y="229" width="1380.0" height="15.0" fill="rgb(213,39,9)" rx="2" ry="2" />
-<text  x="13.00" y="239.5" ></text>
+<title>_int_free_chunk (10,318,258 cycles, 0.01%)</title><rect x="1389.7" y="85" width="0.1" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1392.65" y="95.5" ></text>
 </g>
 <g >
-<title>_int_malloc (155,161,411 cycles, 0.13%)</title><rect x="1340.2" y="85" width="1.8" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1343.21" y="95.5" ></text>
+<title>[kernel] (353,155,311 cycles, 0.30%)</title><rect x="1118.9" y="101" width="4.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1121.95" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (379,509,514 cycles, 0.32%)</title><rect x="1142.6" y="85" width="4.5" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1145.58" y="95.5" ></text>
+<title>[kernel] (11,781,772 cycles, 0.01%)</title><rect x="789.9" y="101" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="792.86" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (152,497,428 cycles, 0.13%)</title><rect x="1373.9" y="85" width="1.8" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1376.94" y="95.5" ></text>
+<title>__libc_start_call_main (408,109,538 cycles, 0.35%)</title><rect x="1385.2" y="181" width="4.8" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="1388.15" y="191.5" ></text>
 </g>
 <g >
-<title>KVStore::get (44,406,518,356 cycles, 37.90%)</title><rect x="84.6" y="149" width="523.0" height="15.0" fill="rgb(215,48,11)" rx="2" ry="2" />
-<text  x="87.56" y="159.5" >KVStore::get</text>
+<title>__GI___clone3 (115,729,639,149 cycles, 99.63%)</title><rect x="10.3" y="213" width="1374.8" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="13.28" y="223.5" >__GI___clone3</text>
 </g>
 <g >
-<title>__lll_lock_wake_private (18,266,734 cycles, 0.02%)</title><rect x="1283.8" y="69" width="0.3" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1286.84" y="79.5" ></text>
+<title>nova::VersionedStore::acquire_pin (10,630,253 cycles, 0.01%)</title><rect x="82.0" y="149" width="0.1" height="15.0" fill="rgb(220,69,16)" rx="2" ry="2" />
+<text  x="84.97" y="159.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::index_get_pinned (100,004,530 cycles, 0.09%)</title><rect x="1198.1" y="149" width="1.2" height="15.0" fill="rgb(236,146,34)" rx="2" ry="2" />
-<text  x="1201.08" y="159.5" ></text>
+<title>nova::VersionedStore::index_read (515,446,521 cycles, 0.44%)</title><rect x="923.3" y="149" width="6.1" height="15.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="926.29" y="159.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::commit_put (49,591,032 cycles, 0.04%)</title><rect x="1381.6" y="101" width="0.6" height="15.0" fill="rgb(250,207,49)" rx="2" ry="2" />
-<text  x="1384.63" y="111.5" ></text>
+<title>__lll_lock_wait_private (24,723,743 cycles, 0.02%)</title><rect x="1273.8" y="85" width="0.3" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1276.79" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (25,578,617 cycles, 0.02%)</title><rect x="753.0" y="101" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="756.04" y="111.5" ></text>
+<title>[kernel] (341,611,600 cycles, 0.29%)</title><rect x="1134.3" y="85" width="4.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1137.32" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (18,266,734 cycles, 0.02%)</title><rect x="1283.8" y="53" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1286.84" y="63.5" ></text>
-</g>
-<g >
-<title>nova::PinnedArena::begin_commit (9,880,162 cycles, 0.01%)</title><rect x="1296.4" y="117" width="0.2" height="15.0" fill="rgb(241,169,40)" rx="2" ry="2" />
-<text  x="1299.44" y="127.5" ></text>
-</g>
-<g >
-<title>[kernel] (39,818,896 cycles, 0.03%)</title><rect x="1383.7" y="69" width="0.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1386.73" y="79.5" ></text>
-</g>
-<g >
-<title>nova::VersionedStore::index_get_pinned (24,301,596,784 cycles, 20.74%)</title><rect x="630.1" y="133" width="286.2" height="15.0" fill="rgb(236,146,34)" rx="2" ry="2" />
-<text  x="633.08" y="143.5" >nova::VersionedStore::index_get_pinned</text>
-</g>
-<g >
-<title>nova::SegmentBuilder::begin (18,959,348 cycles, 0.02%)</title><rect x="1389.0" y="85" width="0.2" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
-<text  x="1392.03" y="95.5" ></text>
-</g>
-<g >
-<title>__lll_lock_wait_private (39,353,647 cycles, 0.03%)</title><rect x="1284.1" y="69" width="0.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1287.09" y="79.5" ></text>
-</g>
-<g >
-<title>__libc_malloc2 (228,345,871 cycles, 0.19%)</title><rect x="1339.4" y="101" width="2.7" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1342.40" y="111.5" ></text>
-</g>
-<g >
-<title>[kernel] (221,045,561 cycles, 0.19%)</title><rect x="1369.3" y="85" width="2.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1372.29" y="95.5" ></text>
-</g>
-<g >
-<title>_int_memalign (400,275,484 cycles, 0.34%)</title><rect x="1376.4" y="69" width="4.7" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<title>_int_malloc (334,340,017 cycles, 0.29%)</title><rect x="1376.4" y="69" width="4.0" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
 <text  x="1379.41" y="79.5" ></text>
 </g>
 <g >
-<title>nova::PinnedArena::add_ref (613,496,466 cycles, 0.52%)</title><rect x="1289.2" y="117" width="7.2" height="15.0" fill="rgb(207,12,2)" rx="2" ry="2" />
-<text  x="1292.21" y="127.5" ></text>
+<title>nova::PinnedArena::add_ref (614,408,054 cycles, 0.53%)</title><rect x="1287.6" y="133" width="7.3" height="15.0" fill="rgb(207,12,2)" rx="2" ry="2" />
+<text  x="1290.62" y="143.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (39,468,016 cycles, 0.03%)</title><rect x="1281.2" y="69" width="0.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1284.20" y="79.5" ></text>
+<title>__strchrnul_evex (16,524,110 cycles, 0.01%)</title><rect x="1287.0" y="117" width="0.2" height="15.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="1290.01" y="127.5" ></text>
 </g>
 <g >
-<title>_int_free_merge_chunk (24,795,937 cycles, 0.02%)</title><rect x="1285.7" y="53" width="0.2" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
-<text  x="1288.66" y="63.5" ></text>
+<title>[kernel] (9,815,350 cycles, 0.01%)</title><rect x="1337.7" y="117" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1340.69" y="127.5" ></text>
 </g>
 <g >
-<title>_mid_memalign (272,636,022 cycles, 0.23%)</title><rect x="1276.3" y="69" width="3.2" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
-<text  x="1279.32" y="79.5" ></text>
+<title>__lll_lock_wake_private (34,659,777 cycles, 0.03%)</title><rect x="1283.3" y="85" width="0.4" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1286.28" y="95.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (176,465,524 cycles, 0.15%)</title><rect x="997.1" y="117" width="2.1" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1000.14" y="127.5" ></text>
+<title>nova::VersionedStore::put (8,208,352,579 cycles, 7.07%)</title><rect x="1287.3" y="149" width="97.6" height="15.0" fill="rgb(236,145,34)" rx="2" ry="2" />
+<text  x="1290.34" y="159.5" >nova::Versi..</text>
 </g>
 <g >
-<title>_int_malloc (28,416,046 cycles, 0.02%)</title><rect x="1283.3" y="53" width="0.3" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1286.27" y="63.5" ></text>
+<title>__snprintf_chk (167,733,130 cycles, 0.14%)</title><rect x="1285.3" y="149" width="2.0" height="15.0" fill="rgb(209,20,4)" rx="2" ry="2" />
+<text  x="1288.31" y="159.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::~SegmentBuilder (11,679,801 cycles, 0.01%)</title><rect x="1384.9" y="101" width="0.1" height="15.0" fill="rgb(207,11,2)" rx="2" ry="2" />
-<text  x="1387.87" y="111.5" ></text>
+<title>[kernel] (35,294,935 cycles, 0.03%)</title><rect x="1383.3" y="85" width="0.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1386.28" y="95.5" ></text>
 </g>
 <g >
-<title>__libc_start_main@@GLIBC_2.34 (338,679,042 cycles, 0.29%)</title><rect x="1386.0" y="181" width="4.0" height="15.0" fill="rgb(229,113,27)" rx="2" ry="2" />
-<text  x="1389.01" y="191.5" ></text>
+<title>__nanosleep (47,471,734 cycles, 0.04%)</title><rect x="993.4" y="149" width="0.6" height="15.0" fill="rgb(252,217,52)" rx="2" ry="2" />
+<text  x="996.39" y="159.5" ></text>
 </g>
 <g >
-<title>nova::HashSegment::clone_from (736,767,708 cycles, 0.63%)</title><rect x="1372.4" y="101" width="8.7" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
-<text  x="1375.44" y="111.5" ></text>
+<title>nova::HashSegment::clone_from (359,523,413 cycles, 0.31%)</title><rect x="1273.7" y="101" width="4.3" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
+<text  x="1276.73" y="111.5" ></text>
 </g>
 <g >
-<title>cfree@GLIBC_2.2.5 (23,181,859 cycles, 0.02%)</title><rect x="1005.5" y="117" width="0.3" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
-<text  x="1008.52" y="127.5" ></text>
+<title>NovaKvInspector::validate (15,088,348 cycles, 0.01%)</title><rect x="1386.2" y="149" width="0.2" height="15.0" fill="rgb(225,92,22)" rx="2" ry="2" />
+<text  x="1389.23" y="159.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::begin (15,201,142 cycles, 0.01%)</title><rect x="1381.5" y="101" width="0.1" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
-<text  x="1384.45" y="111.5" ></text>
+<title>nova::VersionedStore::~VersionedStore (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="133" width="0.1" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="1388.15" y="143.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::prepare_finish (114,422,529 cycles, 0.10%)</title><rect x="1282.7" y="85" width="1.4" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
-<text  x="1285.74" y="95.5" ></text>
+<title>nova::VersionedStore::commit (284,829,476 cycles, 0.25%)</title><rect x="1386.4" y="133" width="3.4" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
+<text  x="1389.43" y="143.5" ></text>
 </g>
 <g >
-<title>__memcmp_evex_movbe (1,777,032,460 cycles, 1.52%)</title><rect x="650.6" y="117" width="21.0" height="15.0" fill="rgb(219,67,16)" rx="2" ry="2" />
-<text  x="653.64" y="127.5" ></text>
+<title>__memcmp_evex_movbe (1,278,080,392 cycles, 1.10%)</title><rect x="660.9" y="133" width="15.2" height="15.0" fill="rgb(219,67,16)" rx="2" ry="2" />
+<text  x="663.90" y="143.5" ></text>
 </g>
 <g >
-<title>KVStore::keys (3,512,707,599 cycles, 3.00%)</title><rect x="930.3" y="149" width="41.4" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
-<text  x="933.34" y="159.5" >KVS..</text>
+<title>[unknown] (23,830,260 cycles, 0.02%)</title><rect x="10.0" y="213" width="0.3" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="13.00" y="223.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::commit_locked (194,655,985 cycles, 0.17%)</title><rect x="1387.6" y="101" width="2.3" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1390.57" y="111.5" ></text>
+<title>join_bench (116,161,941,091 cycles, 100.00%)</title><rect x="10.0" y="229" width="1380.0" height="15.0" fill="rgb(251,214,51)" rx="2" ry="2" />
+<text  x="13.00" y="239.5" >join_bench</text>
 </g>
 <g >
-<title>_int_free_chunk (393,941,435 cycles, 0.34%)</title><rect x="1131.6" y="101" width="4.6" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1134.58" y="111.5" ></text>
+<title>nova::alloc_bytes (12,965,155 cycles, 0.01%)</title><rect x="1284.8" y="101" width="0.2" height="15.0" fill="rgb(246,188,45)" rx="2" ry="2" />
+<text  x="1287.84" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (106,883,476 cycles, 0.09%)</title><rect x="1372.7" y="85" width="1.2" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1375.68" y="95.5" ></text>
+<title>__memmove_avx512_unaligned_erms (61,737,182 cycles, 0.05%)</title><rect x="1387.6" y="101" width="0.8" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="1390.63" y="111.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (471,262,203 cycles, 0.40%)</title><rect x="1122.7" y="101" width="5.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1125.66" y="111.5" ></text>
+<title>_int_free_maybe_trim (15,054,533 cycles, 0.01%)</title><rect x="1139.9" y="85" width="0.1" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1142.86" y="95.5" ></text>
 </g>
 <g >
-<title>_int_malloc (155,982,485 cycles, 0.13%)</title><rect x="1277.6" y="37" width="1.8" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1280.58" y="47.5" ></text>
+<title>[libstdc++.so.6.0.35] (115,725,833,813 cycles, 99.62%)</title><rect x="10.3" y="181" width="1374.8" height="15.0" fill="rgb(253,222,53)" rx="2" ry="2" />
+<text  x="13.28" y="191.5" >[libstdc++.so.6.0.35]</text>
 </g>
 <g >
-<title>nova::VersionedStore::index_read (9,436,939,103 cycles, 8.05%)</title><rect x="672.3" y="117" width="111.1" height="15.0" fill="rgb(227,103,24)" rx="2" ry="2" />
-<text  x="675.28" y="127.5" >nova::Version..</text>
+<title>__syscall_cancel_arch_end (47,356,466 cycles, 0.04%)</title><rect x="993.4" y="117" width="0.6" height="15.0" fill="rgb(216,52,12)" rx="2" ry="2" />
+<text  x="996.39" y="127.5" ></text>
 </g>
 <g >
-<title>_int_malloc (12,861,143 cycles, 0.01%)</title><rect x="1388.8" y="37" width="0.1" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
-<text  x="1391.78" y="47.5" ></text>
+<title>nova::HashSegment::prepare_upsert (9,812,643 cycles, 0.01%)</title><rect x="1278.0" y="101" width="0.2" height="15.0" fill="rgb(245,188,45)" rx="2" ry="2" />
+<text  x="1281.04" y="111.5" ></text>
 </g>
 <g >
-<title>NovaKvInspector::settle (28,835,346 cycles, 0.02%)</title><rect x="1386.0" y="133" width="0.4" height="15.0" fill="rgb(220,69,16)" rx="2" ry="2" />
-<text  x="1389.01" y="143.5" ></text>
+<title>__libc_malloc2 (263,226,890 cycles, 0.23%)</title><rect x="1337.8" y="117" width="3.1" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1340.81" y="127.5" ></text>
 </g>
 <g >
-<title>[kernel] (46,922,388 cycles, 0.04%)</title><rect x="996.2" y="85" width="0.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="999.21" y="95.5" ></text>
+<title>nova::SegmentBuilder::prepare_finish (160,909,095 cycles, 0.14%)</title><rect x="1281.1" y="101" width="1.9" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
+<text  x="1284.10" y="111.5" ></text>
 </g>
 <g >
-<title>nova::index_find (2,555,308,818 cycles, 2.18%)</title><rect x="753.3" y="101" width="30.1" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
-<text  x="756.34" y="111.5" >no..</text>
+<title>__lll_lock_wake_private (95,191,912 cycles, 0.08%)</title><rect x="1279.8" y="85" width="1.1" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1282.81" y="95.5" ></text>
 </g>
 <g >
-<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;(anonymous namespace)::experiment_join (9,645,436,690 cycles, 8.23%)</title><rect x="1272.4" y="149" width="113.6" height="15.0" fill="rgb(231,122,29)" rx="2" ry="2" />
-<text  x="1275.35" y="159.5" >std::thread::_..</text>
+<title>__lll_lock_wait_private (21,213,059 cycles, 0.02%)</title><rect x="1283.0" y="85" width="0.3" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1286.03" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (36,281,595 cycles, 0.03%)</title><rect x="1281.2" y="53" width="0.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1284.23" y="63.5" ></text>
+<title>nova::free_bytes (8,583,457 cycles, 0.01%)</title><rect x="1141.7" y="149" width="0.1" height="15.0" fill="rgb(224,89,21)" rx="2" ry="2" />
+<text  x="1144.72" y="159.5" ></text>
 </g>
 <g >
-<title>[kernel] (25,267,308 cycles, 0.02%)</title><rect x="916.0" y="101" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="919.02" y="111.5" ></text>
+<title>__mprotect (99,816,171 cycles, 0.09%)</title><rect x="1374.9" y="69" width="1.2" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
+<text  x="1377.95" y="79.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::epoch_pass (13,047,522,860 cycles, 11.14%)</title><rect x="996.9" y="133" width="153.7" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
-<text  x="999.91" y="143.5" >nova::VersionedStor..</text>
+<title>Transaction::put (14,928,317 cycles, 0.01%)</title><rect x="1285.1" y="149" width="0.2" height="15.0" fill="rgb(254,229,54)" rx="2" ry="2" />
+<text  x="1288.13" y="159.5" ></text>
 </g>
 <g >
-<title>__GI___clone3 (116,797,328,762 cycles, 99.69%)</title><rect x="10.3" y="197" width="1375.7" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
-<text  x="13.26" y="207.5" >__GI___clone3</text>
+<title>nova::VersionedStore::reclaim_pass (80,455,092 cycles, 0.07%)</title><rect x="1385.3" y="117" width="0.9" height="15.0" fill="rgb(230,117,28)" rx="2" ry="2" />
+<text  x="1388.28" y="127.5" ></text>
 </g>
 <g >
-<title>__libc_malloc2 (68,473,449 cycles, 0.06%)</title><rect x="1382.9" y="85" width="0.8" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1385.92" y="95.5" ></text>
+<title>nova::PinnedArena::release (10,965,744 cycles, 0.01%)</title><rect x="1385.3" y="85" width="0.2" height="15.0" fill="rgb(226,100,23)" rx="2" ry="2" />
+<text  x="1388.33" y="95.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::read (4,140,296,847 cycles, 3.53%)</title><rect x="1223.6" y="149" width="48.8" height="15.0" fill="rgb(253,224,53)" rx="2" ry="2" />
-<text  x="1226.58" y="159.5" >nova..</text>
+<title>memcmp@plt (64,756,021 cycles, 0.06%)</title><rect x="676.1" y="133" width="0.8" height="15.0" fill="rgb(251,214,51)" rx="2" ry="2" />
+<text  x="679.08" y="143.5" ></text>
 </g>
 <g >
-<title>main (338,679,042 cycles, 0.29%)</title><rect x="1386.0" y="149" width="4.0" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
-<text  x="1389.01" y="159.5" ></text>
+<title>nova::VersionedStore::run_job (6,819,690,172 cycles, 5.87%)</title><rect x="1060.7" y="133" width="81.0" height="15.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="1063.68" y="143.5" >nova::Ver..</text>
 </g>
 <g >
-<title>_int_free_chunk (86,320,990 cycles, 0.07%)</title><rect x="1284.9" y="69" width="1.0" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1287.93" y="79.5" ></text>
+<title>NovaKvInspector::settle (80,455,092 cycles, 0.07%)</title><rect x="1385.3" y="149" width="0.9" height="15.0" fill="rgb(220,69,16)" rx="2" ry="2" />
+<text  x="1388.28" y="159.5" ></text>
 </g>
 <g >
-<title>unlink_chunk.isra.0 (41,945,798 cycles, 0.04%)</title><rect x="1150.0" y="53" width="0.4" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
-<text  x="1152.95" y="63.5" ></text>
+<title>nova::SegmentBuilder::begin (22,195,658 cycles, 0.02%)</title><rect x="1389.1" y="101" width="0.3" height="15.0" fill="rgb(245,184,44)" rx="2" ry="2" />
+<text  x="1392.09" y="111.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::cleaner_main (13,115,132,189 cycles, 11.19%)</title><rect x="996.1" y="149" width="154.5" height="15.0" fill="rgb(216,51,12)" rx="2" ry="2" />
-<text  x="999.14" y="159.5" >nova::VersionedStor..</text>
+<title>KVStore::get (44,524,817,053 cycles, 38.33%)</title><rect x="82.1" y="165" width="529.0" height="15.0" fill="rgb(215,48,11)" rx="2" ry="2" />
+<text  x="85.10" y="175.5" >KVStore::get</text>
 </g>
 <g >
-<title>[kernel] (431,071,346 cycles, 0.37%)</title><rect x="1137.5" y="69" width="5.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1140.50" y="79.5" ></text>
+<title>cfree@GLIBC_2.2.5 (17,694,224 cycles, 0.02%)</title><rect x="1003.5" y="133" width="0.2" height="15.0" fill="rgb(233,131,31)" rx="2" ry="2" />
+<text  x="1006.46" y="143.5" ></text>
 </g>
 <g >
-<title>[kernel] (31,831,237 cycles, 0.03%)</title><rect x="1284.6" y="53" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1287.56" y="63.5" ></text>
+<title>nova::VersionedStore::commit_locked (189,969,185 cycles, 0.16%)</title><rect x="1387.6" y="117" width="2.2" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1390.56" y="127.5" ></text>
 </g>
 <g >
-<title>Transaction::put (19,868,508 cycles, 0.02%)</title><rect x="1286.5" y="133" width="0.2" height="15.0" fill="rgb(254,229,54)" rx="2" ry="2" />
-<text  x="1289.50" y="143.5" ></text>
+<title>_int_free_merge_chunk (120,180,176 cycles, 0.10%)</title><rect x="1140.0" y="85" width="1.5" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1143.04" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (206,734,088 cycles, 0.18%)</title><rect x="999.2" y="101" width="2.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1002.25" y="111.5" ></text>
+<title>__libc_malloc2 (8,948,670 cycles, 0.01%)</title><rect x="1389.4" y="85" width="0.1" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1392.43" y="95.5" ></text>
 </g>
 <g >
-<title>[unknown] (17,277,605 cycles, 0.01%)</title><rect x="10.0" y="181" width="0.2" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<title>nova::PinnedArena::add_ref (93,347,389 cycles, 0.08%)</title><rect x="1386.4" y="117" width="1.2" height="15.0" fill="rgb(207,12,2)" rx="2" ry="2" />
+<text  x="1389.45" y="127.5" ></text>
+</g>
+<g >
+<title>[kernel] (79,052,739 cycles, 0.07%)</title><rect x="1379.4" y="53" width="0.9" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1382.40" y="63.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (14,917,667 cycles, 0.01%)</title><rect x="1286.5" y="101" width="0.2" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="1289.49" y="111.5" ></text>
+</g>
+<g >
+<title>nova::EpochDomain::acquire_slot (10,630,253 cycles, 0.01%)</title><rect x="82.0" y="133" width="0.1" height="15.0" fill="rgb(235,138,33)" rx="2" ry="2" />
+<text  x="84.97" y="143.5" ></text>
+</g>
+<g >
+<title>memcpy@plt (131,749,379 cycles, 0.11%)</title><rect x="261.2" y="149" width="1.6" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="264.19" y="159.5" ></text>
+</g>
+<g >
+<title>[kernel] (10,033,072 cycles, 0.01%)</title><rect x="1002.1" y="101" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1005.12" y="111.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (39,363,821 cycles, 0.03%)</title><rect x="1273.0" y="101" width="0.5" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="1276.04" y="111.5" ></text>
+</g>
+<g >
+<title>unlink_chunk.isra.0 (49,664,010 cycles, 0.04%)</title><rect x="1140.9" y="69" width="0.6" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1143.87" y="79.5" ></text>
+</g>
+<g >
+<title>[kernel] (14,805,404 cycles, 0.01%)</title><rect x="1282.5" y="69" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1285.54" y="79.5" ></text>
+</g>
+<g >
+<title>unlink_chunk.isra.0 (38,757,775 cycles, 0.03%)</title><rect x="1127.4" y="85" width="0.5" height="15.0" fill="rgb(248,198,47)" rx="2" ry="2" />
+<text  x="1130.45" y="95.5" ></text>
+</g>
+<g >
+<title>__lll_lock_wake_private (10,033,072 cycles, 0.01%)</title><rect x="1002.1" y="117" width="0.1" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1005.12" y="127.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::cleaner_main (12,501,990,325 cycles, 10.76%)</title><rect x="993.3" y="165" width="148.5" height="15.0" fill="rgb(216,51,12)" rx="2" ry="2" />
+<text  x="996.30" y="175.5" >nova::VersionedSto..</text>
+</g>
+<g >
+<title>[kernel] (38,300,209 cycles, 0.03%)</title><rect x="1279.4" y="69" width="0.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1282.36" y="79.5" ></text>
+</g>
+<g >
+<title>__memset_avx512_unaligned_erms (633,802,048 cycles, 0.55%)</title><rect x="983.3" y="165" width="7.5" height="15.0" fill="rgb(214,43,10)" rx="2" ry="2" />
+<text  x="986.32" y="175.5" ></text>
+</g>
+<g >
+<title>[kernel] (19,690,780 cycles, 0.02%)</title><rect x="1283.0" y="69" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1286.05" y="79.5" ></text>
+</g>
+<g >
+<title>nova::PinnedArena::begin_commit (9,706,820 cycles, 0.01%)</title><rect x="1294.9" y="133" width="0.2" height="15.0" fill="rgb(241,169,40)" rx="2" ry="2" />
+<text  x="1297.94" y="143.5" ></text>
+</g>
+<g >
+<title>[kernel] (565,076,922 cycles, 0.49%)</title><rect x="1112.1" y="101" width="6.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1115.09" y="111.5" ></text>
+</g>
+<g >
+<title>[kernel] (30,419,125 cycles, 0.03%)</title><rect x="922.9" y="117" width="0.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="925.93" y="127.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (9,297,935,330 cycles, 8.00%)</title><rect x="150.7" y="149" width="110.5" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="153.74" y="159.5" >__memmove_avx..</text>
+</g>
+<g >
+<title>_mid_memalign (262,201,195 cycles, 0.23%)</title><rect x="1274.9" y="85" width="3.1" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
+<text  x="1277.88" y="95.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::destroy_everything (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="117" width="0.1" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1388.15" y="127.5" ></text>
+</g>
+<g >
+<title>nova::SegmentBuilder::prepare_finish (17,421,701 cycles, 0.01%)</title><rect x="1389.4" y="101" width="0.2" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
+<text  x="1392.40" y="111.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::drain (80,455,092 cycles, 0.07%)</title><rect x="1385.3" y="133" width="0.9" height="15.0" fill="rgb(217,56,13)" rx="2" ry="2" />
+<text  x="1388.28" y="143.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::commit_locked (1,128,058,318 cycles, 0.97%)</title><rect x="1271.6" y="117" width="13.4" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1274.59" y="127.5" ></text>
+</g>
+<g >
+<title>_int_malloc (75,930,106 cycles, 0.07%)</title><rect x="1382.3" y="85" width="0.9" height="15.0" fill="rgb(215,47,11)" rx="2" ry="2" />
+<text  x="1385.32" y="95.5" ></text>
+</g>
+<g >
+<title>start_thread (115,729,623,363 cycles, 99.63%)</title><rect x="10.3" y="197" width="1374.8" height="15.0" fill="rgb(212,34,8)" rx="2" ry="2" />
+<text  x="13.28" y="207.5" >start_thread</text>
+</g>
+<g >
+<title>__lll_lock_wait_private (125,647,806 cycles, 0.11%)</title><rect x="1370.3" y="101" width="1.4" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1373.26" y="111.5" ></text>
+</g>
+<g >
+<title>__printf_buffer (124,773,180 cycles, 0.11%)</title><rect x="1285.5" y="117" width="1.5" height="15.0" fill="rgb(219,68,16)" rx="2" ry="2" />
+<text  x="1288.51" y="127.5" ></text>
+</g>
+<g >
+<title>pthread_mutex_unlock@@GLIBC_2.2.5 (17,946,571 cycles, 0.02%)</title><rect x="1384.6" y="133" width="0.3" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
+<text  x="1387.65" y="143.5" ></text>
+</g>
+<g >
+<title>[kernel] (210,178,166 cycles, 0.18%)</title><rect x="994.5" y="117" width="2.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="997.48" y="127.5" ></text>
+</g>
+<g >
+<title>__lll_lock_wait_private (38,519,891 cycles, 0.03%)</title><rect x="1383.2" y="101" width="0.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1386.24" y="111.5" ></text>
+</g>
+<g >
+<title>[kernel] (21,662,941 cycles, 0.02%)</title><rect x="1060.4" y="117" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1063.42" y="127.5" ></text>
+</g>
+<g >
+<title>malloc (14,736,402 cycles, 0.01%)</title><rect x="1369.8" y="117" width="0.2" height="15.0" fill="rgb(230,119,28)" rx="2" ry="2" />
+<text  x="1372.81" y="127.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (9,194,208 cycles, 0.01%)</title><rect x="973.5" y="165" width="0.1" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="976.47" y="175.5" ></text>
+</g>
+<g >
+<title>KVStore::~KVStore (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="149" width="0.1" height="15.0" fill="rgb(237,148,35)" rx="2" ry="2" />
+<text  x="1388.15" y="159.5" ></text>
+</g>
+<g >
+<title>nova::destroy_segment (1,086,169,088 cycles, 0.94%)</title><rect x="1128.8" y="117" width="12.9" height="15.0" fill="rgb(230,119,28)" rx="2" ry="2" />
+<text  x="1131.75" y="127.5" ></text>
+</g>
+<g >
+<title>__lll_lock_wake_private (67,298,265 cycles, 0.06%)</title><rect x="1274.1" y="85" width="0.8" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1277.08" y="95.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::get_pinned (4,163,777,498 cycles, 3.58%)</title><rect x="1141.8" y="165" width="49.5" height="15.0" fill="rgb(212,36,8)" rx="2" ry="2" />
+<text  x="1144.82" y="175.5" >nova..</text>
+</g>
+<g >
+<title>[kernel] (22,960,874 cycles, 0.02%)</title><rect x="1282.7" y="69" width="0.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1285.74" y="79.5" ></text>
+</g>
+<g >
+<title>_int_memalign (489,128,996 cycles, 0.42%)</title><rect x="1374.6" y="85" width="5.8" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<text  x="1377.61" y="95.5" ></text>
+</g>
+<g >
+<title>__libc_malloc2 (15,959,534 cycles, 0.01%)</title><rect x="1389.1" y="85" width="0.2" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1392.09" y="95.5" ></text>
+</g>
+<g >
+<title>_int_free_merge_chunk (128,661,922 cycles, 0.11%)</title><rect x="1126.4" y="101" width="1.5" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1129.38" y="111.5" ></text>
+</g>
+<g >
+<title>_mid_memalign (545,787,531 cycles, 0.47%)</title><rect x="1373.9" y="101" width="6.5" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
+<text  x="1376.93" y="111.5" ></text>
+</g>
+<g >
+<title>__lll_lock_wait_private (214,700,111 cycles, 0.18%)</title><rect x="994.4" y="133" width="2.6" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="997.43" y="143.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::index_read (9,524,481,756 cycles, 8.20%)</title><rect x="676.9" y="133" width="113.1" height="15.0" fill="rgb(227,103,24)" rx="2" ry="2" />
+<text  x="679.85" y="143.5" >nova::Version..</text>
+</g>
+<g >
+<title>nova::SegmentBuilder::commit_put (43,169,700 cycles, 0.04%)</title><rect x="1380.9" y="117" width="0.5" height="15.0" fill="rgb(250,207,49)" rx="2" ry="2" />
+<text  x="1383.87" y="127.5" ></text>
+</g>
+<g >
+<title>__lll_lock_wake_private (353,635,900 cycles, 0.30%)</title><rect x="1134.2" y="101" width="4.2" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1137.18" y="111.5" ></text>
+</g>
+<g >
+<title>_int_free_chunk (75,228,528 cycles, 0.06%)</title><rect x="1283.7" y="85" width="0.9" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1286.69" y="95.5" ></text>
+</g>
+<g >
+<title>[kernel] (15,548,163 cycles, 0.01%)</title><rect x="973.0" y="133" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="976.03" y="143.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::index_get_pinned (112,503,012 cycles, 0.10%)</title><rect x="1191.3" y="165" width="1.3" height="15.0" fill="rgb(236,146,34)" rx="2" ry="2" />
+<text  x="1194.29" y="175.5" ></text>
+</g>
+<g >
+<title>nova::VersionedStore::run_job (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="101" width="0.1" height="15.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="1388.15" y="111.5" ></text>
+</g>
+<g >
+<title>[kernel] (9,194,208 cycles, 0.01%)</title><rect x="973.5" y="149" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="976.47" y="159.5" ></text>
+</g>
+<g >
+<title>nova::index_find (2,335,049,983 cycles, 2.01%)</title><rect x="762.3" y="117" width="27.7" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
+<text  x="765.26" y="127.5" >n..</text>
+</g>
+<g >
+<title>[kernel] (49,413,714 cycles, 0.04%)</title><rect x="761.7" y="117" width="0.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="764.68" y="127.5" ></text>
+</g>
+<g >
+<title>nova::PinnedArena::release (4,798,632,207 cycles, 4.13%)</title><rect x="1003.7" y="133" width="57.0" height="15.0" fill="rgb(226,100,23)" rx="2" ry="2" />
+<text  x="1006.67" y="143.5" >nova::..</text>
+</g>
+<g >
+<title>__lll_lock_wake_private (16,915,708 cycles, 0.01%)</title><rect x="10.0" y="181" width="0.2" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
 <text  x="13.00" y="191.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::epoch_pass (28,835,346 cycles, 0.02%)</title><rect x="1386.0" y="85" width="0.4" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
-<text  x="1389.01" y="95.5" ></text>
+<title>main (408,109,538 cycles, 0.35%)</title><rect x="1385.2" y="165" width="4.8" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="1388.15" y="175.5" ></text>
 </g>
 <g >
-<title>[kernel] (58,558,079 cycles, 0.05%)</title><rect x="606.9" y="117" width="0.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="609.92" y="127.5" ></text>
+<title>_int_free_chunk (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="69" width="0.1" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1388.15" y="79.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (10,731,371 cycles, 0.01%)</title><rect x="1389.6" y="69" width="0.1" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="1392.57" y="79.5" ></text>
+<title>nova::VersionedStore::run_job (65,363,826 cycles, 0.06%)</title><rect x="1385.5" y="85" width="0.7" height="15.0" fill="rgb(213,40,9)" rx="2" ry="2" />
+<text  x="1388.46" y="95.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::finish (40,146,588 cycles, 0.03%)</title><rect x="1382.2" y="101" width="0.5" height="15.0" fill="rgb(244,179,42)" rx="2" ry="2" />
-<text  x="1385.22" y="111.5" ></text>
+<title>nova::VersionedStore::keys_pinned (3,686,950,716 cycles, 3.17%)</title><rect x="929.4" y="149" width="43.8" height="15.0" fill="rgb(211,31,7)" rx="2" ry="2" />
+<text  x="932.42" y="159.5" >nova..</text>
 </g>
 <g >
-<title>[kernel] (279,688,574 cycles, 0.24%)</title><rect x="1128.3" y="85" width="3.3" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1131.29" y="95.5" ></text>
+<title>[kernel] (9,695,990 cycles, 0.01%)</title><rect x="973.4" y="133" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="976.36" y="143.5" ></text>
 </g>
 <g >
-<title>nova::SegmentBuilder::prepare_finish (23,918,685 cycles, 0.02%)</title><rect x="1389.4" y="85" width="0.3" height="15.0" fill="rgb(229,110,26)" rx="2" ry="2" />
-<text  x="1392.41" y="95.5" ></text>
+<title>all (116,161,942,723 cycles, 100%)</title><rect x="10.0" y="245" width="1380.0" height="15.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.00" y="255.5" ></text>
 </g>
 <g >
-<title>memset@plt (266,252,144 cycles, 0.23%)</title><rect x="993.0" y="149" width="3.1" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
-<text  x="996.01" y="159.5" ></text>
+<title>nova::VersionedStore::pin_of (2,387,749,964 cycles, 2.06%)</title><rect x="1192.6" y="165" width="28.4" height="15.0" fill="rgb(213,37,9)" rx="2" ry="2" />
+<text  x="1195.64" y="175.5" >no..</text>
 </g>
 <g >
-<title>KVStore::index_get (27,399,058,514 cycles, 23.39%)</title><rect x="607.6" y="149" width="322.7" height="15.0" fill="rgb(239,158,37)" rx="2" ry="2" />
-<text  x="610.61" y="159.5" >KVStore::index_get</text>
+<title>__libc_malloc2 (69,636,052 cycles, 0.06%)</title><rect x="1278.5" y="85" width="0.8" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1281.51" y="95.5" ></text>
 </g>
 <g >
-<title>nova::HashSegment::clone_from (27,590,763 cycles, 0.02%)</title><rect x="1388.6" y="85" width="0.3" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
-<text  x="1391.60" y="95.5" ></text>
+<title>nova::HashSegment::clone_from (47,455,636 cycles, 0.04%)</title><rect x="1388.4" y="101" width="0.6" height="15.0" fill="rgb(223,87,20)" rx="2" ry="2" />
+<text  x="1391.41" y="111.5" ></text>
 </g>
 <g >
-<title>__libc_malloc2 (95,816,332 cycles, 0.08%)</title><rect x="1280.1" y="69" width="1.1" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
-<text  x="1283.07" y="79.5" ></text>
+<title>__libc_malloc2 (18,184,420 cycles, 0.02%)</title><rect x="1272.8" y="101" width="0.2" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1275.77" y="111.5" ></text>
 </g>
 <g >
-<title>malloc (21,158,919 cycles, 0.02%)</title><rect x="1372.1" y="101" width="0.3" height="15.0" fill="rgb(230,119,28)" rx="2" ry="2" />
-<text  x="1375.13" y="111.5" ></text>
+<title>[kernel] (9,421,908 cycles, 0.01%)</title><rect x="636.5" y="149" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="639.52" y="159.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wait_private (39,818,896 cycles, 0.03%)</title><rect x="1383.7" y="85" width="0.5" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
-<text  x="1386.73" y="95.5" ></text>
+<title>_int_free_maybe_trim (20,430,445 cycles, 0.02%)</title><rect x="1126.1" y="101" width="0.3" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1129.14" y="111.5" ></text>
 </g>
 <g >
-<title>[kernel] (39,353,647 cycles, 0.03%)</title><rect x="1284.1" y="53" width="0.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1287.09" y="63.5" ></text>
+<title>_int_memalign (198,032,142 cycles, 0.17%)</title><rect x="1275.6" y="69" width="2.4" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<text  x="1278.63" y="79.5" ></text>
 </g>
 <g >
-<title>[kernel] (13,145,886 cycles, 0.01%)</title><rect x="1388.3" y="69" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1391.35" y="79.5" ></text>
+<title>_int_free_chunk (409,866,115 cycles, 0.35%)</title><rect x="1123.1" y="117" width="4.9" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
+<text  x="1126.14" y="127.5" ></text>
 </g>
 <g >
-<title>[kernel] (51,505,225 cycles, 0.04%)</title><rect x="1384.3" y="69" width="0.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1387.26" y="79.5" ></text>
+<title>_int_free_maybe_trim (8,545,681 cycles, 0.01%)</title><rect x="1141.5" y="101" width="0.1" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1144.54" y="111.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::commit (1,172,253,322 cycles, 1.00%)</title><rect x="1272.7" y="117" width="13.8" height="15.0" fill="rgb(222,81,19)" rx="2" ry="2" />
-<text  x="1275.67" y="127.5" ></text>
+<title>__lll_lock_wait_private (580,592,121 cycles, 0.50%)</title><rect x="1111.9" y="117" width="6.9" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1114.90" y="127.5" ></text>
 </g>
 <g >
-<title>__lll_lock_wake_private (11,300,171 cycles, 0.01%)</title><rect x="10.0" y="165" width="0.2" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
-<text  x="13.02" y="175.5" ></text>
+<title>nova::alloc_bytes (9,864,355 cycles, 0.01%)</title><rect x="1384.3" y="117" width="0.1" height="15.0" fill="rgb(246,188,45)" rx="2" ry="2" />
+<text  x="1387.33" y="127.5" ></text>
 </g>
 <g >
-<title>_int_free_merge_chunk (83,043,978 cycles, 0.07%)</title><rect x="1004.5" y="101" width="1.0" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
-<text  x="1007.50" y="111.5" ></text>
+<title>pthread_mutex_lock@@GLIBC_2.2.5 (8,646,533 cycles, 0.01%)</title><rect x="1384.5" y="133" width="0.1" height="15.0" fill="rgb(244,179,42)" rx="2" ry="2" />
+<text  x="1387.54" y="143.5" ></text>
 </g>
 <g >
-<title>__memmove_avx512_unaligned_erms (13,193,093 cycles, 0.01%)</title><rect x="1287.9" y="85" width="0.2" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
-<text  x="1290.91" y="95.5" ></text>
+<title>__lll_lock_wake_private (24,791,076 cycles, 0.02%)</title><rect x="1282.7" y="85" width="0.3" height="15.0" fill="rgb(238,155,37)" rx="2" ry="2" />
+<text  x="1285.71" y="95.5" ></text>
 </g>
 <g >
-<title>[kernel] (98,475,939 cycles, 0.08%)</title><rect x="1372.8" y="69" width="1.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1375.78" y="79.5" ></text>
+<title>_int_memalign (26,017,295 cycles, 0.02%)</title><rect x="1388.7" y="69" width="0.3" height="15.0" fill="rgb(208,17,4)" rx="2" ry="2" />
+<text  x="1391.67" y="79.5" ></text>
 </g>
 <g >
-<title>[kernel] (145,813,253 cycles, 0.12%)</title><rect x="1374.0" y="69" width="1.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1377.02" y="79.5" ></text>
+<title>__lll_lock_wait_private (117,302,616 cycles, 0.10%)</title><rect x="1340.9" y="117" width="1.4" height="15.0" fill="rgb(254,228,54)" rx="2" ry="2" />
+<text  x="1343.93" y="127.5" ></text>
 </g>
 <g >
-<title>nova::VersionedStore::keys_pinned (3,510,977,406 cycles, 3.00%)</title><rect x="930.4" y="133" width="41.3" height="15.0" fill="rgb(211,31,7)" rx="2" ry="2" />
-<text  x="933.36" y="143.5" >nov..</text>
+<title>[kernel] (439,728,563 cycles, 0.38%)</title><rect x="1129.0" y="85" width="5.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1131.95" y="95.5" ></text>
 </g>
 <g >
-<title>[libstdc++.so.6.0.35] (116,797,243,113 cycles, 99.69%)</title><rect x="10.3" y="165" width="1375.7" height="15.0" fill="rgb(253,222,53)" rx="2" ry="2" />
-<text  x="13.26" y="175.5" >[libstdc++.so.6.0.35]</text>
+<title>__libc_malloc2 (111,482,401 cycles, 0.10%)</title><rect x="1281.2" y="85" width="1.3" height="15.0" fill="rgb(218,61,14)" rx="2" ry="2" />
+<text  x="1284.21" y="95.5" ></text>
 </g>
 <g >
-<title>nova::HashSegment::prepare_upsert (14,673,681 cycles, 0.01%)</title><rect x="1381.1" y="101" width="0.2" height="15.0" fill="rgb(245,188,45)" rx="2" ry="2" />
-<text  x="1384.12" y="111.5" ></text>
+<title>nova::index_find (1,710,147,056 cycles, 1.47%)</title><rect x="790.0" y="133" width="20.3" height="15.0" fill="rgb(227,104,24)" rx="2" ry="2" />
+<text  x="793.00" y="143.5" ></text>
 </g>
 <g >
-<title>nova::alloc_bytes (16,414,187 cycles, 0.01%)</title><rect x="1385.0" y="101" width="0.2" height="15.0" fill="rgb(246,188,45)" rx="2" ry="2" />
-<text  x="1388.00" y="111.5" ></text>
+<title>_mid_memalign (36,797,095 cycles, 0.03%)</title><rect x="1388.5" y="85" width="0.5" height="15.0" fill="rgb(218,62,14)" rx="2" ry="2" />
+<text  x="1391.54" y="95.5" ></text>
 </g>
 <g >
-<title>_int_free_chunk (325,611,129 cycles, 0.28%)</title><rect x="1001.7" y="117" width="3.8" height="15.0" fill="rgb(215,46,11)" rx="2" ry="2" />
-<text  x="1004.68" y="127.5" ></text>
+<title>[kernel] (148,183,856 cycles, 0.13%)</title><rect x="1342.4" y="101" width="1.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1345.39" y="111.5" ></text>
 </g>
 <g >
-<title>__munmap (11,376,532 cycles, 0.01%)</title><rect x="1004.1" y="101" width="0.2" height="15.0" fill="rgb(211,29,7)" rx="2" ry="2" />
-<text  x="1007.13" y="111.5" ></text>
+<title>nova::VersionedStore::read (29,313,214,964 cycles, 25.23%)</title><rect x="262.8" y="149" width="348.3" height="15.0" fill="rgb(253,224,53)" rx="2" ry="2" />
+<text  x="265.81" y="159.5" >nova::VersionedStore::read</text>
 </g>
 <g >
-<title>[kernel] (16,803,356 cycles, 0.01%)</title><rect x="971.5" y="117" width="0.2" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="974.51" y="127.5" ></text>
+<title>nova::PinnedArena::destroy (10,587,182 cycles, 0.01%)</title><rect x="1385.2" y="85" width="0.1" height="15.0" fill="rgb(211,31,7)" rx="2" ry="2" />
+<text  x="1388.15" y="95.5" ></text>
 </g>
 <g >
-<title>nova::PinnedArena::release (5,319,687,718 cycles, 4.54%)</title><rect x="1005.8" y="117" width="62.6" height="15.0" fill="rgb(226,100,23)" rx="2" ry="2" />
-<text  x="1008.79" y="127.5" >nova::..</text>
+<title>_start (408,109,538 cycles, 0.35%)</title><rect x="1385.2" y="213" width="4.8" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text  x="1388.15" y="223.5" ></text>
 </g>
 <g >
-<title>[kernel] (83,145,400 cycles, 0.07%)</title><rect x="1275.3" y="53" width="1.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
-<text  x="1278.32" y="63.5" ></text>
+<title>[kernel] (47,356,466 cycles, 0.04%)</title><rect x="993.4" y="101" width="0.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="996.39" y="111.5" ></text>
 </g>
 <g >
-<title>__syscall_cancel_arch_end (46,922,388 cycles, 0.04%)</title><rect x="996.2" y="101" width="0.6" height="15.0" fill="rgb(216,52,12)" rx="2" ry="2" />
-<text  x="999.21" y="111.5" ></text>
+<title>_int_free_merge_chunk (68,854,120 cycles, 0.06%)</title><rect x="1002.5" y="117" width="0.8" height="15.0" fill="rgb(240,163,39)" rx="2" ry="2" />
+<text  x="1005.47" y="127.5" ></text>
 </g>
 </g>
 </svg>

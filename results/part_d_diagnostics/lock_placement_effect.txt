@@ -1,0 +1,56 @@
+# Does the position of the lock object inside its cache line decide the throughput of the lock-based stores at 8 readers?
+# Diagnostic outside the campaign, not used in any table. 2026-10-13T11:42:18+05:30 ac_online=1 governor=performance
+# Every run is started directly (no wrapper). The ONLY thing varied is the length of the --run-id string (a label),
+# which changes the sizes of a few heap allocations made before the store is constructed and so moves the store.
+# command: build/release/concurrent_bench_<variant> --readers 8 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --writer-rate 10000 --duration 3 --seed 1 --run-id <label of N characters>
+rwlock run_id_len=1 lock_at=0x64663097cbd0 size=56 offset_in_line=16 straddles_two_lines=1 reads_per_s=21998915 writes_per_s=3588
+rwlock run_id_len=16 lock_at=0x575635c9cbf0 size=56 offset_in_line=48 straddles_two_lines=1 reads_per_s=34473236 writes_per_s=10000
+rwlock run_id_len=24 lock_at=0x6040b3fe1c30 size=56 offset_in_line=48 straddles_two_lines=1 reads_per_s=34240794 writes_per_s=10000
+rwlock run_id_len=40 lock_at=0x5c0186f7ac50 size=56 offset_in_line=16 straddles_two_lines=1 reads_per_s=22122348 writes_per_s=3553
+rwlock run_id_len=56 lock_at=0x60e7c2c08c20 size=56 offset_in_line=32 straddles_two_lines=1 reads_per_s=22237465 writes_per_s=4100
+rwlock run_id_len=72 lock_at=0x5cd3c9d49c90 size=56 offset_in_line=16 straddles_two_lines=1 reads_per_s=22876832 writes_per_s=3031
+rwlock run_id_len=88 lock_at=0x60c6bb596cb0 size=56 offset_in_line=48 straddles_two_lines=1 reads_per_s=33227001 writes_per_s=10000
+rwlock run_id_len=104 lock_at=0x5ad02580acd0 size=56 offset_in_line=16 straddles_two_lines=1 reads_per_s=21288034 writes_per_s=1674
+rwlock run_id_len=120 lock_at=0x5d30b89eec60 size=56 offset_in_line=32 straddles_two_lines=1 reads_per_s=22273511 writes_per_s=4616
+global_lock run_id_len=1 lock_at=0x60574e0d9bd0 size=40 offset_in_line=16 straddles_two_lines=0 reads_per_s=9316555 writes_per_s=10000
+global_lock run_id_len=16 lock_at=0x5d0cb64edbf0 size=40 offset_in_line=48 straddles_two_lines=1 reads_per_s=11437429 writes_per_s=10000
+global_lock run_id_len=24 lock_at=0x5bd5189f0c30 size=40 offset_in_line=48 straddles_two_lines=1 reads_per_s=11115826 writes_per_s=10000
+global_lock run_id_len=40 lock_at=0x574af2220c50 size=40 offset_in_line=16 straddles_two_lines=0 reads_per_s=9332603 writes_per_s=10000
+global_lock run_id_len=56 lock_at=0x61fe085cac20 size=40 offset_in_line=32 straddles_two_lines=1 reads_per_s=9549689 writes_per_s=10000
+global_lock run_id_len=72 lock_at=0x5fca569c6c90 size=40 offset_in_line=16 straddles_two_lines=0 reads_per_s=9592429 writes_per_s=10000
+global_lock run_id_len=88 lock_at=0x575755490cb0 size=40 offset_in_line=48 straddles_two_lines=1 reads_per_s=11798946 writes_per_s=10000
+global_lock run_id_len=104 lock_at=0x636ad5bc1cd0 size=40 offset_in_line=16 straddles_two_lines=0 reads_per_s=9810489 writes_per_s=10000
+global_lock run_id_len=120 lock_at=0x569b2ecc0c60 size=40 offset_in_line=32 straddles_two_lines=1 reads_per_s=9294621 writes_per_s=10000
+
+## Is the 'perf stat wrapper effect' of decision D-070 a placement effect? Same arguments, with and without the wrapper.
+# plain = started directly; perfstat = perf stat -e <9 events> -- /usr/bin/time -f maxrss_kb=%M -o <file> <same command>
+global_lock run_id_len=1 plain lock_offset_in_line=16 reads_per_s=9473498 writes_per_s=9999
+global_lock run_id_len=1 perfstat lock_offset_in_line=16 reads_per_s=11760507 writes_per_s=9999
+global_lock run_id_len=1 plain lock_offset_in_line=16 reads_per_s=9638585 writes_per_s=9999
+global_lock run_id_len=1 perfstat lock_offset_in_line=16 reads_per_s=11539995 writes_per_s=10000
+global_lock run_id_len=16 plain lock_offset_in_line=48 reads_per_s=11432409 writes_per_s=10000
+global_lock run_id_len=16 perfstat lock_offset_in_line=48 reads_per_s=14227581 writes_per_s=10000
+global_lock run_id_len=16 plain lock_offset_in_line=48 reads_per_s=10995706 writes_per_s=10000
+global_lock run_id_len=16 perfstat lock_offset_in_line=48 reads_per_s=14019659 writes_per_s=9999
+rwlock run_id_len=1 plain lock_offset_in_line=16 reads_per_s=22050652 writes_per_s=3503
+rwlock run_id_len=1 perfstat lock_offset_in_line=16 reads_per_s=21678599 writes_per_s=3802
+rwlock run_id_len=1 plain lock_offset_in_line=16 reads_per_s=22018573 writes_per_s=2713
+rwlock run_id_len=1 perfstat lock_offset_in_line=16 reads_per_s=21540438 writes_per_s=3554
+rwlock run_id_len=16 plain lock_offset_in_line=48 reads_per_s=34384473 writes_per_s=9999
+rwlock run_id_len=16 perfstat lock_offset_in_line=48 reads_per_s=32289987 writes_per_s=9999
+rwlock run_id_len=16 plain lock_offset_in_line=48 reads_per_s=34290488 writes_per_s=10000
+rwlock run_id_len=16 perfstat lock_offset_in_line=48 reads_per_s=32036394 writes_per_s=10000
+
+## Stop-the-world comparator (rcu build, concurrent_bench --reclaim stw, unthrottled writer): label length varied, and the wrapper
+rcu_stw run_id_len=1 plain reads_per_s=7019737 writes_per_s=159364 max_ns=5196903
+rcu_stw run_id_len=1 perfstat reads_per_s=5202182 writes_per_s=160957 max_ns=7356217
+rcu_stw run_id_len=16 plain reads_per_s=5577956 writes_per_s=158698 max_ns=6652482
+rcu_stw run_id_len=16 perfstat reads_per_s=4729138 writes_per_s=158807 max_ns=6271014
+rcu_stw run_id_len=24 plain reads_per_s=7329610 writes_per_s=157973 max_ns=6923682
+rcu_stw run_id_len=24 perfstat reads_per_s=5366079 writes_per_s=160114 max_ns=5601624
+rcu_stw run_id_len=40 plain reads_per_s=6382464 writes_per_s=159230 max_ns=6902764
+rcu_stw run_id_len=40 perfstat reads_per_s=4753891 writes_per_s=158842 max_ns=6500176
+rcu_stw run_id_len=56 plain reads_per_s=7394783 writes_per_s=160396 max_ns=6164835
+rcu_stw run_id_len=56 perfstat reads_per_s=5383984 writes_per_s=158635 max_ns=6285151
+rcu_stw run_id_len=88 plain reads_per_s=6752552 writes_per_s=159274 max_ns=7760899
+rcu_stw run_id_len=88 perfstat reads_per_s=5432428 writes_per_s=161755 max_ns=6395318

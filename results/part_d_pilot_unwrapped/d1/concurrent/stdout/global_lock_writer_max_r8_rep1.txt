@@ -1,10 +1,10 @@
-# command: build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id global_lock_writer_max_r8_rep1 --git-sha 9062d838457f-dirty --scenario writer_max --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/global_lock_writer_max_r8_rep1.csv --writer on --writer-cpu 15
+# command: build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id global_lock_writer_max_r8_rep1 --git-sha 146b851dc3dd-dirty --scenario writer_max --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/global_lock_writer_max_r8_rep1.csv --writer on --writer-cpu 15 --lock-offset 48
 # wrapper: none
-# start: 2026-10-13T10:45:38.594
+# start: 2026-10-13T11:50:03.817
 global_lock  scenario=writer_max readers=8 writer=thread_max keys=hit seconds=1.000
-  store lock object at 0x61d8b22a8d90, 40 bytes (cache lines 0x61d8b22a8d80..0x61d8b22a8d80)
-  reads : ops=6440028 rps=6439728 hits=6440028 misses=0 corrupt=0
-  read latency ns: p50=721 p99=7424 p999=14464 max=312413 mean=1208.8
-  writes: ok=563235 failed=0 rps=563209 p50=1280 p99=8448 max=282947 ns
+  store lock object at 0x645fe84f7ff0 (offset 48 in its cache line, placed by --lock-offset), 40 bytes (cache lines 0x645fe84f7fc0..0x645fe84f8000)
+  reads : ops=6875442 rps=6875040 hits=6875442 misses=0 corrupt=0
+  read latency ns: p50=511 p99=6912 p999=12672 max=294564 mean=1129.3
+  writes: ok=604476 failed=0 rps=604441 p50=1200 p99=7872 max=283173 ns
 # exit_status: 0
-# end: 2026-10-13T10:45:40.139
+# end: 2026-10-13T11:50:05.361

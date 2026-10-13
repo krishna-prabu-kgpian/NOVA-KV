@@ -169,7 +169,7 @@ run_gate part_c1_artifacts yes sh -c '
     grep -q "Durability" docs/transactions.md || { echo "MISSING  durability statement"; status=1; }
     # Every tag that is a checkpoint so far still names the commit it was created on.
     for pair in a0-bootstrap:2ef5f19 part-a-core:80bc092 part-a-final:3444f23 part-b-publication:2d9c02c \
-                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10 part-c-final:27d3161; do
+                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10 part-c-final:27d3161 part-d-final:9062d83; do
         tag=${pair%%:*}; want=${pair##*:}
         have=$(git rev-parse --short=7 "$tag^{commit}" 2>/dev/null)
         if [ "$have" = "$want" ]; then echo "ok       tag $tag = $want"; else echo "MOVED    tag $tag: $have, expected $want"; status=1; fi
@@ -211,40 +211,71 @@ run_gate part_c_artifacts yes sh -c '
     fi
     exit $status'
 
-# ---- Part D deliverables (milestone D) --------------------------------------------
+# ---- Part D deliverables (milestone D, corrected campaign: decision D-071) -----------
 run_gate part_d_artifacts yes sh -c '
     status=0
+    bad() { echo "$1"; status=1; }
+    P=results/part_d
+    ORIG=$P/original-wrapped-20261013T090846-615f4357f015
+    C=$P/$(cat $P/PRIMARY 2>/dev/null)
+    [ -s $P/PRIMARY ] && [ -d "$C" ] && echo "ok       primary campaign: $C" || bad "MISSING  $P/PRIMARY does not name a campaign directory"
+    # The original campaign is kept exactly as tagged.
+    if [ "$(git rev-parse -q --verify "HEAD:$ORIG")" = "$(git rev-parse -q --verify part-d-final:results/part_d)" ] \
+        && [ -z "$(git status --porcelain -- "$ORIG")" ]; then
+        echo "ok       original (wrapped) campaign identical to part-d-final:results/part_d"
+    else bad "CHANGED  $ORIG differs from part-d-final:results/part_d"; fi
     for f in scripts/run_part_d.sh scripts/aggregate_part_d.py scripts/part_d_profile_breakdown.py \
+             scripts/compare_part_d_campaigns.py scripts/publish_part_d.sh \
              benchmarks/concurrent_bench.cpp benchmarks/join_bench.cpp benchmarks/reclaim_bench.cpp \
              reports/part_d_report.md reports/part_d_report.pdf docs/part_d_compliance.md docs/part_d_plan.md \
-             results/part_d/CAMPAIGN results/part_d/conditions.log results/part_d/env/campaign_config.txt \
-             results/part_d/env/prerequisites.txt results/part_d/summary/summary.md \
-             results/part_d/summary/profile_breakdown.txt results/part_d/d1/concurrent/runs.csv \
-             results/part_d/d1/reference/runs.csv results/part_d/d2/steady/runs.csv results/part_d/d2/backlog/runs.csv \
-             results/part_d/d3/txn/runs.csv results/part_d/d3/join/runs.csv results/part_d/d3/cow/runs.csv; do
-        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+             reports/milestones/D.md reports/milestones/D_corrected.md $P/README.md \
+             $P/summary/summary.md $P/summary/original_vs_corrected.md $P/summary/profile_breakdown.txt \
+             $P/summary/profiling_overhead.csv \
+             "$C/CAMPAIGN" "$C/conditions.log" "$C/env/campaign_config.txt" "$C/env/prerequisites.txt" \
+             "$C/d1/concurrent/runs.csv" "$C/d1/reference/runs.csv" "$C/d2/steady/runs.csv" "$C/d2/backlog/runs.csv" \
+             "$C/d3/txn/runs.csv" "$C/d3/join/runs.csv" "$C/d3/cow/runs.csv" "$C/d3/generator/runs.csv" \
+             "$C/profiling/perf_stat/d1/concurrent/runs.csv"; do
+        if [ -s "$f" ]; then echo "ok       $f"; else bad "MISSING  $f"; fi
     done
-    [ -e results/part_d/INVALID ] && { echo "INVALID  the campaign is marked invalid"; status=1; }
-    [ -e results/part_d/summary/problems.txt ] && [ ! -s results/part_d/summary/problems.txt ] \
-        && echo "ok       aggregator found no problem" || { echo "PROBLEM  results/part_d/summary/problems.txt is missing or not empty"; status=1; }
-    if grep -v -E "ac_online=1 .*governor=performance " results/part_d/conditions.log | grep -q .; then
-        echo "CHANGED  a condition record is not mains + performance"; status=1
-    else echo "ok       $(grep -c . results/part_d/conditions.log) condition records: mains power, performance governor"; fi
-    campaign=$(cat results/part_d/CAMPAIGN)
-    for d in d1/concurrent d1/reference d2/steady d2/backlog d3/txn d3/join d3/cow d3/generator perf/flamegraphs perf/c2c; do
-        [ "$(cat results/part_d/$d/.campaign 2>/dev/null)" = "$campaign" ] || { echo "MIXED    results/part_d/$d is not from campaign $campaign"; status=1; }
+    [ -e "$C/INVALID" ] && bad "INVALID  the campaign is marked invalid"
+    [ -e "$C/summary/problems.txt" ] && [ ! -s "$C/summary/problems.txt" ] \
+        && echo "ok       aggregator found no problem" || bad "PROBLEM  $C/summary/problems.txt is missing or not empty"
+    if grep -v -E "ac_online=1 .*governor=performance " "$C/conditions.log" | grep -q .; then
+        bad "CHANGED  a condition record is not mains + performance"
+    else echo "ok       $(grep -c . "$C/conditions.log") condition records: mains power, performance governor"; fi
+    campaign=$(cat "$C/CAMPAIGN")
+    for d in d1/concurrent d1/reference d2/steady d2/backlog d3/txn d3/join d3/cow d3/generator \
+             profiling/perf_stat profiling/flamegraphs profiling/c2c; do
+        [ "$(cat "$C/$d/.campaign" 2>/dev/null)" = "$campaign" ] || bad "MIXED    $C/$d is not from campaign $campaign"
     done
+    # TIMING TRACK: no run may have been started under a profiler, a tracer or /usr/bin/time.
+    wrapped=$(grep -l -E "^# command: *(perf|strace|ltrace|valgrind|/usr/bin/time|time) " \
+                  "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt 2>/dev/null | wc -l)
+    timing=$(ls "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt 2>/dev/null | wc -l)
+    [ "$wrapped" -eq 0 ] && [ "$timing" -gt 0 ] && echo "ok       timing track: $timing runs, none started under a profiler or wrapper" \
+        || bad "WRAPPED  $wrapped of $timing timing runs were started under a profiler or wrapper"
+    [ -z "$(find "$C/d1" "$C/d2" "$C/d3" -type d \( -name perf_stat -o -name rss \) 2>/dev/null)" ] \
+        || bad "WRAPPED  perf_stat/ or rss/ directory inside the timing track"
+    bad_exit=$(grep -L "^# exit_status: 0$" "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt \
+                   "$C"/profiling/perf_stat/*/*/stdout/*.txt 2>/dev/null | wc -l)
+    [ "$bad_exit" -eq 0 ] && echo "ok       every run records exit status 0" || bad "FAILED   $bad_exit runs without exit status 0"
     n() { ls "$1" 2>/dev/null | grep -c "$2"; }
-    [ "$(n results/part_d/figures .png)" -ge 12 ] && echo "ok       figures: $(n results/part_d/figures .png)" || { echo "MISSING  figures"; status=1; }
-    [ "$(n results/part_d/perf/flamegraphs "\.svg$")" -ge 9 ] && echo "ok       flame graphs: $(n results/part_d/perf/flamegraphs "\.svg$")" || { echo "MISSING  flame graphs"; status=1; }
-    [ "$(n results/part_d/perf/c2c c2c-report.txt)" -ge 4 ] && echo "ok       perf c2c reports: $(n results/part_d/perf/c2c c2c-report.txt)" || { echo "MISSING  perf c2c reports"; status=1; }
-    runs=$(($(wc -l < results/part_d/d1/concurrent/runs.csv) - 1))
-    [ "$runs" -eq "$(n results/part_d/d1/concurrent/hist .csv)" ] && [ "$runs" -eq "$(n results/part_d/d1/concurrent/perf_stat .txt)" ] \
-        && echo "ok       D.1 track C: $runs runs, each with a histogram and a perf stat file" || { echo "MISMATCH D.1 runs / histograms / perf stat files"; status=1; }
+    [ "$(n $P/figures .png)" -ge 12 ] && echo "ok       figures: $(n $P/figures .png)" || bad "MISSING  figures"
+    [ "$(n "$C/profiling/flamegraphs" "\.svg$")" -ge 10 ] && echo "ok       flame graphs: $(n "$C/profiling/flamegraphs" "\.svg$")" || bad "MISSING  flame graphs"
+    [ "$(n "$C/profiling/c2c" c2c-report.txt)" -ge 5 ] && echo "ok       perf c2c reports: $(n "$C/profiling/c2c" c2c-report.txt)" || bad "MISSING  perf c2c reports"
+    runs=$(($(wc -l < "$C/d1/concurrent/runs.csv") - 1))
+    [ "$runs" -eq "$(n "$C/d1/concurrent/hist" .csv)" ] && [ "$runs" -eq "$(n "$C/d1/concurrent/stdout" .txt)" ] \
+        && echo "ok       D.1 track C: $runs timing runs, each with a histogram and a command record" || bad "MISMATCH D.1 runs / histograms / stdout"
+    # What the report embeds is the corrected campaign, unedited.
+    diff -r -q "$C/figures" $P/figures > /dev/null && echo "ok       $P/figures is the corrected campaign" || bad "STALE    $P/figures differs from $C/figures"
+    cmp -s "$C/summary/summary.md" $P/summary/summary.md && echo "ok       $P/summary/summary.md is the corrected campaign" || bad "STALE    $P/summary/summary.md"
+    grep -q "unwrapped" $P/summary/summary.md || bad "STALE    summary does not describe an unwrapped timing track"
     # Statements the report must not lose.
-    grep -qi "preload-only" reports/part_d_report.md || { echo "MISSING  preload-only label in the report"; status=1; }
-    grep -qi "two handles" reports/part_d_report.md || { echo "MISSING  one-snapshot-per-store limitation in the report"; status=1; }
-    grep -q "not what was measured" reports/part_d_report.md || { echo "MISSING  the batch trade-off finding"; status=1; }
+    grep -qi "preload-only" reports/part_d_report.md || bad "MISSING  preload-only label in the report"
+    grep -qi "two handles" reports/part_d_report.md || bad "MISSING  one-snapshot-per-store limitation in the report"
+    grep -qi "started directly" reports/part_d_report.md || bad "MISSING  the unwrapped-timing statement in the report"
+    grep -q "$(cat $P/PRIMARY)" reports/part_d_report.md || bad "STALE    the report does not name the primary campaign"
+    grep -q "615f4357f015-all" reports/part_d_report.md || bad "MISSING  the report does not name the superseded campaign"
     exit $status'
 
 # ---- Informational (do not affect the verdict) ------------------------------

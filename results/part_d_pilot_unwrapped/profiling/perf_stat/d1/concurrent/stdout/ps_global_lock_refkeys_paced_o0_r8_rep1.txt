@@ -1,0 +1,8 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/perf_stat/ps_global_lock_refkeys_paced_o0_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_refkeys_paced_o0_r8_rep1.txt build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id ps_global_lock_refkeys_paced_o0_r8_rep1 --git-sha 146b851dc3dd-dirty --scenario refkeys_paced_o0 --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_refkeys_paced_o0_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference --lock-offset 0
+global_lock  scenario=refkeys_paced_o0 readers=8 writer=thread_paced keys=reference seconds=1.000
+  store lock object at 0x57d646299e80 (offset 0 in its cache line, placed by --lock-offset), 40 bytes (cache lines 0x57d646299e80..0x57d646299e80)
+  reads : ops=13293229 rps=13292685 hits=10636470 misses=2656759 corrupt=0
+  read latency ns: p50=100 p99=7488 p999=13696 max=249309 mean=565.7
+  writes: ok=9999 failed=0 rps=9999 p50=942 p99=11776 max=97453 ns
+# exit_status: 0

@@ -1,0 +1,21 @@
+# started on Tue Oct 13 11:35:41 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/rss/ps_txn16_indexed_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/hist/ps_txn16_indexed_rep1.csv --run-id ps_txn16_indexed_rep1 --git-sha 146b851dc3dd --experiment txn --txn-size 16 --index on --duration 3':
+
+          3,598.87 msec task-clock                                                            
+    12,618,122,084      cycles                                                                  (83.24%)
+    48,033,310,503      instructions                                                            (83.31%)
+     3,832,395,848      cache-references                                                        (83.25%)
+       242,412,433      cache-misses                                                            (83.27%)
+            55,147      context-switches                                                      
+                14      cpu-migrations                                                        
+        22,771,730      branch-misses                                                           (83.46%)
+     2,142,591,037      L1-dcache-load-misses                                                   (83.48%)
+
+       3.165814130 seconds time elapsed
+
+       3.388043000 seconds user
+       0.214269000 seconds sys
+
+

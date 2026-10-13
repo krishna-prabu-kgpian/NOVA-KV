@@ -1,0 +1,10 @@
+# command: build/release/concurrent_bench_single --readers 1 --duration 5 --warmup 0.5 --reader-cpus 0 --seed 3 --run-id single_readonly_r1_rep3 --git-sha 146b851dc3dd --scenario readonly --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/d1/concurrent/hist/single_readonly_r1_rep3.csv --writer off
+# wrapper: none
+# start: 2026-10-13T10:59:52.140
+single       scenario=readonly readers=1 writer=none keys=hit seconds=5.000
+  store lock object at 0x5d4ed7f6ad90, 1 bytes (cache lines 0x5d4ed7f6ad80..0x5d4ed7f6ad80)
+  reads : ops=91484859 rps=18296690 hits=91484859 misses=0 corrupt=0
+  read latency ns: p50=30 p99=140 p999=310 max=147728 mean=33.9
+  writes: ok=0 failed=0 rps=0 p50=0 p99=0 max=0 ns
+# exit_status: 0
+# end: 2026-10-13T10:59:57.656

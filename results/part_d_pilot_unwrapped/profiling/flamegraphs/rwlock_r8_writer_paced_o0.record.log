@@ -1,0 +1,23 @@
+# command: perf record -F 1999 --call-graph fp -o build/perf_data/rwlock_r8_writer_paced_o0.data -- build/release/concurrent_bench_rwlock --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --writer-rate 10000 --warmup 0.5 --duration 5 --git-sha 146b851dc3dd-dirty --csv results/part_d_pilot_unwrapped/profiling/flamegraphs/profiled_runs.csv --lock-offset 0 --run-id fg_rwlock_r8_writer_paced_o0 --scenario writer_paced_o0_profiled
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rwlock       scenario=writer_paced_o0_profiled readers=8 writer=thread_paced keys=hit seconds=5.000
+  store lock object at 0x55a815405d00 (offset 0 in its cache line, placed by --lock-offset), 56 bytes (cache lines 0x55a815405d00..0x55a815405d00)
+  reads : ops=115331122 rps=23065941 hits=115331122 misses=0 corrupt=0
+  read latency ns: p50=301 p99=721 p999=2464 max=5042127 mean=316.0
+  writes: ok=12359 failed=0 rps=2472 p50=241664 p99=2424832 max=4803878 ns
+[ perf record: Woken up 34 times to write data ]
+[ perf record: Captured and wrote 9.419 MB build/perf_data/rwlock_r8_writer_paced_o0.data (86345 samples) ]
+# exit_status: 0

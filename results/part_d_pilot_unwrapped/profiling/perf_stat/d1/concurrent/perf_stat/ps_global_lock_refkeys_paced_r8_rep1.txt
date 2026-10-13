@@ -1,21 +1,21 @@
-# started on Tue Oct 13 10:47:16 2026
+# started on Tue Oct 13 11:51:57 2026
 
 
- Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_refkeys_paced_r8_rep1.txt build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id ps_global_lock_refkeys_paced_r8_rep1 --git-sha 9062d838457f-dirty --scenario refkeys_paced --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference':
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_refkeys_paced_r8_rep1.txt build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id ps_global_lock_refkeys_paced_r8_rep1 --git-sha 146b851dc3dd-dirty --scenario refkeys_paced --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference --lock-offset 48':
 
-         11,762.52 msec task-clock                                                            
-    41,822,303,168      cycles                                                                  (83.29%)
-    33,629,344,328      instructions                                                            (83.17%)
-       772,566,694      cache-references                                                        (83.45%)
-       139,960,507      cache-misses                                                            (83.38%)
-           710,481      context-switches                                                      
-                 9      cpu-migrations                                                        
-        99,536,739      branch-misses                                                           (83.33%)
-       316,978,663      L1-dcache-load-misses                                                   (83.39%)
+         12,358.16 msec task-clock                                                            
+    46,148,011,445      cycles                                                                  (83.58%)
+    35,778,651,750      instructions                                                            (83.52%)
+       633,887,292      cache-references                                                        (83.10%)
+       136,190,174      cache-misses                                                            (83.43%)
+           489,221      context-switches                                                      
+                10      cpu-migrations                                                        
+       113,475,676      branch-misses                                                           (83.15%)
+       329,651,753      L1-dcache-load-misses                                                   (83.23%)
 
-       1.511105111 seconds time elapsed
+       1.542286569 seconds time elapsed
 
-       3.193171000 seconds user
-       8.582347000 seconds sys
+       3.880085000 seconds user
+       8.488352000 seconds sys
 
 

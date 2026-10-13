@@ -1,0 +1,21 @@
+# started on Tue Oct 13 11:34:46 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/rss/ps_backlog_batch1024_rep1.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 146b851dc3dd --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim-batch 1024 --run-id ps_backlog_batch1024_rep1 --scenario batch_1024 --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/hist/ps_backlog_batch1024_rep1.csv':
+
+         34,509.77 msec task-clock                                                            
+   138,017,697,721      cycles                                                                  (83.38%)
+    95,217,338,866      instructions                                                            (83.26%)
+    25,574,042,191      cache-references                                                        (83.35%)
+     5,997,976,349      cache-misses                                                            (83.29%)
+           160,402      context-switches                                                      
+                49      cpu-migrations                                                        
+       102,290,503      branch-misses                                                           (83.34%)
+    11,047,239,237      L1-dcache-load-misses                                                   (83.39%)
+
+       3.530513285 seconds time elapsed
+
+      32.784056000 seconds user
+       1.747330000 seconds sys
+
+

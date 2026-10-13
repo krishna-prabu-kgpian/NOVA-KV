@@ -1,21 +1,21 @@
-# started on Tue Oct 13 10:47:44 2026
+# started on Tue Oct 13 11:52:28 2026
 
 
- Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/rss/ps_txn4_indexed_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/hist/ps_txn4_indexed_rep1.csv --run-id ps_txn4_indexed_rep1 --git-sha 9062d838457f-dirty --experiment txn --txn-size 4 --index on --duration 1':
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/rss/ps_txn4_indexed_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/hist/ps_txn4_indexed_rep1.csv --run-id ps_txn4_indexed_rep1 --git-sha 146b851dc3dd-dirty --experiment txn --txn-size 4 --index on --duration 1':
 
-          1,343.30 msec task-clock                                                            
-     4,809,582,641      cycles                                                                  (83.79%)
-    17,146,397,665      instructions                                                            (83.66%)
-     1,424,634,132      cache-references                                                        (83.54%)
-        93,505,960      cache-misses                                                            (83.00%)
-            19,654      context-switches                                                      
+          1,367.11 msec task-clock                                                            
+     4,810,751,370      cycles                                                                  (83.53%)
+    17,095,204,590      instructions                                                            (83.53%)
+     1,430,144,526      cache-references                                                        (83.43%)
+        95,162,771      cache-misses                                                            (83.55%)
+            20,848      context-switches                                                      
                  2      cpu-migrations                                                        
-         8,902,221      branch-misses                                                           (82.89%)
-       814,169,753      L1-dcache-load-misses                                                   (83.16%)
+         9,106,300      branch-misses                                                           (83.00%)
+       816,624,644      L1-dcache-load-misses                                                   (83.01%)
 
-       1.157934738 seconds time elapsed
+       1.177325569 seconds time elapsed
 
-       1.260914000 seconds user
-       0.084625000 seconds sys
+       1.300627000 seconds user
+       0.069043000 seconds sys
 
 

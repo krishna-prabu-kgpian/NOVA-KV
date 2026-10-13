@@ -1,0 +1,670 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1400" height="230" onload="init(evt)" viewBox="0 0 1400 230" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1400.0" height="230.0" fill="url(#background)"  />
+<text id="title" x="700.00" y="24" >NOVA-KV Part D: rwlock, 8 readers + unthrottled writer (on-CPU cycles)</text>
+<text id="details" x="10.00" y="213" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1290.00" y="24" >Search</text>
+<text id="ignorecase" x="1374.00" y="24" >ic</text>
+<text id="matched" x="1290.00" y="213" > </text>
+<g id="frames">
+<g >
+<title>[kernel] (11,901,323 cycles, 0.01%)</title><rect x="22.6" y="69" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="25.63" y="79.5" ></text>
+</g>
+<g >
+<title>main (38,968,944 cycles, 0.03%)</title><rect x="1389.7" y="101" width="0.3" height="15.0" fill="rgb(243,179,42)" rx="2" ry="2" />
+<text  x="1392.65" y="111.5" ></text>
+</g>
+<g >
+<title>clock_gettime@@GLIBC_2.17 (42,147,075 cycles, 0.03%)</title><rect x="39.7" y="85" width="0.3" height="15.0" fill="rgb(250,209,50)" rx="2" ry="2" />
+<text  x="42.65" y="95.5" ></text>
+</g>
+<g >
+<title>__GI___futex_abstimed_wait64 (1,306,351,999 cycles, 0.84%)</title><rect x="10.8" y="85" width="11.6" height="15.0" fill="rgb(205,1,0)" rx="2" ry="2" />
+<text  x="13.77" y="95.5" ></text>
+</g>
+<g >
+<title>clock_gettime@@GLIBC_2.17 (40,827,674,401 cycles, 26.27%)</title><rect x="1027.1" y="69" width="362.5" height="15.0" fill="rgb(250,209,50)" rx="2" ry="2" />
+<text  x="1030.07" y="79.5" >clock_gettime@@GLIBC_2.17</text>
+</g>
+<g >
+<title>clock_gettime@@GLIBC_2.17 (438,792,654 cycles, 0.28%)</title><rect x="979.0" y="85" width="3.9" height="15.0" fill="rgb(250,209,50)" rx="2" ry="2" />
+<text  x="981.96" y="95.5" ></text>
+</g>
+<g >
+<title>[kernel] (1,470,065,576 cycles, 0.95%)</title><rect x="24.1" y="69" width="13.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="27.07" y="79.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void (7,060,325,183 cycles, 4.54%)</title><rect x="40.0" y="101" width="62.7" height="15.0" fill="rgb(241,168,40)" rx="2" ry="2" />
+<text  x="43.02" y="111.5" >std::t..</text>
+</g>
+<g >
+<title>__printf_buffer (24,766,590 cycles, 0.02%)</title><rect x="1389.8" y="53" width="0.2" height="15.0" fill="rgb(219,68,16)" rx="2" ry="2" />
+<text  x="1392.78" y="63.5" ></text>
+</g>
+<g >
+<title>__snprintf_chk (24,766,590 cycles, 0.02%)</title><rect x="1389.8" y="85" width="0.2" height="15.0" fill="rgb(209,20,4)" rx="2" ry="2" />
+<text  x="1392.78" y="95.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (144,923,724,284 cycles, 93.25%)</title><rect x="102.7" y="101" width="1286.9" height="15.0" fill="rgb(234,137,32)" rx="2" ry="2" />
+<text  x="105.72" y="111.5" >std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>[[vdso]] (39,985,582 cycles, 0.03%)</title><rect x="39.7" y="69" width="0.3" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="42.67" y="79.5" ></text>
+</g>
+<g >
+<title>std::chrono::_V2::steady_clock::now (47,483,664 cycles, 0.03%)</title><rect x="39.6" y="101" width="0.4" height="15.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="42.60" y="111.5" ></text>
+</g>
+<g >
+<title>memcpy@plt (536,768,669 cycles, 0.35%)</title><rect x="985.5" y="85" width="4.8" height="15.0" fill="rgb(224,88,21)" rx="2" ry="2" />
+<text  x="988.51" y="95.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (640,651,381 cycles, 0.41%)</title><rect x="973.3" y="85" width="5.7" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="976.27" y="95.5" ></text>
+</g>
+<g >
+<title>__GI___futex_abstimed_wait64 (16,694,890 cycles, 0.01%)</title><rect x="10.0" y="133" width="0.1" height="15.0" fill="rgb(205,1,0)" rx="2" ry="2" />
+<text  x="13.00" y="143.5" ></text>
+</g>
+<g >
+<title>clock_gettime@plt (298,210,134 cycles, 0.19%)</title><rect x="982.9" y="85" width="2.6" height="15.0" fill="rgb(229,112,27)" rx="2" ry="2" />
+<text  x="985.86" y="95.5" ></text>
+</g>
+<g >
+<title>nova::HashSegment::prepare_upsert (38,690,943 cycles, 0.02%)</title><rect x="22.9" y="85" width="0.3" height="15.0" fill="rgb(245,188,45)" rx="2" ry="2" />
+<text  x="25.89" y="95.5" ></text>
+</g>
+<g >
+<title>KVStore::put (3,079,381,803 cycles, 1.98%)</title><rect x="10.4" y="101" width="27.3" height="15.0" fill="rgb(254,225,53)" rx="2" ry="2" />
+<text  x="13.39" y="111.5" >K..</text>
+</g>
+<g >
+<title>__vsnprintf_internal (119,971,889 cycles, 0.08%)</title><rect x="37.8" y="85" width="1.0" height="15.0" fill="rgb(237,150,35)" rx="2" ry="2" />
+<text  x="40.78" y="95.5" ></text>
+</g>
+<g >
+<title>KVStore::get (98,014,713,076 cycles, 63.07%)</title><rect x="102.7" y="85" width="870.4" height="15.0" fill="rgb(215,48,11)" rx="2" ry="2" />
+<text  x="105.72" y="95.5" >KVStore::get</text>
+</g>
+<g >
+<title>concurrent_benc (155,408,499,834 cycles, 100.00%)</title><rect x="10.0" y="165" width="1380.0" height="15.0" fill="rgb(216,52,12)" rx="2" ry="2" />
+<text  x="13.00" y="175.5" >concurrent_benc</text>
+</g>
+<g >
+<title>__vdso_clock_gettime (100,551,649 cycles, 0.06%)</title><rect x="1026.2" y="69" width="0.9" height="15.0" fill="rgb(254,226,54)" rx="2" ry="2" />
+<text  x="1029.18" y="79.5" ></text>
+</g>
+<g >
+<title>[kernel] (16,694,890 cycles, 0.01%)</title><rect x="10.0" y="117" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="13.00" y="127.5" ></text>
+</g>
+<g >
+<title>[kernel] (104,270,621 cycles, 0.07%)</title><rect x="742.4" y="53" width="1.0" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="745.45" y="63.5" ></text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (41,246,512 cycles, 0.03%)</title><rect x="22.4" y="85" width="0.3" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="25.37" y="95.5" ></text>
+</g>
+<g >
+<title>__printf_buffer (89,244,051 cycles, 0.06%)</title><rect x="37.8" y="69" width="0.8" height="15.0" fill="rgb(219,68,16)" rx="2" ry="2" />
+<text  x="40.80" y="79.5" ></text>
+</g>
+<g >
+<title>[kernel] (1,292,339,563 cycles, 0.83%)</title><rect x="10.9" y="69" width="11.5" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="13.90" y="79.5" ></text>
+</g>
+<g >
+<title>__GI___clone3 (155,350,124,430 cycles, 99.96%)</title><rect x="10.1" y="149" width="1379.5" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="13.15" y="159.5" >__GI___clone3</text>
+</g>
+<g >
+<title>__memmove_avx512_unaligned_erms (11,682,725 cycles, 0.01%)</title><rect x="38.3" y="53" width="0.1" height="15.0" fill="rgb(223,84,20)" rx="2" ry="2" />
+<text  x="41.25" y="63.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_rdlock@plt (125,580,095 cycles, 0.08%)</title><rect x="991.3" y="85" width="1.1" height="15.0" fill="rgb(217,57,13)" rx="2" ry="2" />
+<text  x="994.31" y="95.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_unlock@@GLIBC_2.34 (25,867,790,865 cycles, 16.65%)</title><rect x="743.4" y="69" width="229.7" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="746.37" y="79.5" >pthread_rwlock_unlock@@GLIBC_2..</text>
+</g>
+<g >
+<title>__libc_start_call_main (38,968,944 cycles, 0.03%)</title><rect x="1389.7" y="117" width="0.3" height="15.0" fill="rgb(210,26,6)" rx="2" ry="2" />
+<text  x="1392.65" y="127.5" ></text>
+</g>
+<g >
+<title>clock_gettime@@GLIBC_2.17 (18,896,056 cycles, 0.01%)</title><rect x="38.8" y="101" width="0.2" height="15.0" fill="rgb(250,209,50)" rx="2" ry="2" />
+<text  x="41.85" y="111.5" ></text>
+</g>
+<g >
+<title>__libc_start_main@@GLIBC_2.34 (38,968,944 cycles, 0.03%)</title><rect x="1389.7" y="133" width="0.3" height="15.0" fill="rgb(229,113,27)" rx="2" ry="2" />
+<text  x="1392.65" y="143.5" ></text>
+</g>
+<g >
+<title>[unknown] (16,782,628 cycles, 0.01%)</title><rect x="10.0" y="149" width="0.1" height="15.0" fill="rgb(210,24,5)" rx="2" ry="2" />
+<text  x="13.00" y="159.5" ></text>
+</g>
+<g >
+<title>__GI___futex_abstimed_wait64 (12,612,683,074 cycles, 8.12%)</title><rect x="161.1" y="69" width="112.0" height="15.0" fill="rgb(205,1,0)" rx="2" ry="2" />
+<text  x="164.11" y="79.5" >__GI___futex_..</text>
+</g>
+<g >
+<title>start_thread (155,350,098,735 cycles, 99.96%)</title><rect x="10.1" y="133" width="1379.5" height="15.0" fill="rgb(212,34,8)" rx="2" ry="2" />
+<text  x="13.15" y="143.5" >start_thread</text>
+</g>
+<g >
+<title>__vsnprintf_internal (24,766,590 cycles, 0.02%)</title><rect x="1389.8" y="69" width="0.2" height="15.0" fill="rgb(237,150,35)" rx="2" ry="2" />
+<text  x="1392.78" y="79.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_wrlock@@GLIBC_2.34 (68,491,596 cycles, 0.04%)</title><rect x="37.1" y="85" width="0.6" height="15.0" fill="rgb(222,79,19)" rx="2" ry="2" />
+<text  x="40.13" y="95.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_unlock@@GLIBC_2.34 (1,564,503,627 cycles, 1.01%)</title><rect x="23.2" y="85" width="13.9" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="26.23" y="95.5" ></text>
+</g>
+<g >
+<title>all (155,408,502,640 cycles, 100%)</title><rect x="10.0" y="181" width="1380.0" height="15.0" fill="rgb(213,39,9)" rx="2" ry="2" />
+<text  x="13.00" y="191.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_unlock@@GLIBC_2.34 (18,587,787 cycles, 0.01%)</title><rect x="992.4" y="85" width="0.2" height="15.0" fill="rgb(211,28,6)" rx="2" ry="2" />
+<text  x="995.42" y="95.5" ></text>
+</g>
+<g >
+<title>__printf_buffer_write (12,814,970 cycles, 0.01%)</title><rect x="38.5" y="53" width="0.1" height="15.0" fill="rgb(220,73,17)" rx="2" ry="2" />
+<text  x="41.46" y="63.5" ></text>
+</g>
+<g >
+<title>nova::Arena::release (59,832,971 cycles, 0.04%)</title><rect x="39.0" y="101" width="0.5" height="15.0" fill="rgb(241,167,40)" rx="2" ry="2" />
+<text  x="42.02" y="111.5" ></text>
+</g>
+<g >
+<title>[[vdso]] (892,727,929 cycles, 0.57%)</title><rect x="1018.2" y="69" width="7.9" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="1021.22" y="79.5" ></text>
+</g>
+<g >
+<title>pthread_rwlock_rdlock@GLIBC_2.2.5 (116,144,887 cycles, 0.07%)</title><rect x="990.3" y="85" width="1.0" height="15.0" fill="rgb(211,29,7)" rx="2" ry="2" />
+<text  x="993.27" y="95.5" ></text>
+</g>
+<g >
+<title>[kernel] (12,547,053,486 cycles, 8.07%)</title><rect x="161.7" y="53" width="111.4" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="164.69" y="63.5" >[kernel]</text>
+</g>
+<g >
+<title>[kernel] (403,877,347 cycles, 0.26%)</title><rect x="969.5" y="53" width="3.6" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="972.49" y="63.5" ></text>
+</g>
+<g >
+<title>_start (38,968,944 cycles, 0.03%)</title><rect x="1389.7" y="149" width="0.3" height="15.0" fill="rgb(245,185,44)" rx="2" ry="2" />
+<text  x="1392.65" y="159.5" ></text>
+</g>
+<g >
+<title>[kernel] (17,433,315 cycles, 0.01%)</title><rect x="973.1" y="85" width="0.1" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="976.07" y="95.5" ></text>
+</g>
+<g >
+<title>[kernel] (76,940,138 cycles, 0.05%)</title><rect x="1388.9" y="37" width="0.7" height="15.0" fill="rgb(234,134,32)" rx="2" ry="2" />
+<text  x="1391.93" y="47.5" ></text>
+</g>
+<g >
+<title>__strchrnul_evex (11,547,936 cycles, 0.01%)</title><rect x="38.6" y="69" width="0.2" height="15.0" fill="rgb(239,159,38)" rx="2" ry="2" />
+<text  x="41.65" y="79.5" ></text>
+</g>
+<g >
+<title>nova::Arena::append (15,750,555 cycles, 0.01%)</title><rect x="22.7" y="85" width="0.2" height="15.0" fill="rgb(219,67,16)" rx="2" ry="2" />
+<text  x="25.75" y="95.5" ></text>
+</g>
+<g >
+<title>[[vdso]] (39,833,795,920 cycles, 25.63%)</title><rect x="1035.9" y="53" width="353.7" height="15.0" fill="rgb(218,60,14)" rx="2" ry="2" />
+<text  x="1038.90" y="63.5" >[[vdso]]</text>
+</g>
+<g >
+<title>pthread_rwlock_rdlock@GLIBC_2.2.5 (52,958,390,115 cycles, 34.08%)</title><rect x="273.1" y="69" width="470.3" height="15.0" fill="rgb(211,29,7)" rx="2" ry="2" />
+<text  x="276.11" y="79.5" >pthread_rwlock_rdlock@GLIBC_2.2.5</text>
+</g>
+<g >
+<title>__snprintf_chk (124,720,233 cycles, 0.08%)</title><rect x="37.7" y="101" width="1.1" height="15.0" fill="rgb(209,20,4)" rx="2" ry="2" />
+<text  x="40.73" y="111.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.35] (155,350,037,125 cycles, 99.96%)</title><rect x="10.1" y="117" width="1379.5" height="15.0" fill="rgb(253,222,53)" rx="2" ry="2" />
+<text  x="13.15" y="127.5" >[libstdc++.so.6.0.35]</text>
+</g>
+<g >
+<title>std::chrono::_V2::steady_clock::now (44,700,599,116 cycles, 28.76%)</title><rect x="992.7" y="85" width="396.9" height="15.0" fill="rgb(249,203,48)" rx="2" ry="2" />
+<text  x="995.68" y="95.5" >std::chrono::_V2::steady_clock::now</text>
+</g>
+</g>
+</svg>

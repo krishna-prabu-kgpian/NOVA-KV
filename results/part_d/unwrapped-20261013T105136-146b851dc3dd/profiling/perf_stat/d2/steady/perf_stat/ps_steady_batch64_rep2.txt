@@ -1,0 +1,21 @@
+# started on Tue Oct 13 11:34:07 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/steady/rss/ps_steady_batch64_rep2.txt build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --seed 2 --git-sha 146b851dc3dd --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/steady/runs.csv --cow-csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/steady/cow.csv --retain-limit-mb 16000 --duration 3 --reclaim-batch 64 --run-id ps_steady_batch64_rep2 --scenario batch_64 --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/steady/hist/ps_steady_batch64_rep2.csv':
+
+         35,487.96 msec task-clock                                                            
+   148,694,419,081      cycles                                                                  (83.34%)
+    85,545,136,814      instructions                                                            (83.32%)
+     3,268,011,245      cache-references                                                        (83.34%)
+       868,106,925      cache-misses                                                            (83.32%)
+           101,642      context-switches                                                      
+                25      cpu-migrations                                                        
+       128,827,005      branch-misses                                                           (83.36%)
+     1,928,950,811      L1-dcache-load-misses                                                   (83.33%)
+
+       4.065290704 seconds time elapsed
+
+      34.227914000 seconds user
+       1.302448000 seconds sys
+
+

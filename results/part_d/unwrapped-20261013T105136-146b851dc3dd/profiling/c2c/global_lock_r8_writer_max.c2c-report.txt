@@ -1,0 +1,539 @@
+=================================================
+            Trace Event Information              
+=================================================
+  Total records                     :     189163
+  Locked Load/Store Operations      :       1144
+  Load Operations                   :      37678
+  Loads - uncacheable               :          0
+  Loads - IO                        :          2
+  Loads - Miss                      :          0
+  Loads - no mapping                :      15767
+  Load Fill Buffer Hit              :          0
+  Load L1D hit                      :      17243
+  Load L2D hit                      :        385
+  Load LLC hit                      :       4277
+  Load Local HITM                   :       3521
+  Load Remote HITM                  :          0
+  Load Remote HIT                   :          0
+  Load Local DRAM                   :          4
+  Load Remote DRAM                  :          0
+  Load MESI State Exclusive         :          4
+  Load MESI State Shared            :          0
+  Load LLC Misses                   :          4
+  Load access blocked by data       :          0
+  Load access blocked by address    :          0
+  Load HIT Local Peer               :          0
+  Load HIT Remote Peer              :          0
+  LLC Misses to Local DRAM          :      100.0%
+  LLC Misses to Remote DRAM         :        0.0%
+  LLC Misses to Remote cache (HIT)  :        0.0%
+  LLC Misses to Remote cache (HITM) :        0.0%
+  Store Operations                  :      11127
+  Store - uncacheable               :         75
+  Store - no mapping                :       1197
+  Store L1D Hit                     :       9455
+  Store L1D Miss                    :          0
+  Store No available memory level   :        265
+  No Page Map Rejects               :      20238
+  Unable to parse data source       :     140358
+
+=================================================
+    Global Shared Cache Line Event Information   
+=================================================
+  Total Shared Cache Lines          :        159
+  Load HITs on shared lines         :       9630
+  Fill Buffer Hits on shared lines  :          0
+  L1D hits on shared lines          :       5233
+  L2D hits on shared lines          :        151
+  LLC hits on shared lines          :       4246
+  Load hits on peer cache or nodes  :          0
+  Locked Access on shared lines     :       1125
+  Blocked Access on shared lines    :          0
+  Store HITs on shared lines        :       2208
+  Store L1D hits on shared lines    :       1880
+  Store No available memory level   :        239
+  Total Merged records              :       5729
+
+=================================================
+                 c2c details                     
+=================================================
+  Events                            : ibs_op/ldlat=0/
+  Cachelines sort on                : Total HITMs
+  Cacheline data grouping           : offset,iaddr
+
+=================================================
+           Shared Data Cache Line Table          
+=================================================
+#
+#        ----------- Cacheline ----------      Tot  ------- Load Hitm -------    Total    Total    Total  --------- Stores --------  ----- Core Load Hit -----  - LLC Load Hit --  - RMT Load Hit --  --- Load Dram ----
+# Index             Address  Node  PA cnt     Hitm    Total  LclHitm  RmtHitm  records    Loads   Stores    L1Hit   L1Miss      N/A       FB       L1       L2    LclHit  LclHitm    RmtHit  RmtHitm       Lcl       Rmt
+# .....  ..................  ....  ......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  .......  ........  .......  ........  .......  ........  ........
+#
+      0  0xffff8b4062daa780     0    1009   30.45%     1072     1072        0     1783     1617      183       98        0       68        0      262       84       199     1072         0        0         0         0
+      1      0x5c82bf556cc0     0     519   10.93%      385      385        0      799      699      130       67        0       33        0      292       12        10      385         0        0         0         0
+      2  0xffff8b469dbb4500     0     222    6.56%      231      231        0      505      487       19        5        0       13        0      201        1        54      231         0        0         0         0
+      3  0xffff8b469dcb4500     0     196    5.85%      206      206        0      461      447       14        3        0       11        0      190        1        50      206         0        0         0         0
+      4  0xffff8b469dc34500     0     160    5.60%      197      197        0      424      401       29       10        0       13        0      148        3        53      197         0        0         0         0
+      5  0xffff8b469da34500     0     197    4.97%      175      175        0      435      422       17        6        0        7        0      182        2        63      175         0        0         0         0
+      6  0xffff8b469ddb4500     0     228    4.80%      169      169        0      920      914        6        0        0        6        0      694       14        37      169         0        0         0         0
+      7  0xffff8b469db34500     0     157    4.63%      163      163        0      414      405       11        2        0        7        0      177        1        64      163         0        0         0         0
+      8  0xffff8b469dd34500     0     194    4.54%      160      160        0      392      382       14        3        0        7        0      164        3        55      160         0        0         0         0
+      9  0xffff8b469dab4500     0     200    4.49%      158      158        0      424      402       24        7        0       15        0      194        1        49      158         0        0         0         0
+     10  0xffff8b469e1b4500     0     224    4.37%      154      154        0      895      880       19        5        0       10        0      662       18        46      154         0        0         0         0
+     11      0x5c82bf556cc0     0       1    0.82%       29       29        0       33       33        0        0        0        0        0        4        0         0       29         0        0         0         0
+     12  0xffff8b4186680000     0      46    0.68%       24       24        0       56       49        9        3        0        4        0       25        0         0       24         0        0         0         0
+     13  0xffff8b3f668a3100     0      38    0.57%       20       20        0       57       45       12       11        0        1        0       25        0         0       20         0        0         0         0
+     14  0xffff8b469ddb33c0     0       1    0.57%       20       20        0       45       44        1        1        0        0        0       21        0         3       20         0        0         0         0
+     15  0xffff8b3fa5960000     0      42    0.48%       17       17        0       55       47        9        4        0        4        0       30        0         0       17         0        0         0         0
+     16      0x5c82bf55ad40     0      13    0.37%       13       13        0       28       28        0        0        0        0        0       15        0         0       13         0        0         0         0
+     17  0xffff8b469dcb33c0     0       1    0.34%       12       12        0       32       27        5        5        0        0        0       13        0         2       12         0        0         0         0
+     18  0xffff8b404064b100     0      51    0.31%       11       11        0       60       52        8        3        0        5        0       41        0         0       11         0        0         0         0
+     19  0xffff8b40c9d50000     0      36    0.31%       11       11        0       41       33        8        6        0        2        0       22        0         0       11         0        0         0         0
+     20  0xffff8b469dbb33c0     0       1    0.28%       10       10        0       26       23        3        3        0        0        0       10        0         3       10         0        0         0         0
+     21  0xffff8b4128d42b80     0       6    0.26%        9        9        0       12       12        0        0        0        0        0        1        0         2        9         0        0         0         0
+     22  0xffff8b407ad3b100     0      40    0.23%        8        8        0       45       41        4        1        0        3        0       32        0         1        8         0        0         0         0
+     23  0xffff8b469dab33c0     0       2    0.23%        8        8        0       19       16        3        3        0        0        0        8        0         0        8         0        0         0         0
+     24  0xffff8b469e1b33c0     0       1    0.23%        8        8        0       32       29        3        3        0        0        0       16        0         5        8         0        0         0         0
+     25  0xffff8b469dc333c0     0       1    0.20%        7        7        0       11       10        1        1        0        0        0        2        0         1        7         0        0         0         0
+     26  0xffff8b3fa51cb100     0      28    0.17%        6        6        0       30       25        5        3        0        2        0       18        1         0        6         0        0         0         0
+     27  0xffff8b4068723100     0      30    0.17%        6        6        0       31       28        3        2        0        1        0       22        0         0        6         0        0         0         0
+     28  0xffff8b422ee93100     0      33    0.17%        6        6        0       35       32        3        2        0        1        0       25        1         0        6         0        0         0         0
+     29  0xffff8b469db333c0     0       3    0.17%        6        6        0       14       14        0        0        0        0        0        7        0         1        6         0        0         0         0
+     30  0xffff8b469da333c0     0       1    0.14%        5        5        0       10        7        3        3        0        0        0        2        0         0        5         0        0         0         0
+     31  0xffff8b469dd333c0     0       1    0.14%        5        5        0       13       10        3        3        0        0        0        4        0         1        5         0        0         0         0
+     32  0xffffd0740a6afc40     0      24    0.14%        5        5        0       26       18        8        8        0        0        0       13        0         0        5         0        0         0         0
+     33  0xffffd0740a7dfac0     0      35    0.14%        5        5        0       44       24       20       19        0        1        0       19        0         0        5         0        0         0         0
+     34  0xffffd0740ef6bb80     0      29    0.14%        5        5        0       34       20       14       14        0        0        0       15        0         0        5         0        0         0         0
+     35  0xffff8b40c9d50a80     0       4    0.11%        4        4        0        7        7        0        0        0        0        0        3        0         0        4         0        0         0         0
+     36  0xffffd0740a6b7b00     0      38    0.11%        4        4        0       41       24       18       17        0        0        0       20        0         0        4         0        0         0         0
+     37  0xffffd0740a79f9c0     0      37    0.11%        4        4        0       40       21       19       19        0        0        0       17        0         0        4         0        0         0         0
+
+=================================================
+      Shared Cache Line Distribution Pareto      
+=================================================
+#
+#        ----- HITM -----  ------- Store Refs ------  --------- Data address ---------                      ---------- cycles ----------    Total       cpu                                    Shared                   
+#   Num  RmtHitm  LclHitm   L1 Hit  L1 Miss      N/A              Offset  Node  PA cnt        Code address  rmt hitm  lcl hitm      load  records       cnt                  Symbol            Object  Source:Line  Node
+# .....  .......  .......  .......  .......  .......  ..................  ....  ......  ..................  ........  ........  ........  .......  ........  ......................  ................  ...........  ....
+#
+  ----------------------------------------------------------------------
+      0        0     1072       98        0       68  0xffff8b4062daa780
+  ----------------------------------------------------------------------
+           0.00%   26.03%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc9999a9         0       138         0      292         9  [k] 0xffffffffbc9999a9  [unknown]         ??:0          0
+           0.00%    6.44%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc999919         0       265        40       73         9  [k] 0xffffffffbc999919  [unknown]         ??:0          0
+           0.00%    6.16%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e291         0       231       215      132         8  [k] 0xffffffffbc99e291  [unknown]         ??:0          0
+           0.00%    2.33%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99996c         0       318        31       97         8  [k] 0xffffffffbc99996c  [unknown]         ??:0          0
+           0.00%   30.69%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32e94         0       144       142      445         9  [k] 0xffffffffbdb32e94  [unknown]         ??:0          0
+           0.00%    5.50%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32c8a         0       206       124       88         9  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    5.32%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32943         0       270       179       82         9  [k] 0xffffffffbdb32943  [unknown]         ??:0          0
+           0.00%    4.38%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32c62         0       316        47       58         9  [k] 0xffffffffbdb32c62  [unknown]         ??:0          0
+           0.00%    2.71%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32cb4         0       323       146       83         9  [k] 0xffffffffbdb32cb4  [unknown]         ??:0          0
+           0.00%    2.24%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32c6a         0       284       282       52         9  [k] 0xffffffffbdb32c6a  [unknown]         ??:0          0
+           0.00%    2.24%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32ccc         0       212       219       35         9  [k] 0xffffffffbdb32ccc  [unknown]         ??:0          0
+           0.00%    0.65%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32c81         0       240        62       13         7  [k] 0xffffffffbdb32c81  [unknown]         ??:0          0
+           0.00%    0.56%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32f31         0       254         0        9         6  [k] 0xffffffffbdb32f31  [unknown]         ??:0          0
+           0.00%    0.00%    2.04%    0.00%   16.18%                 0x4     0       1  0xffffffffbdb32ae9         0         0         0       13         9  [k] 0xffffffffbdb32ae9  [unknown]         ??:0          0
+           0.00%    0.00%   22.45%    0.00%   16.18%                 0x4     0       1  0xffffffffbdb32c96         0         0         0       33         9  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+           0.00%    0.00%   63.27%    0.00%   54.41%                 0x4     0       1  0xffffffffbdb32ea4         0         0         0       99         9  [k] 0xffffffffbdb32ea4  [unknown]         ??:0          0
+           0.00%    0.00%    4.08%    0.00%    8.82%                 0x5     0       1  0xffffffffbdb32ce5         0         0         0       10         6  [k] 0xffffffffbdb32ce5  [unknown]         ??:0          0
+           0.00%    0.65%    0.00%    0.00%    0.00%                 0x6     0       1  0xffffffffbdb32e7d         0       585         0        8         6  [k] 0xffffffffbdb32e7d  [unknown]         ??:0          0
+           0.00%    1.03%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbc99e2f0         0       124        50       17         7  [k] 0xffffffffbc99e2f0  [unknown]         ??:0          0
+           0.00%    0.19%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdafd95c         0       445        14       17         7  [k] 0xffffffffbdafd95c  [unknown]         ??:0          0
+           0.00%    0.09%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdafd8c3         0       103         0        2         2  [k] 0xffffffffbdafd8c3  [unknown]         ??:0          0
+           0.00%    0.00%    1.02%    0.00%    0.00%                 0x8     0       1  0xffffffffbdafd983         0         0         0        1         1  [k] 0xffffffffbdafd983  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdafda6e         0         0         0        0         2  [k] 0xffffffffbdafda6e  [unknown]         ??:0          0
+           0.00%    0.09%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbdafd958         0       206         0        3         2  [k] 0xffffffffbdafd958  [unknown]         ??:0          0
+           0.00%    0.09%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbdafda60         0       245         1       13         7  [k] 0xffffffffbdafda60  [unknown]         ??:0          0
+           0.00%    0.00%    6.12%    0.00%    2.94%                0x10     0       1  0xffffffffbdafd977         0         0         0        8         6  [k] 0xffffffffbdafd977  [unknown]         ??:0          0
+           0.00%    0.00%    1.02%    0.00%    1.47%                0x10     0       1  0xffffffffbdafda6a         0         0         0        2         1  [k] 0xffffffffbdafda6a  [unknown]         ??:0          0
+           0.00%    1.77%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc998a17         0       171       233       23         8  [k] 0xffffffffbc998a17  [unknown]         ??:0          0
+           0.00%    0.84%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc998855         0       167       210       11         7  [k] 0xffffffffbc998855  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      1        0      385       67        0       33      0x5c82bf556cc0
+  ----------------------------------------------------------------------
+           0.00%   64.42%    0.00%    0.00%    0.00%                0x30     0       1      0x7a7e42aa0b83         0       146         9      308         9  [.] __GI___lll_lock_wait        libc.so.6  lowlevellock.c:45           0
+           0.00%    9.35%    0.00%    0.00%    0.00%                0x30     0       1      0x7a7e42aa7956         0       133         0       41         9  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:48     0
+           0.00%    2.34%    0.00%    0.00%    0.00%                0x30     0       1      0x7a7e42aa0b74         0       173         1       28         9  [.] __GI___lll_lock_wait        libc.so.6  lowlevellock.c:42           0
+           0.00%    1.82%    0.00%    0.00%    0.00%                0x30     0       1      0x7a7e42aa933a         0       157         0        9         6  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:43   0
+           0.00%    7.27%    0.00%    0.00%    0.00%                0x38     0       1      0x7a7e42aa795c         0       156        14      170         9  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:88     0
+           0.00%    0.00%   89.55%    0.00%   27.27%                0x38     0       1      0x7a7e42aa7969         0         0         0       69         8  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:158    0
+           0.00%    0.00%   10.45%    0.00%   72.73%                0x38     0       1      0x7a7e42aa930c         0         0         0       31         9  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:60   0
+           0.00%   11.17%    0.00%    0.00%    0.00%                0x3c     0       1      0x7a7e42aa796c         0        74         2      126         9  [.] pthread_mutex_lock@@GLIBC_  libc.so.6  pthread_mutex_lock.c:160    0
+           0.00%    3.64%    0.00%    0.00%    0.00%                0x3c     0       1      0x7a7e42aa9308         0       102         0       17         6  [.] pthread_mutex_unlock@@GLIB  libc.so.6  pthread_mutex_unlock.c:63   0
+
+  ----------------------------------------------------------------------
+      2        0      231        5        0       13  0xffff8b469dbb4500
+  ----------------------------------------------------------------------
+           0.00%    9.09%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4262      3994       37         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32d3d         0         0         0        1         1  [k] 0xffffffffbdb32d3d  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   69.23%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        9         5  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   90.91%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        51        15      346         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   30.77%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        4         3  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   80.00%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        4         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      3        0      206        3        0       11  0xffff8b469dcb4500
+  ----------------------------------------------------------------------
+           0.00%    8.25%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4394      3804       28         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    1.94%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32eba         0        48         0        5         1  [k] 0xffffffffbdb32eba  [unknown]         ??:0          0
+           0.00%    0.97%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f18         0        48         0       74         1  [k] 0xffffffffbdb32f18  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   72.73%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        8         5  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   88.83%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        47        13      328         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%   27.27%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        4         4  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   66.67%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        2         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      4        0      197       10        0       13  0xffff8b469dc34500
+  ----------------------------------------------------------------------
+           0.00%    8.63%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4154      3381       34         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.51%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f18         0        62         0       42         1  [k] 0xffffffffbdb32f18  [unknown]         ??:0          0
+           0.00%    0.00%   30.00%    0.00%   46.15%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        9         5  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   90.86%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        71        21      311         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32d36         0         0         0        2         1  [k] 0xffffffffbdb32d36  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   53.85%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        7         8  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        5         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      5        0      175        6        0        7  0xffff8b469da34500
+  ----------------------------------------------------------------------
+           0.00%    9.71%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4196      3915       47         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.57%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32eba         0        64         0        1         1  [k] 0xffffffffbdb32eba  [unknown]         ??:0          0
+           0.00%    0.00%   16.67%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32d3d         0         0         0        1         1  [k] 0xffffffffbdb32d3d  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%   71.43%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        8         4  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   89.71%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        76        23      290         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   28.57%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        2         4  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        2         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      6        0      169        0        0        6  0xffff8b469ddb4500
+  ----------------------------------------------------------------------
+           0.00%   13.02%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4219      3319       36         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.59%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f18         0        60         0       75         1  [k] 0xffffffffbdb32f18  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   50.00%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        3         2  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   86.39%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        50         3      786         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   50.00%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        3         3  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      7        0      163        2        0        7  0xffff8b469db34500
+  ----------------------------------------------------------------------
+           0.00%    7.98%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4253      3830       30         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    1.23%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32eba         0        87         0        2         1  [k] 0xffffffffbdb32eba  [unknown]         ??:0          0
+           0.00%    0.61%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f18         0        37         0       62         1  [k] 0xffffffffbdb32f18  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%   57.14%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        5         3  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   90.18%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        69        29      287         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32d36         0         0         0        1         1  [k] 0xffffffffbdb32d36  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   42.86%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        3         5  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      8        0      160        3        0        7  0xffff8b469dd34500
+  ----------------------------------------------------------------------
+           0.00%   15.62%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4193      3492       42         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    1.25%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32eba         0       102         0        4         1  [k] 0xffffffffbdb32eba  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   71.43%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        5         4  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   83.12%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        73        34      242         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32d36         0         0         0        1         1  [k] 0xffffffffbdb32d36  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   28.57%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        2         6  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   66.67%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        2         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+      9        0      158        7        0       15  0xffff8b469dab4500
+  ----------------------------------------------------------------------
+           0.00%    7.59%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4334      3942       26         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.00%   42.86%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32d3d         0         0         0        3         1  [k] 0xffffffffbdb32d3d  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   66.67%                 0x0     0       1  0xffffffffbdb32f05         0         0         0       10         5  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   92.41%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        52        19      261         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32d36         0         0         0        1         1  [k] 0xffffffffbdb32d36  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   33.33%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        5         4  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   42.86%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        3         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     10        0      154        5        0       10  0xffff8b469e1b4500
+  ----------------------------------------------------------------------
+           0.00%    9.09%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f24         0      4232      3810       27         8  [k] 0xffffffffbdb32f24  [unknown]         ??:0          0
+           0.00%    0.65%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb32f18         0        27         1       74         1  [k] 0xffffffffbdb32f18  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%   70.00%                 0x0     0       1  0xffffffffbdb32f05         0         0         0        8         6  [k] 0xffffffffbdb32f05  [unknown]         ??:0          0
+           0.00%   90.26%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32f11         0        48         4      761         1  [k] 0xffffffffbdb32f11  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%   30.00%                 0x8     0       1  0xffffffffbdb32eac         0         0         0        4         4  [k] 0xffffffffbdb32eac  [unknown]         ??:0          0
+           0.00%    0.00%   60.00%    0.00%    0.00%                 0xc     0       1  0xffffffffbdb32d04         0         0         0        3         1  [k] 0xffffffffbdb32d04  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     11        0       29        0        0        0      0x5c82bf556cc0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x30     0       1  0xffffffffbc99ee38         0       111         0       33         8  [k] 0xffffffffbc99ee38  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     12        0       24        3        0        4  0xffff8b4186680000
+  ----------------------------------------------------------------------
+           0.00%    0.00%   33.33%    0.00%   50.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        3         3  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        1         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   83.33%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        41         0       22         8  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    4.17%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc99e0ff         0        34         0        1         1  [k] 0xffffffffbc99e0ff  [unknown]         ??:0          0
+           0.00%    4.17%    0.00%    0.00%    0.00%                0x2c     0       1  0xffffffffbc8fe071         0       122         0        3         1  [k] 0xffffffffbc8fe071  [unknown]         ??:0          0
+           0.00%    8.33%    0.00%    0.00%    0.00%                0x34     0       1  0xffffffffbc8a895f         0        80         0        2         2  [k] 0xffffffffbc8a895f  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%   50.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        3         3  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     13        0       20       11        0        1  0xffff8b3f668a3100
+  ----------------------------------------------------------------------
+           0.00%    5.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb27726         0        12         0        1         1  [k] 0xffffffffbdb27726  [unknown]         ??:0          0
+           0.00%    0.00%   81.82%    0.00%    0.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        9         5  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   18.18%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        2         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   90.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        33         0       26         8  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    5.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc99e0ff         0       272         0        1         1  [k] 0xffffffffbc99e0ff  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        1         1  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     14        0       20        1        0        0  0xffff8b469ddb33c0
+  ----------------------------------------------------------------------
+           0.00%   90.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        63         7       39         7  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    5.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32943         0        71         0        3         2  [k] 0xffffffffbdb32943  [unknown]         ??:0          0
+           0.00%    5.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32ccc         0        39         0        1         1  [k] 0xffffffffbdb32ccc  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        1         1  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     15        0       17        4        0        4  0xffff8b3fa5960000
+  ----------------------------------------------------------------------
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        4         4  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   75.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        3         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        46         0       18         6  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    0.00%   25.00%    0.00%    0.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        1         1  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     16        0       13        0        0        0      0x5c82bf55ad40
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1      0x5c8284024241         0        11         0       16         1  [.] nova::Arena::release(nova:  concurrent_bench_global_lock  arena.cpp:140   0
+
+  ----------------------------------------------------------------------
+     17        0       12        5        0        0  0xffff8b469dcb33c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        63        14       24         7  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    0.00%   20.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32ae9         0         0         0        1         1  [k] 0xffffffffbdb32ae9  [unknown]         ??:0          0
+           0.00%    0.00%   80.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        4         4  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     18        0       11        3        0        5  0xffff8b404064b100
+  ----------------------------------------------------------------------
+           0.00%    0.00%  100.00%    0.00%   80.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        7         5  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        59         0       11         5  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   20.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        1         1  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     19        0       11        6        0        2  0xffff8b40c9d50000
+  ----------------------------------------------------------------------
+           0.00%    9.09%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb27726         0        64         0        1         1  [k] 0xffffffffbdb27726  [unknown]         ??:0          0
+           0.00%    0.00%   66.67%    0.00%    0.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        4         4  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   16.67%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        1         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   90.91%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        47         0       10         7  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    0.00%   16.67%    0.00%  100.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        3         3  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     20        0       10        3        0        0  0xffff8b469dbb33c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        71        17       22         7  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        3         2  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     21        0        9        0        0        0  0xffff8b4128d42b80
+  ----------------------------------------------------------------------
+           0.00%   55.56%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc9999a9         0       117         0        5         5  [k] 0xffffffffbc9999a9  [unknown]         ??:0          0
+           0.00%   11.11%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc999919         0       242         0        1         1  [k] 0xffffffffbc999919  [unknown]         ??:0          0
+           0.00%   11.11%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e291         0        87         0        1         1  [k] 0xffffffffbc99e291  [unknown]         ??:0          0
+           0.00%   11.11%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32943         0       506         0        1         1  [k] 0xffffffffbdb32943  [unknown]         ??:0          0
+           0.00%   11.11%    0.00%    0.00%    0.00%                 0x4     0       1  0xffffffffbdb32e94         0       101         0        1         1  [k] 0xffffffffbdb32e94  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     22        0        8        1        0        3  0xffff8b407ad3b100
+  ----------------------------------------------------------------------
+           0.00%   12.50%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb27726         0        50         0        1         1  [k] 0xffffffffbdb27726  [unknown]         ??:0          0
+           0.00%   12.50%    0.00%    0.00%    0.00%                0x14     0       1  0xffffffffbc8bb05e         0        88         0        1         1  [k] 0xffffffffbc8bb05e  [unknown]         ??:0          0
+           0.00%   12.50%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc899bf0         0       112         0        1         1  [k] 0xffffffffbc899bf0  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%  100.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        4         3  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%   62.50%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        59         0        7         4  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     23        0        8        3        0        0  0xffff8b469dab33c0
+  ----------------------------------------------------------------------
+           0.00%   12.50%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb2774b         0         0         0        1         1  [k] 0xffffffffbdb2774b  [unknown]         ??:0          0
+           0.00%   75.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        65         0       14         7  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%   12.50%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32cb4         0       129         0        1         1  [k] 0xffffffffbdb32cb4  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        3         3  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     24        0        8        3        0        0  0xffff8b469e1b33c0
+  ----------------------------------------------------------------------
+           0.00%   87.50%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        64        15       28         8  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%   12.50%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32ccc         0        63         0        1         1  [k] 0xffffffffbdb32ccc  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        3         2  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     25        0        7        1        0        0  0xffff8b469dc333c0
+  ----------------------------------------------------------------------
+           0.00%   85.71%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        56        24        8         5  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%   14.29%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c6a         0        87         0        1         1  [k] 0xffffffffbdb32c6a  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        1         1  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     26        0        6        3        0        2  0xffff8b3fa51cb100
+  ----------------------------------------------------------------------
+           0.00%   33.33%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb27726         0        20         0        2         1  [k] 0xffffffffbdb27726  [unknown]         ??:0          0
+           0.00%   16.67%    0.00%    0.00%    0.00%                0x14     0       1  0xffffffffbc89e31b         0        92        24        2         2  [k] 0xffffffffbc89e31b  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%   50.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        1         1  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   66.67%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        2         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   50.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        53         0        5         3  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    0.00%   33.33%    0.00%   50.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        2         2  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     27        0        6        2        0        1  0xffff8b4068723100
+  ----------------------------------------------------------------------
+           0.00%   16.67%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbdb27726         0       185         0        1         1  [k] 0xffffffffbdb27726  [unknown]         ??:0          0
+           0.00%   16.67%    0.00%    0.00%    0.00%                0x14     0       1  0xffffffffbc8bb05e         0        89         0        2         1  [k] 0xffffffffbc8bb05e  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%  100.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        2         2  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        1         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   66.67%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        56         0        4         4  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     28        0        6        2        0        1  0xffff8b422ee93100
+  ----------------------------------------------------------------------
+           0.00%   16.67%    0.00%    0.00%    0.00%                0x14     0       1  0xffffffffbc89e31b         0        91        24        2         2  [k] 0xffffffffbc89e31b  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x18     0       1  0xffffffffbc8a8958         0         0         0        1         1  [k] 0xffffffffbc8a8958  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e832         0         0         0        1         1  [k] 0xffffffffbc99e832  [unknown]         ??:0          0
+           0.00%   83.33%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc8a9195         0        55         0        6         6  [k] 0xffffffffbc8a9195  [unknown]         ??:0          0
+           0.00%    0.00%   50.00%    0.00%    0.00%                0x38     0       1  0xffffffffbc9a0ca6         0         0         0        1         1  [k] 0xffffffffbc9a0ca6  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     29        0        6        0        0        0  0xffff8b469db333c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        49         7       13         6  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     30        0        5        3        0        0  0xffff8b469da333c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        43         0        7         4  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        3         3  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     31        0        5        3        0        0  0xffff8b469dd333c0
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c8a         0        43        19        9         5  [k] 0xffffffffbdb32c8a  [unknown]         ??:0          0
+           0.00%    0.00%  100.00%    0.00%    0.00%                 0x8     0       1  0xffffffffbdb32c96         0         0         0        3         2  [k] 0xffffffffbdb32c96  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     32        0        5        8        0        0  0xffffd0740a6afc40
+  ----------------------------------------------------------------------
+           0.00%   20.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e2fc         0        95         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%   25.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc7ef5f5         0         0         0        2         1  [k] 0xffffffffbc7ef5f5  [unknown]         ??:0          0
+           0.00%    0.00%   12.50%    0.00%    0.00%                 0x0     0       1  0xffffffffbc9989b0         0         0         0        1         1  [k] 0xffffffffbc9989b0  [unknown]         ??:0          0
+           0.00%    0.00%   12.50%    0.00%    0.00%                0x10     0       1  0xffffffffbc998da8         0         0         0        1         1  [k] 0xffffffffbc998da8  [unknown]         ??:0          0
+           0.00%    0.00%   12.50%    0.00%    0.00%                0x10     0       1  0xffffffffbc99e0ee         0         0         0        1         1  [k] 0xffffffffbc99e0ee  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x18     0       1  0xffffffffbdafd90f         0        32         0        1         1  [k] 0xffffffffbdafd90f  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e2fc         0        95         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e367         0        79         0        1         1  [k] 0xffffffffbc99e367  [unknown]         ??:0          0
+           0.00%    0.00%   25.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc7ef5f5         0         0         0        2         1  [k] 0xffffffffbc7ef5f5  [unknown]         ??:0          0
+           0.00%    0.00%   12.50%    0.00%    0.00%                0x20     0       1  0xffffffffbc998d76         0         0         0        1         1  [k] 0xffffffffbc998d76  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc99e356         0        92         0        1         1  [k] 0xffffffffbc99e356  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     33        0        5       19        0        1  0xffffd0740a7dfac0
+  ----------------------------------------------------------------------
+           0.00%   40.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e2fc         0        94         0        2         2  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffbc8bc09c         0         0         0        1         1  [k] 0xffffffffbc8bc09c  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffbc9989a9         0         0         0        1         1  [k] 0xffffffffbc9989a9  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e27f         0         0         0        1         1  [k] 0xffffffffbc99e27f  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e377         0         0         0        1         1  [k] 0xffffffffbc99e377  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffbc8bc095         0         0         0        1         1  [k] 0xffffffffbc8bc095  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffbc998a23         0         0         0        1         1  [k] 0xffffffffbc998a23  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffbc99e0e5         0         0         0        1         1  [k] 0xffffffffbc99e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffbc99e0f3         0         0         0        1         1  [k] 0xffffffffbc99e0f3  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbc99e2fc         0        75         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbc8bc095         0         0         0        1         1  [k] 0xffffffffbc8bc095  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbc8c1cb0         0         0         0        1         1  [k] 0xffffffffbc8c1cb0  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbc8e5939         0         0         0        1         1  [k] 0xffffffffbc8e5939  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%  100.00%                0x18     0       1  0xffffffffbc998a23         0         0         0        1         1  [k] 0xffffffffbc998a23  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbc99e0e5         0         0         0        1         1  [k] 0xffffffffbc99e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbcb55025         0         0         0        1         1  [k] 0xffffffffbcb55025  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e2fc         0        86         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbdafd8d8         0        62         0        1         1  [k] 0xffffffffbdafd8d8  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbc998a08         0         0         0        1         1  [k] 0xffffffffbc998a08  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbc99efd5         0         0         0        1         1  [k] 0xffffffffbc99efd5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbcb5ef85         0         0         0        1         1  [k] 0xffffffffbcb5ef85  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbdb32ce9         0         0         0        1         1  [k] 0xffffffffbdb32ce9  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffbc8bb9c6         0         0         0        1         1  [k] 0xffffffffbc8bb9c6  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffbc998a08         0         0         0        1         1  [k] 0xffffffffbc998a08  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     34        0        5       14        0        0  0xffffd0740ef6bb80
+  ----------------------------------------------------------------------
+           0.00%   20.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e2fc         0        80         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e215         0         0         0        1         1  [k] 0xffffffffbc99e215  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                 0x8     0       1  0xffffffffbc8bc095         0         0         0        1         1  [k] 0xffffffffbc8bc095  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                 0x8     0       1  0xffffffffbc999965         0         0         0        1         1  [k] 0xffffffffbc999965  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                 0x8     0       1  0xffffffffbc99b109         0         0         0        1         1  [k] 0xffffffffbc99b109  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbc99e2fc         0        69         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x10     0       1  0xffffffffbc99ef58         0         0         0        1         1  [k] 0xffffffffbc99ef58  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x10     0       1  0xffffffffbcb62215         0         0         0        1         1  [k] 0xffffffffbcb62215  [unknown]         ??:0          0
+           0.00%   40.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e2fc         0        82         0        2         2  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x20     0       1  0xffffffffbc8fdf95         0         0         0        1         1  [k] 0xffffffffbc8fdf95  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x30     0       1  0xffffffffbc746b18         0         0         0        1         1  [k] 0xffffffffbc746b18  [unknown]         ??:0          0
+           0.00%    0.00%   14.29%    0.00%    0.00%                0x30     0       1  0xffffffffbc99e2a4         0         0         0        2         1  [k] 0xffffffffbc99e2a4  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x30     0       1  0xffffffffbdafd97b         0         0         0        1         1  [k] 0xffffffffbdafd97b  [unknown]         ??:0          0
+           0.00%   20.00%    0.00%    0.00%    0.00%                0x38     0       1  0xffffffffbc93aac5         0        67         0        1         1  [k] 0xffffffffbc93aac5  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x38     0       1  0xffffffffbc8bc095         0         0         0        1         1  [k] 0xffffffffbc8bc095  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x38     0       1  0xffffffffbc9989a5         0         0         0        1         1  [k] 0xffffffffbc9989a5  [unknown]         ??:0          0
+           0.00%    0.00%    7.14%    0.00%    0.00%                0x38     0       1  0xffffffffbc99e0e5         0         0         0        1         1  [k] 0xffffffffbc99e0e5  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     35        0        4        0        0        0  0xffff8b40c9d50a80
+  ----------------------------------------------------------------------
+           0.00%  100.00%    0.00%    0.00%    0.00%                0x28     0       1  0xffffffffbc89c7cd         0        79         0        4         2  [k] 0xffffffffbc89c7cd  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     36        0        4       17        0        0  0xffffd0740a6b7b00
+  ----------------------------------------------------------------------
+           0.00%   25.00%    0.00%    0.00%    0.00%                 0x0     0       1  0xffffffffbc99e2fc         0        93         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                 0x0     0       1  0xffffffffbc8b870b         0         0         0        1         1  [k] 0xffffffffbc8b870b  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                 0x8     0       1  0xffffffffbc9989b3         0         0         0        1         1  [k] 0xffffffffbc9989b3  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                 0x8     0       1  0xffffffffbc99e0e5         0         0         0        1         1  [k] 0xffffffffbc99e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                 0xc     0       1  0xffffffffbc99e21a         0         0         0        1         1  [k] 0xffffffffbc99e21a  [unknown]         ??:0          0
+           0.00%   25.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbc99e2fc         0       115         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x10     0       1  0xffffffffbc8a17b6         0         0         0        1         1  [k] 0xffffffffbc8a17b6  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x10     0       1  0xffffffffbc999a4b         0         0         0        1         1  [k] 0xffffffffbc999a4b  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x10     0       1  0xffffffffbc99ef58         0         0         0        1         1  [k] 0xffffffffbc99ef58  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x18     0       1  0xffffffffbc7ef5fe         0         0         0        1         1  [k] 0xffffffffbc7ef5fe  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x18     0       1  0xffffffffbc8b8375         0         0         0        1         1  [k] 0xffffffffbc8b8375  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x18     0       1  0xffffffffbc8bc095         0         0         0        1         1  [k] 0xffffffffbc8bc095  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x18     0       1  0xffffffffbc8fdf6e         0         0         0        1         1  [k] 0xffffffffbc8fdf6e  [unknown]         ??:0          0
+           0.00%   25.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e2fc         0        95         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x20     0       1  0xffffffffbc7ef5f5         0         0         0        1         1  [k] 0xffffffffbc7ef5f5  [unknown]         ??:0          0
+           0.00%    0.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e243         0         0         0        0         1  [k] 0xffffffffbc99e243  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x28     0       1  0xffffffffbc748589         0         0         0        1         1  [k] 0xffffffffbc748589  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x28     0       1  0xffffffffbc9989b3         0         0         0        1         1  [k] 0xffffffffbc9989b3  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x28     0       1  0xffffffffbc99f033         0         0         0        1         1  [k] 0xffffffffbc99f033  [unknown]         ??:0          0
+           0.00%   25.00%    0.00%    0.00%    0.00%                0x30     0       1  0xffffffffbc99e2fc         0       124         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x30     0       1  0xffffffffbc8a8734         0         0         0        1         1  [k] 0xffffffffbc8a8734  [unknown]         ??:0          0
+           0.00%    0.00%    5.88%    0.00%    0.00%                0x38     0       1  0xffffffffbc8a724c         0         0         0        1         1  [k] 0xffffffffbc8a724c  [unknown]         ??:0          0
+
+  ----------------------------------------------------------------------
+     37        0        4       19        0        0  0xffffd0740a79f9c0
+  ----------------------------------------------------------------------
+           0.00%    0.00%    5.26%    0.00%    0.00%                 0x8     0       1  0xffffffffbc8ae5b0         0         0         0        1         1  [k] 0xffffffffbc8ae5b0  [unknown]         ??:0          0
+           0.00%   25.00%    0.00%    0.00%    0.00%                0x10     0       1  0xffffffffbc99e2fc         0       126         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x10     0       1  0xffffffffbc997cf5         0         0         0        1         1  [k] 0xffffffffbc997cf5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x10     0       1  0xffffffffbdb27c38         0         0         0        1         1  [k] 0xffffffffbdb27c38  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbc756bb6         0         0         0        1         1  [k] 0xffffffffbc756bb6  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x18     0       1  0xffffffffbcb52a35         0         0         0        1         1  [k] 0xffffffffbcb52a35  [unknown]         ??:0          0
+           0.00%   50.00%    0.00%    0.00%    0.00%                0x20     0       1  0xffffffffbc99e2fc         0       106         0        2         2  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%   10.53%    0.00%    0.00%                0x20     0       1  0xffffffffbc8a19d5         0         0         0        2         1  [k] 0xffffffffbc8a19d5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x20     0       1  0xffffffffbc8f4b8a         0         0         0        1         1  [k] 0xffffffffbc8f4b8a  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbc8eff02         0         0         0        1         1  [k] 0xffffffffbc8eff02  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbc99885e         0         0         0        1         1  [k] 0xffffffffbc99885e  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x28     0       1  0xffffffffbc99efab         0         0         0        1         1  [k] 0xffffffffbc99efab  [unknown]         ??:0          0
+           0.00%   25.00%    0.00%    0.00%    0.00%                0x30     0       1  0xffffffffbc99e2fc         0        99         0        1         1  [k] 0xffffffffbc99e2fc  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffbc8a7226         0         0         0        1         1  [k] 0xffffffffbc8a7226  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffbc8bab36         0         0         0        1         1  [k] 0xffffffffbc8bab36  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffbc8f0070         0         0         0        1         1  [k] 0xffffffffbc8f0070  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffbc999977         0         0         0        1         1  [k] 0xffffffffbc999977  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x30     0       1  0xffffffffbc99efc9         0         0         0        1         1  [k] 0xffffffffbc99efc9  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffbc8a8730         0         0         0        1         1  [k] 0xffffffffbc8a8730  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffbc99e0e5         0         0         0        1         1  [k] 0xffffffffbc99e0e5  [unknown]         ??:0          0
+           0.00%    0.00%    5.26%    0.00%    0.00%                0x38     0       1  0xffffffffbdb32ae5         0         0         0        1         1  [k] 0xffffffffbdb32ae5  [unknown]         ??:0          0

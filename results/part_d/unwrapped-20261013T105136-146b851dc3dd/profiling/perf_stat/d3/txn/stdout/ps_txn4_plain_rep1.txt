@@ -1,0 +1,24 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/perf_stat/ps_txn4_plain_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/rss/ps_txn4_plain_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d3/txn/hist/ps_txn4_plain_rep1.csv --run-id ps_txn4_plain_rep1 --git-sha 146b851dc3dd --experiment txn --txn-size 4 --index off --duration 3
+join_bench experiment=txn trades=100000 instruments=50 threads=1 writer=off txn_size=4 index=off duration=3.0s
+  commits_per_s                          104180.786 1/s        
+  rows_per_s                             416723.145 1/s        
+  commit_p50_us                               8.826 us         
+  commit_p99_us                              17.593 us         
+  commit_p999_us                             22.983 us         
+  commit_max_us                              64.612 us         
+  segments_cloned_per_commit                  3.978 1/commit   
+  primary_bytes_copied_per_commit         95681.061 bytes      
+  directory_bytes_copied_per_commit        2048.000 bytes      
+  index_segments_built_per_commit             0.000 1/commit   
+  index_bytes_built_per_commit                0.000 bytes      
+  bytes_copied_per_commit                 97729.061 bytes      
+  bytes_copied_per_row                    24432.265 bytes      
+  owner_refs_per_commit                     252.022 1/commit   
+  memory_held_idle_mib                        9.030 MiB        
+  memory_held_max_mib                        15.071 MiB        
+  backlog_max_versions                       42.000 versions   
+  versions_reclaimed                     312576.000 versions   
+  cleaner_cpu_s                               2.088 s          
+valid=1
+# exit_status: 0

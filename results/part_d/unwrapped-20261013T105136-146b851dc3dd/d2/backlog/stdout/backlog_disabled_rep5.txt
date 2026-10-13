@@ -1,0 +1,12 @@
+# command: build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 5 --git-sha 146b851dc3dd --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim disabled --retain-limit-mb 8000 --run-id backlog_disabled_rep5 --scenario reclaim_disabled --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/d2/backlog/hist/backlog_disabled_rep5.csv
+# wrapper: none
+# start: 2026-10-13T11:19:55.230
+reclaim_bench variant=rcu reclaim=disabled batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 1.000 s  reads=39318160 rps=39313263 p50=151 ns p99=291 ns p999=471 ns max=141066 ns
+  writer : ok=172764 failed=0 wps=172742 stopped_at_limit=0  pin_cycles=30
+  backlog: max=258704 at_release=258737  held idle=13.6 MiB max=1784.3 MiB at_end=1784.6 MiB
+  cleanup: drained=0 in 0.000 ms  reads=14587 max=541 ns p999=380 ns
+  reclaim: versions=0 passes=6002 max_per_pass=0 stw_pauses=0 cleaner_cpu=0.000 s
+valid=1
+# exit_status: 0
+# end: 2026-10-13T11:19:59.798

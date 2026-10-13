@@ -1,0 +1,21 @@
+# started on Tue Oct 13 11:27:47 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_writer_max_r2_rep1.txt build/release/concurrent_bench_global_lock --readers 2 --duration 5 --warmup 0.5 --reader-cpus 0,2 --seed 1 --run-id ps_global_lock_writer_max_r2_rep1 --git-sha 146b851dc3dd --scenario writer_max --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_writer_max_r2_rep1.csv --writer on --writer-cpu 15':
+
+         13,088.37 msec task-clock                                                            
+    45,219,251,101      cycles                                                                  (83.38%)
+    53,850,850,584      instructions                                                            (83.05%)
+     1,410,085,434      cache-references                                                        (83.45%)
+       180,689,124      cache-misses                                                            (83.52%)
+         1,494,962      context-switches                                                      
+                 3      cpu-migrations                                                        
+       107,405,351      branch-misses                                                           (83.12%)
+       508,234,859      L1-dcache-load-misses                                                   (83.48%)
+
+       5.514973425 seconds time elapsed
+
+       4.157599000 seconds user
+       8.942403000 seconds sys
+
+

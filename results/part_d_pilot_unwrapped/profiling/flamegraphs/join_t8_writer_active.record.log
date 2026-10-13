@@ -14,22 +14,22 @@ Couldn't record kernel reference relocation symbol
 Symbol resolution may be skewed if relocation was used (e.g. kexec).
 Check /proc/kallsyms permission or run as root.
 join_bench experiment=join trades=100000 instruments=50 threads=8 writer=on txn_size=1 index=on duration=3.0s
-  joins_per_s                               562.760 1/s        
-  joined_rows_per_s                          56.276 M/s        
-  join_p50_ms                                13.547 ms         
-  join_p99_ms                                22.856 ms         
-  join_p999_ms                               25.648 ms         
-  join_max_ms                                26.105 ms         
-  joins_measured                           1693.000 joins      
-  writer_trade_puts_per_s                127856.579 1/s        
-  writer_instrument_txns_per_s             1997.749 1/s        
-  memory_held_max_mib                       206.751 MiB        
-  backlog_max_versions                     7545.000 versions   
+  joins_per_s                               600.912 1/s        
+  joined_rows_per_s                          60.091 M/s        
+  join_p50_ms                                13.123 ms         
+  join_p99_ms                                22.347 ms         
+  join_p999_ms                               24.983 ms         
+  join_max_ms                                25.992 ms         
+  joins_measured                           1808.000 joins      
+  writer_trade_puts_per_s                120706.162 1/s        
+  writer_instrument_txns_per_s             1885.826 1/s        
+  memory_held_max_mib                       391.335 MiB        
+  backlog_max_versions                    14797.000 versions   
   memory_held_idle_mib                        9.116 MiB        
-  versions_reclaimed                     391094.000 versions   
+  versions_reclaimed                     369292.000 versions   
   index_segments_reclaimed                   16.000 segments   
-  cleaner_cpu_s                               3.001 s          
+  cleaner_cpu_s                               3.050 s          
 valid=1
-[ perf record: Woken up 22 times to write data ]
-[ perf record: Captured and wrote 6.088 MB build/perf_data/join_t8_writer_active.data (59376 samples) ]
+[ perf record: Woken up 20 times to write data ]
+[ perf record: Captured and wrote 6.128 MB build/perf_data/join_t8_writer_active.data (59489 samples) ]
 # exit_status: 0

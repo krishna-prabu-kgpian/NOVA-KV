@@ -1,24 +1,24 @@
 # wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
-# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/perf_stat/ps_txn4_indexed_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/rss/ps_txn4_indexed_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/hist/ps_txn4_indexed_rep1.csv --run-id ps_txn4_indexed_rep1 --git-sha 9062d838457f-dirty --experiment txn --txn-size 4 --index on --duration 1
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/perf_stat/ps_txn4_indexed_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/rss/ps_txn4_indexed_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d3/txn/hist/ps_txn4_indexed_rep1.csv --run-id ps_txn4_indexed_rep1 --git-sha 146b851dc3dd-dirty --experiment txn --txn-size 4 --index on --duration 1
 join_bench experiment=txn trades=100000 instruments=50 threads=1 writer=off txn_size=4 index=on duration=1.0s
-  commits_per_s                           17579.364 1/s        
-  rows_per_s                              70317.457 1/s        
-  commit_p50_us                              57.409 us         
-  commit_p99_us                              78.509 us         
-  commit_p999_us                             91.243 us         
-  commit_max_us                             132.863 us         
+  commits_per_s                           17484.554 1/s        
+  rows_per_s                              69938.217 1/s        
+  commit_p50_us                              57.529 us         
+  commit_p99_us                              81.182 us         
+  commit_p999_us                            100.819 us         
+  commit_max_us                             132.258 us         
   segments_cloned_per_commit                  3.977 1/commit   
-  primary_bytes_copied_per_commit         95695.593 bytes      
+  primary_bytes_copied_per_commit         95693.781 bytes      
   directory_bytes_copied_per_commit        2048.000 bytes      
-  index_segments_built_per_commit             7.273 1/commit   
-  index_bytes_built_per_commit           420117.213 bytes      
-  bytes_copied_per_commit                517860.805 bytes      
-  bytes_copied_per_row                   129465.201 bytes      
-  owner_refs_per_commit                     278.750 1/commit   
+  index_segments_built_per_commit             7.271 1/commit   
+  index_bytes_built_per_commit           420060.727 bytes      
+  bytes_copied_per_commit                517802.508 bytes      
+  bytes_copied_per_row                   129450.627 bytes      
+  owner_refs_per_commit                     278.751 1/commit   
   memory_held_idle_mib                       10.559 MiB        
-  memory_held_max_mib                        15.161 MiB        
-  backlog_max_versions                       24.000 versions   
-  versions_reclaimed                      17600.000 versions   
-  cleaner_cpu_s                               0.190 s          
+  memory_held_max_mib                        15.303 MiB        
+  backlog_max_versions                       30.000 versions   
+  versions_reclaimed                      17536.000 versions   
+  cleaner_cpu_s                               0.193 s          
 valid=1
 # exit_status: 0

@@ -1,12 +1,12 @@
-# command: build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim-batch 64 --run-id backlog_batch64_rep1 --scenario batch_64 --hist results/part_d_pilot_unwrapped/d2/backlog/hist/backlog_batch64_rep1.csv
+# command: build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 146b851dc3dd-dirty --csv results/part_d_pilot_unwrapped/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim-batch 64 --run-id backlog_batch64_rep1 --scenario batch_64 --hist results/part_d_pilot_unwrapped/d2/backlog/hist/backlog_batch64_rep1.csv
 # wrapper: none
-# start: 2026-10-13T10:46:24.228
+# start: 2026-10-13T11:50:58.613
 reclaim_bench variant=rcu reclaim=epoch batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
-  measure: 1.000 s  reads=40382123 rps=40378329 p50=161 ns p99=321 ns p999=491 ns max=147309 ns
-  writer : ok=228735 failed=0 wps=228714 stopped_at_limit=0  pin_cycles=30
-  backlog: max=4801 at_release=4692  held idle=7.9 MiB max=59.9 MiB at_end=26.3 MiB
-  cleanup: drained=1 in 15.137 ms  reads=735054 max=8667 ns p999=411 ns
-  reclaim: versions=338813 passes=6039 max_per_pass=64 stw_pauses=0 cleaner_cpu=1.237 s
+  measure: 1.000 s  reads=37949672 rps=37944999 p50=160 ns p99=311 ns p999=481 ns max=562688 ns
+  writer : ok=224531 failed=0 wps=224503 stopped_at_limit=0  pin_cycles=30
+  backlog: max=8085 at_release=8130  held idle=7.9 MiB max=82.0 MiB at_end=26.6 MiB
+  cleanup: drained=1 in 19.472 ms  reads=935080 max=8275 ns p999=421 ns
+  reclaim: versions=333101 passes=6405 max_per_pass=64 stw_pauses=0 cleaner_cpu=1.102 s
 valid=1
 # exit_status: 0
-# end: 2026-10-13T10:46:25.760
+# end: 2026-10-13T11:51:00.150

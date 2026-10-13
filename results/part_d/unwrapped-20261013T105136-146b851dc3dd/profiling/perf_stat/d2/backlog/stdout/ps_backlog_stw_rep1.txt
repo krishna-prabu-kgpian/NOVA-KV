@@ -1,0 +1,10 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/perf_stat/ps_backlog_stw_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/rss/ps_backlog_stw_rep1.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 146b851dc3dd --csv results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim stw --run-id ps_backlog_stw_rep1 --scenario reclaim_stw --hist results/part_d/unwrapped-20261013T105136-146b851dc3dd/profiling/perf_stat/d2/backlog/hist/ps_backlog_stw_rep1.csv
+reclaim_bench variant=rcu reclaim=stw batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 3.000 s  reads=9682522 rps=3227352 p50=290 ns p99=851 ns p999=10496 ns max=25909201 ns
+  writer : ok=881031 failed=0 wps=293663 stopped_at_limit=0  pin_cycles=70
+  backlog: max=10136 at_release=10160  held idle=10.8 MiB max=97.0 MiB at_end=27.1 MiB
+  cleanup: drained=1 in 19.081 ms  reads=7026 max=19037737 ns p999=18874368 ns
+  reclaim: versions=1022055 passes=2138 max_per_pass=0 stw_pauses=2135 cleaner_cpu=2.485 s
+valid=1
+# exit_status: 0

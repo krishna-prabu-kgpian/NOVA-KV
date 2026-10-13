@@ -1,4 +1,4 @@
-# command: perf record -F 1999 --call-graph fp -o build/perf_data/rcu_r8_stw.data -- build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/flamegraphs/profiled_runs.csv --reclaim stw --run-id fg_rcu_r8_stw --scenario reclaim_stw_profiled
+# command: perf record -F 1999 --call-graph fp -o build/perf_data/rcu_r8_stw.data -- build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 146b851dc3dd-dirty --csv results/part_d_pilot_unwrapped/profiling/flamegraphs/profiled_runs.csv --reclaim stw --run-id fg_rcu_r8_stw --scenario reclaim_stw_profiled
 WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
 check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
 
@@ -14,14 +14,14 @@ Couldn't record kernel reference relocation symbol
 Symbol resolution may be skewed if relocation was used (e.g. kexec).
 Check /proc/kallsyms permission or run as root.
 rcu          scenario=reclaim_stw_profiled readers=8 writer=thread_max keys=hit seconds=5.000
-  store lock object at 0x55996496bcc0, 8 bytes (cache lines 0x55996496bcc0..0x55996496bcc0)
-  reads : ops=36092492 rps=7218413 hits=36092492 misses=0 corrupt=0
-  read latency ns: p50=300 p99=972 p999=2000 max=6798725 mean=1072.0
-  writes: ok=791368 failed=0 rps=158272 p50=5568 p99=11904 max=82026 ns
-  rcu   : publications=882153 (writes incl. warm-up=882153) commits_failed=0 reclaim=stw batch=64
-  rcu per publication: segments_cloned=1.00 index_bytes_copied=23933 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=120.8 value_bytes=32.0
-  rcu reclamation: reclaimed=882460 backlog_at_end=621 backlog_max=2370 passes=8919 epoch_advances=1688/1688 attempts (0 blocked by a reader) max_versions_in_pass=0 interrupted=0 chunk_ids_reused=68 reader_slots=0 validation_retries=0 cleaner_cpu=3.452s (62.8% of one CPU over warm-up + window)
-  rcu memory held: after_load=32.7 MiB at_end=47.9 MiB settled=47.9 MiB (versions + segments + chunks)
+  store lock object at 0x5c70a028ecc0 (offset 0 in its cache line, not controlled), 8 bytes (cache lines 0x5c70a028ecc0..0x5c70a028ecc0)
+  reads : ops=35147988 rps=7029514 hits=35147988 misses=0 corrupt=0
+  read latency ns: p50=301 p99=962 p999=2016 max=7125127 mean=1101.6
+  writes: ok=794208 failed=0 rps=158840 p50=5568 p99=11776 max=118002 ns
+  rcu   : publications=885557 (writes incl. warm-up=885557) commits_failed=0 reclaim=stw batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23933 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=120.9 value_bytes=32.0
+  rcu reclamation: reclaimed=886312 backlog_at_end=221 backlog_max=4903 passes=8484 epoch_advances=1694/1694 attempts (0 blocked by a reader) max_versions_in_pass=0 interrupted=0 chunk_ids_reused=70 reader_slots=0 validation_retries=0 cleaner_cpu=3.586s (65.2% of one CPU over warm-up + window)
+  rcu memory held: after_load=24.1 MiB at_end=37.5 MiB settled=37.5 MiB (versions + segments + chunks)
 [ perf record: Woken up 16 times to write data ]
-[ perf record: Captured and wrote 5.254 MB build/perf_data/rcu_r8_stw.data (49013 samples) ]
+[ perf record: Captured and wrote 5.109 MB build/perf_data/rcu_r8_stw.data (47594 samples) ]
 # exit_status: 0

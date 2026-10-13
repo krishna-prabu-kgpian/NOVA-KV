@@ -1,10 +1,10 @@
-# command: build/release/concurrent_bench_rwlock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id rwlock_refkeys_paced_r8_rep1 --git-sha 9062d838457f-dirty --scenario refkeys_paced --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/rwlock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+# command: build/release/concurrent_bench_rwlock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id rwlock_refkeys_paced_r8_rep1 --git-sha 146b851dc3dd-dirty --scenario refkeys_paced --csv results/part_d_pilot_unwrapped/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/d1/concurrent/hist/rwlock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference --lock-offset 48
 # wrapper: none
-# start: 2026-10-13T10:45:53.186
+# start: 2026-10-13T11:50:26.099
 rwlock       scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=1.000
-  store lock object at 0x57779f772d90, 56 bytes (cache lines 0x57779f772d80..0x57779f772dc0)
-  reads : ops=23227755 rps=23226387 hits=18587238 misses=4640517 corrupt=0
-  read latency ns: p50=291 p99=741 p999=6016 max=177287 mean=312.4
-  writes: ok=5108 failed=0 rps=5108 p50=131072 p99=933888 max=2657197 ns
+  store lock object at 0x638b7bc94ff0 (offset 48 in its cache line, placed by --lock-offset), 56 bytes (cache lines 0x638b7bc94fc0..0x638b7bc95000)
+  reads : ops=34812204 rps=34810340 hits=27855606 misses=6956598 corrupt=0
+  read latency ns: p50=131 p99=641 p999=4000 max=155953 mean=191.9
+  writes: ok=10000 failed=0 rps=9999 p50=5312 p99=14720 max=135815 ns
 # exit_status: 0
-# end: 2026-10-13T10:45:54.702
+# end: 2026-10-13T11:50:27.617

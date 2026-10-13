@@ -1008,6 +1008,32 @@ The user authorized a second campaign after D-070. Method: `docs/part_d_plan.md`
   assertion (a list that reached the trigger must have been swept).
 - The store is unchanged. No optimization.
 
+## D-072 — Lock placement decides the lock-based stores' speed; controlled from the final campaign on (Part D correction, 2026-10-13)
+
+Found while auditing the first unwrapped campaign (`unwrapped-20261013T105136-146b851dc3dd`):
+its shared-mutex result at 8 readers contradicted every earlier run of the cell. Cause, by
+controlled experiment (`results/part_d_diagnostics/lock_placement_effect.txt`): the offset of
+the lock object inside its cache line, which the heap layout sets and command-line string
+lengths change. Offset 48: shared mutex 33–34 M reads/s at 8 readers with a healthy writer,
+global mutex 11.1–11.8 M; offsets 0/16/32: 21–23 M with a starved writer, 9.2–9.8 M.
+
+Decisions:
+
+1. `concurrent_bench --lock-offset` (benchmark only; the store is not changed). Every track C
+   cell of the two lock-based stores is measured at offsets 48 and 0 and both are reported;
+   neither is declared "the" result. Where one number is needed for a comparison with RCU the
+   faster placement (48) is used, so the baseline is not understated.
+2. The first unwrapped campaign is kept as evidence and superseded as a source for the
+   lock-based cells; a third, final campaign is run. Plan: `docs/part_d_plan.md` §11.
+3. D-070's attribution is corrected: campaign-to-campaign differences in lock cells are
+   mostly placement; the wrapper effect is real but is established only by the same-argument
+   comparisons (global mutex about +22 %, shared mutex −2…−6 %, stop-the-world −20…−50 %).
+4. Track R (supplied drivers) cannot be controlled; the offset each driver got is printed and
+   reported. Part A's accepted lock results were measured without this control and stay as
+   they are, with this caveat.
+5. The mechanism (read of a lock field at byte 16–31 before the atomic update of byte 0) is a
+   hypothesis consistent with all placements measured, not an established cause.
+
 ---
 
 ## Open items carried forward

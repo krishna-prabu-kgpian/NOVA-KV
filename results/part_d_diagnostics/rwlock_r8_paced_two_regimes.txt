@@ -1,0 +1,28 @@
+# Shared mutex, 8 readers, writer paced at 10,000/s: which regime does a run land in?
+# Diagnostic outside the campaign, not used in any table. 2026-10-13T11:40:07+05:30 ac_online=1 governor=performance temp=43C
+# command: build/release/concurrent_bench_rwlock --readers 8 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15 --writer-rate 10000 --duration <d> --seed <i>   (binary of the corrected campaign, 146b851)
+# plain = started directly; perfstat = perf stat -e <9 events> -- /usr/bin/time ... (as in the original campaign)
+seed=1 duration=1s plain rc=0 reads_per_s=22214663 writes_ok=3061 writes_per_s=3061 temp=49C
+seed=1 duration=1s perfstat rc=0 reads_per_s=22061577 writes_ok=8539 writes_per_s=8538 temp=53C
+seed=1 duration=3s plain rc=0 reads_per_s=22128728 writes_ok=11548 writes_per_s=3849 temp=55C
+seed=1 duration=3s perfstat rc=0 reads_per_s=21222874 writes_ok=30000 writes_per_s=10000 temp=59C
+seed=1 duration=5s plain rc=0 reads_per_s=22096775 writes_ok=18241 writes_per_s=3648 temp=59C
+seed=1 duration=5s perfstat rc=0 reads_per_s=21566175 writes_ok=19010 writes_per_s=3802 temp=61C
+seed=2 duration=1s plain rc=0 reads_per_s=21941034 writes_ok=2691 writes_per_s=2691 temp=61C
+seed=2 duration=1s perfstat rc=0 reads_per_s=21511335 writes_ok=3317 writes_per_s=3317 temp=61C
+seed=2 duration=3s plain rc=0 reads_per_s=22135057 writes_ok=14112 writes_per_s=4704 temp=62C
+seed=2 duration=3s perfstat rc=0 reads_per_s=21973931 writes_ok=7461 writes_per_s=2487 temp=62C
+seed=2 duration=5s plain rc=0 reads_per_s=22543801 writes_ok=23113 writes_per_s=4623 temp=63C
+seed=2 duration=5s perfstat rc=0 reads_per_s=21751908 writes_ok=13944 writes_per_s=2789 temp=64C
+seed=3 duration=1s plain rc=0 reads_per_s=22241102 writes_ok=8951 writes_per_s=8951 temp=64C
+seed=3 duration=1s perfstat rc=0 reads_per_s=21840267 writes_ok=3429 writes_per_s=3429 temp=64C
+seed=3 duration=3s plain rc=0 reads_per_s=21924030 writes_ok=10181 writes_per_s=3394 temp=64C
+seed=3 duration=3s perfstat rc=0 reads_per_s=21847669 writes_ok=7707 writes_per_s=2569 temp=65C
+seed=3 duration=5s plain rc=0 reads_per_s=22179824 writes_ok=18100 writes_per_s=3620 temp=65C
+seed=3 duration=5s perfstat rc=0 reads_per_s=21715575 writes_ok=17975 writes_per_s=3595 temp=65C
+seed=4 duration=1s plain rc=0 reads_per_s=23024083 writes_ok=7608 writes_per_s=7608 temp=65C
+seed=4 duration=1s perfstat rc=0 reads_per_s=21839574 writes_ok=2949 writes_per_s=2949 temp=65C
+seed=4 duration=3s plain rc=0 reads_per_s=22148400 writes_ok=17581 writes_per_s=5860 temp=65C
+seed=4 duration=3s perfstat rc=0 reads_per_s=21834250 writes_ok=11074 writes_per_s=3691 temp=65C
+seed=4 duration=5s plain rc=0 reads_per_s=21857527 writes_ok=49620 writes_per_s=9924 temp=68C
+seed=4 duration=5s perfstat rc=0 reads_per_s=21470783 writes_ok=44244 writes_per_s=8849 temp=67C
