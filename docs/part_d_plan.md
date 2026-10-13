@@ -276,4 +276,3 @@ all eight placements measured; it has not been isolated by an experiment.
 
 Part A's accepted results (`results/part_a/`) were measured without placement control and
 are not changed; the same sensitivity applies to them.
-

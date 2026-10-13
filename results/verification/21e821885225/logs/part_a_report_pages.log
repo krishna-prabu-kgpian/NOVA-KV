@@ -1,0 +1,11 @@
+# gate: part_a_report_pages
+# started_utc: 2026-10-13T07:51:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: scripts/check_part_a_report.sh
+
+report: reports/part_a_report.pdf
+pages: 4 (limit 5)
+design note: pages 3-4, at most 2 page(s) (limit 3)
+PASS
+
+# exit_status: 0

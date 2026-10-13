@@ -1,0 +1,51 @@
+# gate: part_c1_artifacts
+# started_utc: 2026-10-13T07:51:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c 
+    status=0
+    for f in src/staged_writes.cpp src/staged_writes.h tests/transaction_test.cpp tests/snapshot_test.cpp \
+             tests/txn_failure_test.cpp tests/txn_concurrency_test.cpp docs/transactions.md \
+             docs/part_c_compliance.md results/diffs/part_b_to_part_c1.diff; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    grep -q "write skew" docs/transactions.md || grep -q "Write skew" docs/transactions.md || { echo "MISSING  write-skew explanation"; status=1; }
+    grep -q "Durability" docs/transactions.md || { echo "MISSING  durability statement"; status=1; }
+    # Every tag that is a checkpoint so far still names the commit it was created on.
+    for pair in a0-bootstrap:2ef5f19 part-a-core:80bc092 part-a-final:3444f23 part-b-publication:2d9c02c \
+                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10 part-c-final:27d3161 part-d-final:9062d83; do
+        tag=${pair%%:*}; want=${pair##*:}
+        have=$(git rev-parse --short=7 "$tag^{commit}" 2>/dev/null)
+        if [ "$have" = "$want" ]; then echo "ok       tag $tag = $want"; else echo "MOVED    tag $tag: $have, expected $want"; status=1; fi
+    done
+    # The interim Part B -> Part C diff is current. It is frozen at the tag
+    # part-c-transactions once that exists; before that it must match HEAD.
+    base=HEAD
+    git rev-parse --verify --quiet part-c-transactions^{commit} >/dev/null && base=part-c-transactions
+    if git diff part-b-audited "$base" -- src include | cmp -s - results/diffs/part_b_to_part_c1.diff; then
+        echo "ok       Part B -> Part C.1 diff matches: git diff part-b-audited $base -- src include"
+    else
+        echo "STALE    results/diffs/part_b_to_part_c1.diff differs from: git diff part-b-audited $base -- src include"; status=1
+    fi
+    exit $status
+
+ok       src/staged_writes.cpp
+ok       src/staged_writes.h
+ok       tests/transaction_test.cpp
+ok       tests/snapshot_test.cpp
+ok       tests/txn_failure_test.cpp
+ok       tests/txn_concurrency_test.cpp
+ok       docs/transactions.md
+ok       docs/part_c_compliance.md
+ok       results/diffs/part_b_to_part_c1.diff
+ok       tag a0-bootstrap = 2ef5f19
+ok       tag part-a-core = 80bc092
+ok       tag part-a-final = 3444f23
+ok       tag part-b-publication = 2d9c02c
+ok       tag part-b-final = 304a8ac
+ok       tag part-b-audited = 87d38aa
+ok       tag part-c-transactions = 1e6af10
+ok       tag part-c-final = 27d3161
+ok       tag part-d-final = 9062d83
+ok       Part B -> Part C.1 diff matches: git diff part-b-audited part-c-transactions -- src include
+
+# exit_status: 0

@@ -270,7 +270,7 @@ run_gate part_d_artifacts yes sh -c '
     # What the report embeds is the corrected campaign, unedited.
     diff -r -q "$C/figures" $P/figures > /dev/null && echo "ok       $P/figures is the corrected campaign" || bad "STALE    $P/figures differs from $C/figures"
     cmp -s "$C/summary/summary.md" $P/summary/summary.md && echo "ok       $P/summary/summary.md is the corrected campaign" || bad "STALE    $P/summary/summary.md"
-    grep -q "unwrapped" $P/summary/summary.md || bad "STALE    summary does not describe an unwrapped timing track"
+    grep -qi "unwrapped timing track" $P/summary/summary.md || bad "STALE    summary does not describe an unwrapped timing track"
     # LOCK PLACEMENT: every track C run of a lock-based store was placed, at offset 48 or 0.
     unplaced=$(awk -F, "NR==1 {for (i=1;i<=NF;i++) {if (\$i==\"variant\") v=i; if (\$i==\"lock_placement\") p=i}} NR>1 && (\$v==\"global_lock\" || \$v==\"rwlock\") && \$p!=\"controlled\"" "$C/d1/concurrent/runs.csv" | wc -l)
     [ "$unplaced" -eq 0 ] && echo "ok       lock placement controlled in every lock-store run of track C" || bad "UNPLACED $unplaced lock-store runs without a controlled lock offset"

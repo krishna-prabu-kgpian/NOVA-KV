@@ -1,0 +1,13 @@
+# gate: part_a_checkpoint_unchanged
+# started_utc: 2026-10-13T07:51:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c 
+    git rev-parse --verify --quiet part-a-final^{commit} >/dev/null || { echo "tag part-a-final missing"; exit 1; }
+    git diff --stat --exit-code part-a-final HEAD -- results/part_a reports/part_a_report.pdf \
+        reports/part_a_report.md reports/part_a_report.src.md docs/part_a_compliance.md \
+        reports/milestones/A0.md reports/milestones/A1.md reports/milestones/A2.md &&
+    echo "Part A results, report and milestone reports identical to part-a-final"
+
+Part A results, report and milestone reports identical to part-a-final
+
+# exit_status: 0

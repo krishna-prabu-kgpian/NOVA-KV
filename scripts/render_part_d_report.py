@@ -163,22 +163,29 @@ def perfcell(variant, scen, readers, field):
     raise KeyError(f"profile_breakdown.txt: no perf stat line for {variant} {scen} r={readers}")
 
 
-_cmp = index(load("original_vs_corrected.csv") if os.path.isfile(os.path.join(S, "original_vs_corrected.csv")) else
-             list(csv.DictReader(open(os.path.join(P, "summary", "original_vs_corrected.csv"), newline=""))), ("cell", "measure"))
+_cmp_rows = list(csv.DictReader(open(os.path.join(P, "summary", "original_vs_corrected.csv"), newline="")))
 
 
-def cmp3(cell, measure, col):
-    """results/part_d/summary/original_vs_corrected.csv: col = original_wrapped | original_lock_offset |
-    middle_unwrapped | middle_lock_offset | final | final_lock_offset_0."""
-    v = _cmp[(cell, measure)][col]
-    return float(v) if re.fullmatch(r"[\d.e+\-]+", v) and "offset" not in col.replace("final_lock_offset_0", "") else v
+def _cmp_row(cell, measure, exp=None):
+    hits = [r for r in _cmp_rows if r["cell"] == cell and r["measure"] == measure and (exp is None or exp in r["experiment"])]
+    if len(hits) != 1:
+        raise KeyError(f"original_vs_corrected.csv: {len(hits)} rows for {cell!r}, {measure!r}, experiment {exp!r}")
+    return hits[0]
+
+
+def cmp3(cell, measure, col, exp=None):
+    """results/part_d/summary/original_vs_corrected.csv (the three campaigns): col = original_wrapped |
+    original_lock_offset | middle_unwrapped | middle_lock_offset | final | final_lock_offset_0.
+    `exp`: a substring of the experiment name, needed where a cell name occurs in two experiments."""
+    v = _cmp_row(cell, measure, exp)[col]
+    return v if col in ("original_lock_offset", "middle_lock_offset") else float(v)
 
 
 def yardstick(which):
     """Final / original ratio over the supplied-generator cells (never wrapped, fixed arguments):
     which = 'min' | 'max'."""
-    r = [float(v["final"]) / float(v["original_wrapped"]) for (cell, measure), v in _cmp.items()
-         if measure == "lookups/s" and v["original_wrapped"] and v["final"]]
+    r = [float(v["final"]) / float(v["original_wrapped"]) for v in _cmp_rows
+         if v["measure"] == "lookups/s" and v["original_wrapped"] and v["final"]]
     return min(r) if which == "min" else max(r)
 
 

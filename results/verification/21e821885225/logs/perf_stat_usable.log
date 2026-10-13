@@ -1,0 +1,18 @@
+# gate: perf_stat_usable
+# started_utc: 2026-10-13T07:51:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: perf stat -e task-clock -- true
+
+
+ Performance counter stats for 'true':
+
+              0.20 msec task-clock                                                            
+
+       0.000709337 seconds time elapsed
+
+       0.000784000 seconds user
+       0.000000000 seconds sys
+
+
+
+# exit_status: 0

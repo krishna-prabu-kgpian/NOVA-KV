@@ -1,0 +1,130 @@
+# gate: part_d_artifacts
+# started_utc: 2026-10-13T07:51:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: sh -c 
+    status=0
+    bad() { echo "$1"; status=1; }
+    P=results/part_d
+    ORIG=$P/original-wrapped-20261013T090846-615f4357f015
+    C=$P/$(cat $P/PRIMARY 2>/dev/null)
+    [ -s $P/PRIMARY ] && [ -d "$C" ] && echo "ok       primary campaign: $C" || bad "MISSING  $P/PRIMARY does not name a campaign directory"
+    # The original campaign is kept exactly as tagged.
+    if [ "$(git rev-parse -q --verify "HEAD:$ORIG")" = "$(git rev-parse -q --verify part-d-final:results/part_d)" ] \
+        && [ -z "$(git status --porcelain -- "$ORIG")" ]; then
+        echo "ok       original (wrapped) campaign identical to part-d-final:results/part_d"
+    else bad "CHANGED  $ORIG differs from part-d-final:results/part_d"; fi
+    for f in scripts/run_part_d.sh scripts/aggregate_part_d.py scripts/part_d_profile_breakdown.py \
+             scripts/compare_part_d_campaigns.py scripts/publish_part_d.sh \
+             benchmarks/concurrent_bench.cpp benchmarks/join_bench.cpp benchmarks/reclaim_bench.cpp \
+             reports/part_d_report.md reports/part_d_report.pdf docs/part_d_compliance.md docs/part_d_plan.md \
+             reports/part_d_report.template.md docs/part_d_compliance.template.md scripts/render_part_d_report.py \
+             reports/milestones/D.md $P/README.md results/part_d_diagnostics/lock_placement_effect.txt \
+             $P/summary/summary.md $P/summary/original_vs_corrected.md $P/summary/profile_breakdown.txt \
+             $P/summary/profiling_overhead.csv \
+             "$C/CAMPAIGN" "$C/conditions.log" "$C/env/campaign_config.txt" "$C/env/prerequisites.txt" \
+             "$C/d1/concurrent/runs.csv" "$C/d1/reference/runs.csv" "$C/d2/steady/runs.csv" "$C/d2/backlog/runs.csv" \
+             "$C/d3/txn/runs.csv" "$C/d3/join/runs.csv" "$C/d3/cow/runs.csv" "$C/d3/generator/runs.csv" \
+             "$C/profiling/perf_stat/d1/concurrent/runs.csv"; do
+        if [ -s "$f" ]; then echo "ok       $f"; else bad "MISSING  $f"; fi
+    done
+    [ -e "$C/INVALID" ] && bad "INVALID  the campaign is marked invalid"
+    [ -e "$C/summary/problems.txt" ] && [ ! -s "$C/summary/problems.txt" ] \
+        && echo "ok       aggregator found no problem" || bad "PROBLEM  $C/summary/problems.txt is missing or not empty"
+    if grep -v -E "ac_online=1 .*governor=performance " "$C/conditions.log" | grep -q .; then
+        bad "CHANGED  a condition record is not mains + performance"
+    else echo "ok       $(grep -c . "$C/conditions.log") condition records: mains power, performance governor"; fi
+    campaign=$(cat "$C/CAMPAIGN")
+    for d in d1/concurrent d1/reference d2/steady d2/backlog d3/txn d3/join d3/cow d3/generator \
+             profiling/perf_stat profiling/flamegraphs profiling/c2c; do
+        [ "$(cat "$C/$d/.campaign" 2>/dev/null)" = "$campaign" ] || bad "MIXED    $C/$d is not from campaign $campaign"
+    done
+    # TIMING TRACK: no run may have been started under a profiler, a tracer or /usr/bin/time.
+    wrapped=$(grep -l -E "^# command: *(perf|strace|ltrace|valgrind|/usr/bin/time|time) " \
+                  "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt 2>/dev/null | wc -l)
+    timing=$(ls "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt 2>/dev/null | wc -l)
+    [ "$wrapped" -eq 0 ] && [ "$timing" -gt 0 ] && echo "ok       timing track: $timing runs, none started under a profiler or wrapper" \
+        || bad "WRAPPED  $wrapped of $timing timing runs were started under a profiler or wrapper"
+    [ -z "$(find "$C/d1" "$C/d2" "$C/d3" -type d \( -name perf_stat -o -name rss \) 2>/dev/null)" ] \
+        || bad "WRAPPED  perf_stat/ or rss/ directory inside the timing track"
+    bad_exit=$(grep -L "^# exit_status: 0$" "$C"/d1/*/stdout/*.txt "$C"/d2/*/stdout/*.txt "$C"/d3/*/stdout/*.txt \
+                   "$C"/profiling/perf_stat/*/*/stdout/*.txt 2>/dev/null | wc -l)
+    [ "$bad_exit" -eq 0 ] && echo "ok       every run records exit status 0" || bad "FAILED   $bad_exit runs without exit status 0"
+    n() { ls "$1" 2>/dev/null | grep -c "$2"; }
+    [ "$(n $P/figures .png)" -ge 12 ] && echo "ok       figures: $(n $P/figures .png)" || bad "MISSING  figures"
+    [ "$(n "$C/profiling/flamegraphs" "\.svg$")" -ge 10 ] && echo "ok       flame graphs: $(n "$C/profiling/flamegraphs" "\.svg$")" || bad "MISSING  flame graphs"
+    [ "$(n "$C/profiling/c2c" c2c-report.txt)" -ge 5 ] && echo "ok       perf c2c reports: $(n "$C/profiling/c2c" c2c-report.txt)" || bad "MISSING  perf c2c reports"
+    runs=$(($(wc -l < "$C/d1/concurrent/runs.csv") - 1))
+    [ "$runs" -eq "$(n "$C/d1/concurrent/hist" .csv)" ] && [ "$runs" -eq "$(n "$C/d1/concurrent/stdout" .txt)" ] \
+        && echo "ok       D.1 track C: $runs timing runs, each with a histogram and a command record" || bad "MISMATCH D.1 runs / histograms / stdout"
+    # What the report embeds is the corrected campaign, unedited.
+    diff -r -q "$C/figures" $P/figures > /dev/null && echo "ok       $P/figures is the corrected campaign" || bad "STALE    $P/figures differs from $C/figures"
+    cmp -s "$C/summary/summary.md" $P/summary/summary.md && echo "ok       $P/summary/summary.md is the corrected campaign" || bad "STALE    $P/summary/summary.md"
+    grep -q "unwrapped" $P/summary/summary.md || bad "STALE    summary does not describe an unwrapped timing track"
+    # LOCK PLACEMENT: every track C run of a lock-based store was placed, at offset 48 or 0.
+    unplaced=$(awk -F, "NR==1 {for (i=1;i<=NF;i++) {if (\$i==\"variant\") v=i; if (\$i==\"lock_placement\") p=i}} NR>1 && (\$v==\"global_lock\" || \$v==\"rwlock\") && \$p!=\"controlled\"" "$C/d1/concurrent/runs.csv" | wc -l)
+    [ "$unplaced" -eq 0 ] && echo "ok       lock placement controlled in every lock-store run of track C" || bad "UNPLACED $unplaced lock-store runs without a controlled lock offset"
+    # Every number in the report and the checklist is computed from this campaign.
+    py=python3; [ -x .tools/venv/bin/python ] && py=.tools/venv/bin/python
+    "$py" scripts/render_part_d_report.py --check || status=1
+    # Statements the report must not lose.
+    grep -qi "preload-only" reports/part_d_report.md || bad "MISSING  preload-only label in the report"
+    grep -qi "two handles" reports/part_d_report.md || bad "MISSING  one-snapshot-per-store limitation in the report"
+    grep -qi "started directly" reports/part_d_report.md || bad "MISSING  the unwrapped-timing statement in the report"
+    grep -q "$(cat $P/PRIMARY)" reports/part_d_report.md || bad "STALE    the report does not name the primary campaign"
+    grep -q "615f4357f015-all" reports/part_d_report.md || bad "MISSING  the report does not name the superseded campaign"
+    grep -qi "hypothesis" reports/part_d_report.md || bad "MISSING  the report presents an unproven mechanism as fact"
+    exit $status
+
+ok       primary campaign: results/part_d/unwrapped-20261013T115839-fcd2938f49b6
+ok       original (wrapped) campaign identical to part-d-final:results/part_d
+ok       scripts/run_part_d.sh
+ok       scripts/aggregate_part_d.py
+ok       scripts/part_d_profile_breakdown.py
+ok       scripts/compare_part_d_campaigns.py
+ok       scripts/publish_part_d.sh
+ok       benchmarks/concurrent_bench.cpp
+ok       benchmarks/join_bench.cpp
+ok       benchmarks/reclaim_bench.cpp
+ok       reports/part_d_report.md
+ok       reports/part_d_report.pdf
+ok       docs/part_d_compliance.md
+ok       docs/part_d_plan.md
+ok       reports/part_d_report.template.md
+ok       docs/part_d_compliance.template.md
+ok       scripts/render_part_d_report.py
+ok       reports/milestones/D.md
+ok       results/part_d/README.md
+ok       results/part_d_diagnostics/lock_placement_effect.txt
+ok       results/part_d/summary/summary.md
+ok       results/part_d/summary/original_vs_corrected.md
+ok       results/part_d/summary/profile_breakdown.txt
+ok       results/part_d/summary/profiling_overhead.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/CAMPAIGN
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/conditions.log
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/env/campaign_config.txt
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/env/prerequisites.txt
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/concurrent/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d1/reference/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d2/steady/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d2/backlog/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/txn/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/join/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/cow/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/d3/generator/runs.csv
+ok       results/part_d/unwrapped-20261013T115839-fcd2938f49b6/profiling/perf_stat/d1/concurrent/runs.csv
+ok       aggregator found no problem
+ok       68 condition records: mains power, performance governor
+ok       timing track: 470 runs, none started under a profiler or wrapper
+ok       every run records exit status 0
+ok       figures: 12
+ok       flame graphs: 14
+ok       perf c2c reports: 9
+ok       D.1 track C: 245 timing runs, each with a histogram and a command record
+ok       results/part_d/figures is the corrected campaign
+ok       results/part_d/summary/summary.md is the corrected campaign
+STALE    summary does not describe an unwrapped timing track
+ok       lock placement controlled in every lock-store run of track C
+ok       reports/part_d_report.md matches its template and the data
+ok       docs/part_d_compliance.md matches its template and the data
+
+# exit_status: 1
