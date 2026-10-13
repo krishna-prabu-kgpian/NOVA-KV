@@ -311,6 +311,25 @@ set_tests_properties(
     bench_validate_concurrent_rcu_no_reclaim bench_validate_concurrent_rcu_stw
     PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
 
+# Part C.2 benchmark (rcu build): each experiment runs briefly and must pass
+# its own validation (complete joins, exact lookups, valid stores).
+add_executable(join_bench benchmarks/join_bench.cpp)
+target_include_directories(join_bench PRIVATE src benchmarks)
+target_link_libraries(join_bench PRIVATE nova_kv_rcu nova_warnings)
+add_test(NAME bench_validate_join_create COMMAND join_bench --experiment create --trades 5000)
+add_test(NAME bench_validate_join_lookup
+    COMMAND join_bench --experiment lookup --threads 2 --duration 0.3 --writer on)
+add_test(NAME bench_validate_join_maintain COMMAND join_bench --experiment maintain --trades 5000 --duration 0.2)
+add_test(NAME bench_validate_join_txn COMMAND join_bench --experiment txn --trades 5000 --txn-size 16 --duration 0.2)
+add_test(NAME bench_validate_join_paused
+    COMMAND join_bench --experiment join --trades 5000 --threads 2 --duration 0.3 --writer off)
+add_test(NAME bench_validate_join_active
+    COMMAND join_bench --experiment join --trades 5000 --threads 2 --duration 0.4 --writer on)
+set_tests_properties(
+    bench_validate_join_create bench_validate_join_lookup bench_validate_join_maintain
+    bench_validate_join_txn bench_validate_join_paused bench_validate_join_active
+    PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
+
 add_test(NAME bench_validate_layout
     COMMAND layout_bench --records 20000 --ops 200000 --reps 2)
 set_tests_properties(
