@@ -1,0 +1,22 @@
+campaign: 20261013T090204-b27efd70a0a0-dirty-pilot
+git_sha: b27efd70a0a0-dirty
+mode: pilot
+build_dir: build/release (CMAKE_BUILD_TYPE=Release)
+compile command (kvstore.cpp, rcu variant):
+  /usr/bin/c++ -DNOVA_KV_SYNC_MODE=NOVA_KV_SYNC_RCU -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/include -I/home/overmind/Documents/DOCS/assignment2/NOVA-KV/src -O3 -g -DNDEBUG -std=c++17 -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror -o CMakeFiles/nova_kv_rcu.dir/src/kvstore.cpp.o -c /home/overmind/Documents/DOCS/assignment2/NOVA-KV/src/kvstore.cpp
+reps=1 d1_duration_s=1 reference_duration_s=1 d2_d3_duration_s=1 warmup_s=0.5
+reader_counts="8" reclaim_batches="64" txn_sizes="4" join_threads="8"
+reader_cpus=0,2,4,6,1,3,5,7 writer_cpu=15 (cleaner thread not pinned) paced_writer_rate=10000
+perf_events=task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses perf_record_freq_hz=1999
+perf: perf version 7.0.12   perf_event_paranoid=1 kptr_restrict=1
+sha256 of the measured executables:
+  99ab4413be8c7b0edbacaaba916f6d35baf3677dcb9cdb483749fcf166b15c7b  concurrent_bench_single
+  fee3001c5aa9efefa1e3765d83b9ce514828f6fdb95e7d523c5ba1d54d0b56d0  concurrent_bench_global_lock
+  81e63603ba51c8b84594a166c9e91af07191df7ae91a75fccaf5463361862241  concurrent_bench_rwlock
+  83634b9bfbd6aade0fc97022cad931415f3bbd477ab974c6a0a9978baa5b80c6  concurrent_bench_rcu
+  b48a07661db6ea82a3b5b14bb44d64b5e24a5b5fe3ffbf7acab539b59e412b6a  join_bench
+  8c94bcbbc0c191eba68230e19341e8f844db9f86834a03b2837dc5ef513a08a4  reclaim_bench
+  9eee2256d2a8c0dc2dfd24b95c5acbeadafa3ca28f9d796d3da5befbd6d33c79  single_thread
+  3a39f3db8104d2c4b69c7bdd0078b52cdb7009b4ec4e4c397d5457dcc82435a6  global_lock
+  7b521a211f2c1e3ca6f6172221bbd49d305566fefef88c5b3358c8ce6f1858b9  rwlock
+  9760f1e986ff27c7a9ba8628a9ffc0e3a171da29431e356dd5c1b70524373083  rcu

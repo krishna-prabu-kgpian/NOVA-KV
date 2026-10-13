@@ -1,0 +1,37 @@
+WARNING: failed to find node
+  Error: unknown switch `F'
+
+ Usage: perf c2c report
+
+    -c, --coalesce <coalesce fields>
+                          coalesce fields: pid,tid,iaddr,dso
+    -d, --display <Switch HITM output type>
+                          tot,lcl,rmt,peer
+    -f, --force           don't complain, do it
+    -g, --call-graph <print_type,threshold[,print_limit],order,sort_key[,branch],value>
+                          Display call graph (stack chain/backtrace):
+
+				print_type:	call graph printing style (graph|flat|fractal|folded|none)
+				threshold:	minimum call graph inclusion threshold (<percent>)
+				print_limit:	maximum number of call graph entry (<number>)
+				order:		call graph order (caller|callee)
+				sort_key:	call graph sort key (function|address)
+				branch:		include last branch info to call graph (branch)
+				value:		call graph value (percent|period|count)
+
+				Default: graph,0.5,caller,function,percent
+    -i, --input <file>    the input file to process
+    -k, --vmlinux <file>  vmlinux pathname
+    -M, --disassembler-style <disassembler style>
+                          Specify disassembler style (e.g. -M intel for intel syntax)
+    -N, --node-info       show extra node info in report (repeat for more info)
+    -v, --verbose         be more verbose (show counter open errors, etc)
+        --double-cl       Detect adjacent cacheline false sharing
+        --full-symbols    Display full length of symbols
+        --no-source       Do not display Source Line column
+        --objdump <path>  objdump binary to use for disassembly and annotations
+        --show-all        Show all captured HITM lines.
+        --stats           Display only statistic tables (implies --stdio)
+        --stdio           Use the stdio interface
+        --stitch-lbr      Enable LBR callgraph stitching approach
+

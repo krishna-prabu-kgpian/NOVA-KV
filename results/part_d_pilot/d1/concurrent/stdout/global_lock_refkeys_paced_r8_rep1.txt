@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot/d1/concurrent/perf_stat/global_lock_refkeys_paced_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d1/concurrent/rss/global_lock_refkeys_paced_r8_rep1.txt build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id global_lock_refkeys_paced_r8_rep1 --git-sha b27efd70a0a0-dirty --scenario refkeys_paced --csv results/part_d_pilot/d1/concurrent/runs.csv --hist results/part_d_pilot/d1/concurrent/hist/global_lock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+global_lock  scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=1.000
+  store lock object at 0x5f5684382d90, 40 bytes (cache lines 0x5f5684382d80..0x5f5684382d80)
+  reads : ops=13198798 rps=13197912 hits=10560650 misses=2638148 corrupt=0
+  read latency ns: p50=100 p99=7424 p999=13568 max=150506 mean=569.6
+  writes: ok=9999 failed=0 rps=9998 p50=1120 p99=12032 max=119022 ns
+# exit_status: 0

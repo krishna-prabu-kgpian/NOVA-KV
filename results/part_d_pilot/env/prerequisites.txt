@@ -1,0 +1,16 @@
+prerequisite check, 2026-10-13T09:02:04, git b27efd70a0a0-dirty
+  ok      mains power: AC online
+  ok      governor: performance on all CPUs
+  ok      perf_event_paranoid: 1
+  ok      perf stat events: task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses
+  ok      perf record: works
+  ok      perf c2c: works
+  ok      FlameGraph: /home/overmind/Documents/DOCS/assignment2/NOVA-KV/.tools/FlameGraph
+  ok      /usr/bin/time: present
+  ok      memory available: 27241 MiB
+  ok      disk free: 165517 MiB
+  ok      logical CPUs: 16
+  ok      machine idle: 99% idle over 5 s
+  ok      no busy process: none above 15% CPU
+  ok      no build / test / benchmark running: none
+  load average: 0.07 0.44 1.05   top CPU users: claude=5.2% gnome-shell=3.5% ptyxis=2.4% irq/135-rtw89_pci=0.5% 

@@ -1,8 +1,10 @@
-# Part D measurement plan (prepared in the C2 audit; NOT executed)
+# Part D measurement plan
 
-Nothing in this document has been run. It fixes, before any measurement, what will be
+Sections 0–8 were written in the C2 audit, before anything was measured: what will be
 measured, with which program, under which conditions, and how results will be judged
-comparable. Requirements: `assignment2.pdf` pp. 5–6 (D.1–D.3); blueprint §9; measurement rules
+comparable. Section 9 records the deviations from that plan decided after the pilot and
+**before** the campaign was run. The campaign itself is `scripts/run_part_d.sh`; its results
+and report are `results/part_d/` and `reports/part_d_report.md`. Requirements: `assignment2.pdf` pp. 5–6 (D.1–D.3); blueprint §9; measurement rules
 D-024…D-029, D-046.
 
 ## 0. Preconditions (yours; nothing here changes the system)
@@ -127,3 +129,40 @@ with the measured hit rate of the run (D-065), and are not called a join.
 - Reads next to an active writer currently run at about half speed (C2 observation, cause not
   established): the R8 hypothesis should be tested with `perf c2c` before D.1's final numbers,
   as a measured before/after change, or left alone and explained.
+
+## 9. Deviations from the plan, recorded after the pilot and before the campaign (decision D-068)
+
+The pilot (`scripts/run_part_d.sh pilot`, kept in `results/part_d_pilot/`) ran one repetition
+of every stage with 1 s windows and passed: output schema, validation, histograms, perf stat,
+flame graphs, perf c2c, aggregation and all twelve figures. What it showed led to these
+changes; none of them alters a requirement of D.1–D.3.
+
+1. **The cleaner thread cannot be pinned, so the "cleaner on CPU 14" set of §1 is dropped.**
+   The store owns that thread and has no affinity interface; adding one would be a change to
+   the store made for a benchmark. The cleaner runs wherever the kernel puts it (recorded).
+2. **Measured windows of 3 s for D.2 and D.3 (5 s for D.1), as planned; reclamation disabled
+   gets 1 s** because it retains every version (measured in the pilot: about 4.4 GB in 1.5 s
+   in workload A).
+3. **The memory guard is raised from the harness default of 6 GB to 16 GB** for every RCU run.
+   The pilot showed that with an unthrottled writer and 8 readers the cleaner does not keep
+   up on this machine (backlog 31,629 versions and 837 MiB held after 1.5 s; the same on the
+   audited Part B binary measured alongside, so it is not something Part C introduced). A 5 s
+   run is expected to retain a few GB. The guard must not cut such a run short and turn a
+   finding into an invalid run; it still protects the machine (27 GiB available).
+4. **Workload B is fixed as:** 2,000 keys, 4 KiB values, 8 readers, unthrottled writer, a
+   Snapshot held 20 ms out of every 50 ms, a final snapshot released at the end of the window,
+   and a cleanup phase measured separately (time to drain; reader stalls during it). Program:
+   `benchmarks/reclaim_bench.cpp`.
+5. **Additions to §3:** RCU with no writer at 1 and 8 readers (an upper bound), and each store
+   at 8 readers with the generator's own key distribution *and* a paced writer (hit and miss
+   rates with a writer present).
+6. **perf c2c** is taken for RCU at 8 readers (writer unthrottled; reads only), RCU at 1
+   reader, and the shared-mutex store at 8 readers. Flame graphs: RCU at 1/2/4/8 readers with
+   the unthrottled writer, RCU at 8 with the paced writer and with none, both lock stores at
+   8 readers, and the join with 8 joiners and the writer active.
+7. **`perf stat` wraps every track C, D.2 and D.3 run** (counting mode), together with
+   `/usr/bin/time` for the peak resident set, so CPU utilization, context switches and memory
+   come from the same runs as the throughput numbers.
+8. **No optimization is attempted in this milestone.** If perf c2c confirms the cache-line
+   hypothesis it is reported as evidence, with the experiment that would test a fix; the store
+   measured is the audited Part C store.

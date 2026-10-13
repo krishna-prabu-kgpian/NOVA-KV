@@ -1,0 +1,11 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot/d1/concurrent/perf_stat/rcu_refkeys_paced_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d1/concurrent/rss/rcu_refkeys_paced_r8_rep1.txt build/release/concurrent_bench_rcu --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id rcu_refkeys_paced_r8_rep1 --git-sha b27efd70a0a0-dirty --scenario refkeys_paced --csv results/part_d_pilot/d1/concurrent/runs.csv --hist results/part_d_pilot/d1/concurrent/hist/rcu_refkeys_paced_r8_rep1.csv --cow-csv results/part_d_pilot/d1/concurrent/cow.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+rcu          scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=1.000
+  store lock object at 0x6380c57abe00, 8 bytes (cache lines 0x6380c57abe00..0x6380c57abe00)
+  reads : ops=106204016 rps=106197351 hits=84987357 misses=21216659 corrupt=0
+  read latency ns: p50=50 p99=120 p999=170 max=137248 mean=50.4
+  writes: ok=9999 failed=0 rps=9998 p50=4928 p99=6656 max=33288 ns
+  rcu   : publications=15001 (writes incl. warm-up=15001) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23928 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=53.0 value_bytes=32.0
+  rcu reclamation: reclaimed=15001 backlog_at_end=0 backlog_max=16104 passes=17728 epoch_advances=12160/12331 attempts (171 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=17828 cleaner_cpu=0.119s (7.9% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=9.5 MiB settled=9.5 MiB (versions + segments + chunks)
+# exit_status: 0

@@ -1,0 +1,19 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot/d3/join/perf_stat/join_t8_active_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d3/join/rss/join_t8_active_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot/d3/join/runs.csv --hist results/part_d_pilot/d3/join/hist/join_t8_active_rep1.csv --run-id join_t8_active_rep1 --git-sha b27efd70a0a0-dirty --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --duration 1
+join_bench experiment=join trades=100000 instruments=50 threads=8 writer=on txn_size=1 index=on duration=1.0s
+  joins_per_s                               579.906 1/s        
+  joined_rows_per_s                          57.991 M/s        
+  join_p50_ms                                13.639 ms         
+  join_p99_ms                                21.468 ms         
+  join_p999_ms                               24.062 ms         
+  join_max_ms                                24.062 ms         
+  joins_measured                            586.000 joins      
+  writer_trade_puts_per_s                 98041.672 1/s        
+  writer_instrument_txns_per_s             1531.901 1/s        
+  memory_held_max_mib                       392.498 MiB        
+  backlog_max_versions                    14661.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     101062.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               1.016 s          
+valid=1
+# exit_status: 0

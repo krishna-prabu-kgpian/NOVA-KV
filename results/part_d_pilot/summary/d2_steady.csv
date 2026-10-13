@@ -1,0 +1,4 @@
+setting,reps,read_rps_median,read_rps_min,read_rps_max,write_rps_median,p50_ns_median,p99_ns_median,p999_ns_median,max_stall_ns_median,max_stall_ns_worst,passes_median,max_versions_in_a_pass,backlog_max_median,memory_at_end_mib_median,cleaner_cpu_s_median,versions_reclaimed_per_s_median
+batch_64,1,5.07348e+07,5.07348e+07,5.07348e+07,105799,120,391,561,577392,577392,2474,64,24161,640.779,1.42891,153176
+reclaim_stw,1,5.37362e+06,5.37362e+06,5.37362e+06,165944,341,1040,1936,5.74637e+06,5.74637e+06,1948,0,11709,39.5514,1.23661,264890
+reclaim_disabled,1,7.34907e+07,7.34907e+07,7.34907e+07,83343.5,70,300,461,388158,388158,6002,0,225358,4437.64,0,0

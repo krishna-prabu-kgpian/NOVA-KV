@@ -330,6 +330,23 @@ set_tests_properties(
     bench_validate_join_txn bench_validate_join_paused bench_validate_join_active
     PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
 
+add_test(NAME bench_validate_join_cow COMMAND join_bench --experiment cow --trades 20000)
+set_tests_properties(bench_validate_join_cow PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
+
+# Part D.2, workload B: reclamation falls behind (snapshot pinning, large values).
+add_executable(reclaim_bench benchmarks/reclaim_bench.cpp)
+target_include_directories(reclaim_bench PRIVATE src benchmarks)
+target_link_libraries(reclaim_bench PRIVATE nova_kv_rcu nova_warnings)
+add_test(NAME bench_validate_reclaim_epoch
+    COMMAND reclaim_bench --readers 2 --duration 0.5 --warmup 0.1 --reclaim-batch 8)
+add_test(NAME bench_validate_reclaim_stw
+    COMMAND reclaim_bench --readers 2 --duration 0.5 --warmup 0.1 --reclaim stw)
+add_test(NAME bench_validate_reclaim_disabled
+    COMMAND reclaim_bench --readers 2 --duration 0.3 --warmup 0.1 --reclaim disabled --retain-limit-mb 2000)
+set_tests_properties(
+    bench_validate_reclaim_epoch bench_validate_reclaim_stw bench_validate_reclaim_disabled
+    PROPERTIES ENVIRONMENT "${NOVA_TEST_ENV}" TIMEOUT 600)
+
 add_test(NAME bench_validate_layout
     COMMAND layout_bench --records 20000 --ops 200000 --reps 2)
 set_tests_properties(

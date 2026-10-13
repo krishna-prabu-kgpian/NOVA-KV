@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot/d1/concurrent/perf_stat/rwlock_refkeys_paced_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d1/concurrent/rss/rwlock_refkeys_paced_r8_rep1.txt build/release/concurrent_bench_rwlock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id rwlock_refkeys_paced_r8_rep1 --git-sha b27efd70a0a0-dirty --scenario refkeys_paced --csv results/part_d_pilot/d1/concurrent/runs.csv --hist results/part_d_pilot/d1/concurrent/hist/rwlock_refkeys_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000 --keys reference
+rwlock       scenario=refkeys_paced readers=8 writer=thread_paced keys=reference seconds=1.000
+  store lock object at 0x5fa038e4cd90, 56 bytes (cache lines 0x5fa038e4cd80..0x5fa038e4cdc0)
+  reads : ops=22652878 rps=22652173 hits=18127065 misses=4525813 corrupt=0
+  read latency ns: p50=291 p99=712 p999=11008 max=140084 mean=321.8
+  writes: ok=5721 failed=0 rps=5721 p50=129024 p99=786432 max=1332925 ns
+# exit_status: 0

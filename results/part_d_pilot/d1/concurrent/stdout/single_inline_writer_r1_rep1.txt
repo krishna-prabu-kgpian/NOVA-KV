@@ -1,0 +1,7 @@
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot/d1/concurrent/perf_stat/single_inline_writer_r1_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d1/concurrent/rss/single_inline_writer_r1_rep1.txt build/release/concurrent_bench_single --readers 1 --duration 1 --warmup 0.5 --reader-cpus 0 --seed 1 --run-id single_inline_writer_r1_rep1 --git-sha b27efd70a0a0-dirty --scenario inline_writer --csv results/part_d_pilot/d1/concurrent/runs.csv --hist results/part_d_pilot/d1/concurrent/hist/single_inline_writer_r1_rep1.csv --writer inline:100
+single       scenario=inline_writer readers=1 writer=inline_same_thread keys=hit seconds=1.000
+  store lock object at 0x63b7f73ccd90, 1 bytes (cache lines 0x63b7f73ccd80..0x63b7f73ccd80)
+  reads : ops=16992342 rps=16990949 hits=16992342 misses=0 corrupt=0
+  read latency ns: p50=30 p99=170 p999=381 max=147049 mean=37.1
+  writes: ok=169924 failed=0 rps=169910 p50=0 p99=0 max=0 ns
+# exit_status: 0

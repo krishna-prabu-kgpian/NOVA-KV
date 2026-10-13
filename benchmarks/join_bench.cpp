@@ -6,7 +6,7 @@
 // numbers under recorded conditions. Every experiment validates what it did
 // (wrong results make the run fail) and appends one CSV row per measurement.
 //
-//   join_bench --experiment create|lookup|maintain|txn|join
+//   join_bench --experiment create|lookup|maintain|txn|join|cow
 //              [--trades N] [--instruments N] [--duration SEC] [--threads N]
 //              [--writer off|on] [--txn-size N] [--index on|off]
 //              [--cpus LIST] [--writer-cpu N] [--csv FILE] [--run-id ID]
@@ -16,6 +16,7 @@
 // workload. The join is benchmarks/join.h: one snapshot per store.
 #include "join.h"
 
+#include "bench_common.h"
 #include "build_info.h"
 #include "inspect.h"
 
@@ -52,6 +53,8 @@ struct Args {
     std::vector<int> cpus;
     int writer_cpu = -1;
     std::string csv;
+    std::string hist;               // latency histogram of the experiment's operation (lookup / commit / join)
+    std::string git_sha = "unknown";
     std::string run_id = "manual";
 };
 
@@ -69,6 +72,8 @@ bool parse(int argc, char** argv, Args& a) {
         else if (k == "--index") a.index = std::string(val()) == "on";
         else if (k == "--writer-cpu") a.writer_cpu = std::atoi(val());
         else if (k == "--csv") a.csv = val();
+        else if (k == "--hist") a.hist = val();
+        else if (k == "--git-sha") a.git_sha = val();
         else if (k == "--run-id") a.run_id = val();
         else if (k == "--cpus") {
             std::string list = val();
@@ -146,12 +151,19 @@ bool load_instruments(KVStore& instruments, int n) {
     return ok;
 }
 
+bench::LatencyHistogram g_hist;     // filled by percentiles(), in nanoseconds
+const char* g_hist_series = "";
+
 struct Percentiles {
     double p50 = 0, p99 = 0, p999 = 0, max = 0;
 };
 
-Percentiles percentiles(std::vector<double>& v) {
+// `ns_per_unit` converts the samples to nanoseconds for the histogram that
+// --hist writes (the same bucketed format as the other harnesses).
+Percentiles percentiles(std::vector<double>& v, double ns_per_unit, const char* series) {
     Percentiles p;
+    g_hist_series = series;
+    for (double x : v) g_hist.record(static_cast<std::uint64_t>(x * ns_per_unit));
     if (v.empty()) return p;
     std::sort(v.begin(), v.end());
     auto at = [&](double q) { return v[std::min(v.size() - 1, static_cast<std::size_t>(static_cast<double>(v.size()) * q))]; };
@@ -172,6 +184,7 @@ struct Row {
 
 std::vector<Row> g_rows;
 bool g_valid = true;
+
 
 void report(const std::string& metric, double value, const std::string& unit, const std::string& detail = "") {
     g_rows.push_back(Row{metric, value, unit, detail});
@@ -196,14 +209,14 @@ void write_csv(const Args& a) {
         return;
     }
     if (!exists) {
-        std::fputs("run_id,variant,experiment,trades,instruments,threads,writer,txn_size,index,duration_s,metric,value,unit,detail,valid\n", f);
+        std::fputs("run_id,variant,experiment,trades,instruments,threads,writer,txn_size,index,duration_s,metric,value,unit,detail,valid,git_sha\n", f);
     }
     for (const Row& r : g_rows) {
         // (Details are free text chosen in this file; they contain no commas.)
-        std::fprintf(f, "%s,%s,%s,%ld,%d,%d,%s,%d,%s,%.3f,%s,%.6f,%s,%s,%d\n", a.run_id.c_str(), nova_kv_sync_mode_name(),
+        std::fprintf(f, "%s,%s,%s,%ld,%d,%d,%s,%d,%s,%.3f,%s,%.6f,%s,%s,%d,%s\n", a.run_id.c_str(), nova_kv_sync_mode_name(),
                      a.experiment.c_str(), a.trades, a.instruments, a.threads, a.writer ? "on" : "off", a.txn_size,
                      a.index ? "on" : "off", a.duration, r.metric.c_str(), r.value, r.unit.c_str(), r.detail.c_str(),
-                     g_valid ? 1 : 0);
+                     g_valid ? 1 : 0, a.git_sha.c_str());
     }
     std::fclose(f);
 }
@@ -310,7 +323,7 @@ void experiment_lookup(const Args& a) {
     require(wrong.load() == 0, "every lookup returned exactly its instrument");
     std::vector<double> all;
     for (auto& v : samples) all.insert(all.end(), v.begin(), v.end());
-    const Percentiles p = percentiles(all);
+    const Percentiles p = percentiles(all, 1e3, "index_get");
     report("index_get_mops", static_cast<double>(total.load()) / s / 1e6, "M/s");
     report("index_get_p50_us", p.p50, "us");
     report("index_get_p99_us", p.p99, "us");
@@ -359,6 +372,9 @@ void experiment_txn(const Args& a) {
     require(load_trades(trades, a.trades, a.instruments), "load");
     if (a.index) require(trades.create_index(offsetof(Trade, symbol), sizeof(Trade::symbol)), "create_index");
     NovaKvInspector::settle(trades);
+    const NovaKvStats st0 = NovaKvInspector::stats(trades);
+    const std::uint64_t held0 = NovaKvInspector::memory_held_bytes(trades);
+    std::uint64_t held_max = held0, backlog_max = 0;
     pin_to(a.writer_cpu);
     std::uint64_t commits = 0, n = 0;
     long generation = 2;
@@ -380,16 +396,40 @@ void experiment_txn(const Args& a) {
             ++commits;
         }
         ++generation;
+        held_max = std::max(held_max, NovaKvInspector::memory_held_bytes(trades));
+        backlog_max = std::max(backlog_max, NovaKvInspector::backlog(trades));
     }
     const double s = seconds_since(t0);
+    const NovaKvStats st1 = NovaKvInspector::stats(trades);   // before settling: what the commits themselves did
     NovaKvInspector::settle(trades);
+    const NovaKvStats st2 = NovaKvInspector::stats(trades);
     require(NovaKvInspector::validate(trades) == nullptr, "store valid after transactions");
-    const Percentiles p = percentiles(lat);
-    report("commits_per_s", static_cast<double>(commits) / s, "1/s");
+    require(st1.versions_published - st0.versions_published == commits, "one publication per commit");
+    const Percentiles p = percentiles(lat, 1e3, "commit");
+    const double c = static_cast<double>(commits);
+    report("commits_per_s", c / s, "1/s");
     report("rows_per_s", static_cast<double>(n) / s, "1/s");
     report("commit_p50_us", p.p50, "us");
     report("commit_p99_us", p.p99, "us");
+    report("commit_p999_us", p.p999, "us");
     report("commit_max_us", p.max, "us");
+    // Copy-on-write cost per commit, from the store's own counters.
+    const double primary = static_cast<double>(st1.index_bytes_copied - st0.index_bytes_copied);
+    const double directory = static_cast<double>(st1.directory_bytes_copied - st0.directory_bytes_copied);
+    const double secondary = static_cast<double>(st1.index_segment_bytes_built - st0.index_segment_bytes_built);
+    report("segments_cloned_per_commit", static_cast<double>(st1.segments_built - st0.segments_built) / c, "1/commit");
+    report("primary_bytes_copied_per_commit", primary / c, "bytes");
+    report("directory_bytes_copied_per_commit", directory / c, "bytes");
+    report("index_segments_built_per_commit", static_cast<double>(st1.index_segments_built - st0.index_segments_built) / c, "1/commit");
+    report("index_bytes_built_per_commit", secondary / c, "bytes");
+    report("bytes_copied_per_commit", (primary + directory + secondary) / c, "bytes");
+    report("bytes_copied_per_row", (primary + directory + secondary) / static_cast<double>(n), "bytes");
+    report("owner_refs_per_commit", static_cast<double>((st1.owner_refs_taken - st0.owner_refs_taken) + (st1.index_refs_taken - st0.index_refs_taken)) / c, "1/commit");
+    report("memory_held_idle_mib", static_cast<double>(held0) / 1048576.0, "MiB");
+    report("memory_held_max_mib", static_cast<double>(held_max) / 1048576.0, "MiB");
+    report("backlog_max_versions", static_cast<double>(backlog_max), "versions");
+    report("versions_reclaimed", static_cast<double>(st2.versions_reclaimed - st0.versions_reclaimed), "versions");
+    report("cleaner_cpu_s", static_cast<double>(st2.cleaner_cpu_ns) / 1e9, "s");
 }
 
 // ---- join: the index-nested-loop join, writer paused or active -------------------------------------
@@ -483,11 +523,12 @@ void experiment_join(const Args& a) {
     require(joins.load() > 0, "at least one join finished");
     std::vector<double> all;
     for (auto& v : samples) all.insert(all.end(), v.begin(), v.end());
-    const Percentiles p = percentiles(all);
+    const Percentiles p = percentiles(all, 1e6, "join");
     report("joins_per_s", static_cast<double>(joins.load()) / s, "1/s");
     report("joined_rows_per_s", static_cast<double>(rows.load()) / s / 1e6, "M/s");
     report("join_p50_ms", p.p50, "ms");
     report("join_p99_ms", p.p99, "ms");
+    report("join_p999_ms", p.p999, "ms");
     report("join_max_ms", p.max, "ms");
     report("joins_measured", static_cast<double>(all.size()), "joins");
     if (a.writer) {
@@ -504,6 +545,69 @@ void experiment_join(const Args& a) {
     report("index_segments_reclaimed", static_cast<double>(si.index_segments_released), "segments");
     report("cleaner_cpu_s", static_cast<double>(st.cleaner_cpu_ns + si.cleaner_cpu_ns) / 1e9, "s");
     require(NovaKvInspector::validate(trades) == nullptr && NovaKvInspector::validate(instruments) == nullptr, "stores valid");
+}
+
+// ---- cow: where copying hurts. The same rows written as ONE transaction and as
+// single puts; and a transaction confined to one hash partition. ------------------------------
+void experiment_cow(const Args& a) {
+    struct Case {
+        const char* label;
+        long rows;        // rows written
+        bool one_txn;     // one transaction, or one put per row
+        bool one_partition;
+    };
+    // "all" touches every one of the 256 hash partitions.
+    const Case cases[] = {{"all rows as one transaction", a.trades, true, false},
+                          {"all rows as single puts", a.trades, false, false},
+                          {"4096 rows spread over all partitions as one transaction", 4096, true, false},
+                          {"4096 rows spread as single puts", 4096, false, false},
+                          {"16 rows as one transaction", 16, true, false},
+                          {"16 rows as single puts", 16, false, false}};
+    for (const Case& cs : cases) {
+        KVStore trades;
+        require(load_trades(trades, a.trades, a.instruments), "load");
+        NovaKvInspector::settle(trades);
+        const NovaKvStats st0 = NovaKvInspector::stats(trades);
+        const std::uint64_t held0 = NovaKvInspector::memory_held_bytes(trades);
+        const long step = a.trades / cs.rows > 0 ? a.trades / cs.rows : 1;
+        pin_to(a.writer_cpu);
+        const auto t0 = Clock::now();
+        bool ok = true;
+        if (cs.one_txn) {
+            Transaction txn(trades);
+            for (long r = 0; r < cs.rows; ++r) {
+                const long id = r * step;
+                const Trade t = make_trade(id, static_cast<int>(id % a.instruments), 2);
+                txn.put(id, &t, sizeof(t));
+            }
+            ok = txn.commit();
+        } else {
+            for (long r = 0; r < cs.rows; ++r) {
+                const long id = r * step;
+                const Trade t = make_trade(id, static_cast<int>(id % a.instruments), 2);
+                ok = trades.put(id, &t, sizeof(t)) && ok;
+            }
+        }
+        const double s = seconds_since(t0);
+        const std::uint64_t held1 = NovaKvInspector::memory_held_bytes(trades);
+        const NovaKvStats st1 = NovaKvInspector::stats(trades);
+        require(ok, "writes succeeded");
+        NovaKvInspector::settle(trades);
+        require(NovaKvInspector::validate(trades) == nullptr, "store valid");
+        const double rows = static_cast<double>(cs.rows);
+        const double copied = static_cast<double>((st1.index_bytes_copied - st0.index_bytes_copied) +
+                                                  (st1.directory_bytes_copied - st0.directory_bytes_copied));
+        report("rows", rows, "rows", cs.label);
+        report("publications", static_cast<double>(st1.versions_published - st0.versions_published), "versions", cs.label);
+        report("elapsed_ms", s * 1e3, "ms", cs.label);
+        report("rows_per_s", rows / s, "1/s", cs.label);
+        report("segments_cloned", static_cast<double>(st1.segments_built - st0.segments_built), "segments", cs.label);
+        report("bytes_copied", copied, "bytes", cs.label);
+        report("bytes_copied_per_row", copied / rows, "bytes", cs.label);
+        report("payload_bytes_per_row", static_cast<double>(sizeof(Trade)), "bytes", cs.label);
+        report("memory_held_before_mib", static_cast<double>(held0) / 1048576.0, "MiB", cs.label);
+        report("memory_held_after_mib", static_cast<double>(held1) / 1048576.0, "MiB", cs.label);
+    }
 }
 
 }  // namespace
@@ -523,9 +627,20 @@ int main(int argc, char** argv) {
     else if (a.experiment == "maintain") experiment_maintain(a);
     else if (a.experiment == "txn") experiment_txn(a);
     else if (a.experiment == "join") experiment_join(a);
+    else if (a.experiment == "cow") experiment_cow(a);
     else {
         std::fprintf(stderr, "unknown experiment: %s\n", a.experiment.c_str());
         return 2;
+    }
+    if (!a.hist.empty() && g_hist.total() != 0) {
+        std::FILE* f = std::fopen(a.hist.c_str(), "w");
+        if (f != nullptr) {
+            std::fputs("series,latency_ns_lower_bound,count\n", f);
+            g_hist.dump(f, g_hist_series);
+            std::fclose(f);
+        } else {
+            require(false, "cannot write the histogram file");
+        }
     }
     write_csv(a);
     std::printf("valid=%d\n", g_valid ? 1 : 0);

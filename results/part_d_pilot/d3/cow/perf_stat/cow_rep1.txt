@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:03:01 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d3/cow/rss/cow_rep1.txt build/release/join_bench --writer-cpu 15 --csv results/part_d_pilot/d3/cow/runs.csv --hist results/part_d_pilot/d3/cow/hist/cow_rep1.csv --run-id cow_rep1 --git-sha b27efd70a0a0-dirty --experiment cow':
+
+          1,163.31 msec task-clock                                                            
+     4,148,715,553      cycles                                                                  (83.31%)
+     4,926,650,095      instructions                                                            (83.59%)
+       596,690,065      cache-references                                                        (83.22%)
+       118,672,842      cache-misses                                                            (83.39%)
+             9,264      context-switches                                                      
+                 7      cpu-migrations                                                        
+        13,110,224      branch-misses                                                           (83.63%)
+       322,862,710      L1-dcache-load-misses                                                   (83.19%)
+
+       1.111142861 seconds time elapsed
+
+       1.123493000 seconds user
+       0.042173000 seconds sys
+
+

@@ -1,0 +1,21 @@
+# started on Tue Oct 13 09:02:13 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot/d1/concurrent/rss/rwlock_writer_paced_r8_rep1.txt build/release/concurrent_bench_rwlock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id rwlock_writer_paced_r8_rep1 --git-sha b27efd70a0a0-dirty --scenario writer_paced --csv results/part_d_pilot/d1/concurrent/runs.csv --hist results/part_d_pilot/d1/concurrent/hist/rwlock_writer_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000':
+
+         11,749.45 msec task-clock                                                            
+    49,385,612,908      cycles                                                                  (83.33%)
+    14,977,452,919      instructions                                                            (83.16%)
+       266,698,811      cache-references                                                        (83.29%)
+        96,097,186      cache-misses                                                            (83.40%)
+            46,174      context-switches                                                      
+                10      cpu-migrations                                                        
+        54,720,376      branch-misses                                                           (83.42%)
+       214,175,958      L1-dcache-load-misses                                                   (83.40%)
+
+       1.541369449 seconds time elapsed
+
+      10.277166000 seconds user
+       1.478242000 seconds sys
+
+

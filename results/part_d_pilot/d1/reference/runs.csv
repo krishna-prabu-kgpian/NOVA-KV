@@ -1,0 +1,5 @@
+run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate
+single_thread_r1_rep1,single_thread,1,1,1,16560068,16560068,0.0,0.1,0.3,0.001000,0.800200
+global_lock_r8_rep1,global_lock,8,1,1,11819746,11819746,0.1,4.3,7.7,0.001000,0.800200
+rwlock_r8_rep1,rwlock,8,1,1,18791207,18791207,0.4,0.8,1.2,0.001000,0.800200
+rcu_r8_rep1,rcu,8,1,1,82624254,82624254,0.1,0.1,0.2,0.001000,0.800200

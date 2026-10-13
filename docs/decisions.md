@@ -928,6 +928,20 @@ size of the existing baseline transaction code; it would touch only the lock bra
 done: not required, and it would add index maintenance to the Part A write path that Part D.1
 compares.
 
+## D-068 — Part D campaign: method and deviations fixed before measuring (ACCEPTED, Part D, 2026-10-13)
+
+`scripts/run_part_d.sh` implements `docs/part_d_plan.md`; §9 of the plan lists the deviations
+decided after the pilot and before the campaign (no pinned-cleaner set; 16 GB memory guard;
+the parameters of the backlog-building workload; the added read-only and generator-key cells;
+the perf c2c and flame-graph cases; perf stat around every run; no optimization in this
+milestone). Rules the script enforces: Release `-O3` with frame pointers; mains power and the
+`performance` governor at every checkpoint, else the campaign is marked INVALID; an idle
+machine at the start (CPU idle time, not load average); a clean tree; an empty output
+directory stamped with a campaign id that the aggregator checks on every stage; five
+repetitions; every run's command and exit status kept; a run that fails its own validation
+fails the campaign. Track R (supplied generator, preload-only) and track C (writer active)
+are never placed in one table or one figure.
+
 ---
 
 ## Open items carried forward

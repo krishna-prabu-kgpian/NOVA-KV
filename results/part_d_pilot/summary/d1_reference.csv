@@ -1,0 +1,5 @@
+driver,readers,reps,rps_median,rps_min,rps_max,p50_us_median,p99_us_median,p999_us_median,expected_overall_hit_rate
+global_lock,8,1,1.18197e+07,1.18197e+07,1.18197e+07,0.1,4.3,7.7,0.8002
+rcu,8,1,8.26243e+07,8.26243e+07,8.26243e+07,0.1,0.1,0.2,0.8002
+rwlock,8,1,1.87912e+07,1.87912e+07,1.87912e+07,0.4,0.8,1.2,0.8002
+single_thread,1,1,1.65601e+07,1.65601e+07,1.65601e+07,0,0.1,0.3,0.8002

@@ -1,0 +1,6 @@
+rcu_r8_writer_max: 111146 samples, 222202365040 cycles
+rcu_r8_writer_paced: 99983 samples, 203654891930 cycles
+rcu_r8_readonly: 88406 samples, 182927638008 cycles
+global_lock_r8_writer_max: 91684 samples, 169459610544 cycles
+rwlock_r8_writer_max: 85906 samples, 175230405843 cycles
+join_t8_writer_active: 59383 samples, 117587983209 cycles
