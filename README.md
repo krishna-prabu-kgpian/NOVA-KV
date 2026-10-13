@@ -13,22 +13,24 @@ A single-node, in-memory key-value store with RCU reads, built for
 | B1 | Immutable versions, copy-on-write index, atomic root, lock-free reads; replaced versions retained (no reclamation) | **Done** (`reports/milestones/B1.md`) |
 | B2 | Epoch-based reclamation, background cleaner, `set_reclaim_batch`; Part B README, compliance checklist, A→B diff | **Done** (`reports/milestones/B2.md`) — Part B complete |
 | C1 | `Transaction` (atomic multi-key commits), `Snapshot`, snapshot-scoped `get`, `keys`; writer serialization; isolation design note | **Done** (`reports/milestones/C1.md`) |
-| C2 | Secondary index, index-nested-loop join | Not started |
+| C2 | Secondary index inside the version (`create_index`, `index_get`), index-nested-loop join with one snapshot per store, Part C README and B→C diff | **Done** (`reports/milestones/C2.md`) — Part C complete, with one documented deviation |
 | D | Benchmark campaign | Not started |
 | E | Write-ahead log (optional bonus) | Not started |
 
 **What works:** `put`, `get`, `erase` and `set_reclaim_batch` under four synchronization
 policies: the three Part A lock policies and `rcu` (Part B), where reads take no lock, every
 write publishes an immutable version with one atomic pointer swap, and replaced versions are
-freed by epoch-based reclamation on a background thread. Since C1: `Transaction` on every
+freed by epoch-based reclamation on a background thread. Part C: `Transaction` on every
 build (one publication for all staged writes on `rcu`; one lock hold with undo on the
-baselines), and on the `rcu` build `Snapshot`, `acquire_snapshot`, snapshot-scoped `get` and
-`keys`.
+baselines), and on the `rcu` build `Snapshot`, `acquire_snapshot`, snapshot-scoped `get`,
+`keys` and `index_get`, a secondary index that is part of each version (`create_index`,
+`index_get`), and an index-nested-loop join over the public API.
 
-**What does not yet:** the secondary index (`create_index` returns `false`, `index_get`
-returns 0) and the join (Part C.2). `acquire_snapshot` throws `std::logic_error` on the
-lock-based baselines, which have no versions to pin: use the `rcu` build for snapshots. There
-is no durability. Part D's benchmark campaign has not been run.
+**What does not, or differs:** the join uses **one Snapshot per store** (two handles), not the
+single handle of the assignment's wording; each table is read from one version, but the two
+versions are not one atomic instant (`docs/secondary_index.md` §7.1). On the lock-based
+baselines `acquire_snapshot` throws `std::logic_error`, `create_index` returns `false` and
+`index_get` returns 0: use the `rcu` build for Part C.2. There is no durability. Part D's benchmark campaign has not been run.
 
 ## Design of the Part A store
 
@@ -143,6 +145,11 @@ Tests (`ctest`, 47 per build mode):
 | `snapshot_test_{single,global_lock,rwlock,rcu}` | Part C.1 `Snapshot`: state at acquisition, buffer contracts, move semantics, wrong store rejected, `keys()` through collisions/resizing/tombstone rebuilds/updates/deletions, 3000 publications under one snapshot in epoch / stop-the-world / disabled modes with no chunk freed and no ID reused, threads, slot reuse, shutdown. Lock variants: acquisition must throw |
 | `txn_failure_test_{single,rcu}` | Every allocation between constructing a `Transaction` and the end of `commit()` fails in turn: all or nothing, counts valid, earlier snapshot intact, no leak |
 | `txn_concurrency_test` | Writer parked before and after the root swap (none, then all, for 1/4/16/100 keys); `acquire_snapshot` parked at each pin step; atomicity stress through snapshots; four writer threads serialized; snapshots released during cleaning |
+| `index_test_{single,global_lock,rwlock,rcu}` | Part C.2 secondary index through the public API against an independent reference model: creation on empty and populated stores, invalid ranges, zero bytes and boundaries, short values, overwrite/delete/key reuse, transactions with repeated keys, truncation, many distinct values, snapshot-scoped lookups, randomized histories with retained snapshots. Lock variants: must report no index |
+| `index_failure_test` | `create_index` and indexed commits with every allocation failing in turn (all or nothing, earlier snapshot intact, no leftover objects); index hash cut to 0/1/3/7 bits |
+| `index_concurrency_test` | Indexed transaction parked before and after the swap; `create_index` parked while building, when built, and after publication; reader parked inside `index_get`; stress: 0 snapshots whose rows and index disagree, 0 partial lookups; `create_index` under load |
+| `join_test` | The join against a model oracle and an index-free snapshot oracle: empty tables, one-to-one, one-to-many, missing, wrong-size records, updates and deletes in both tables, writes during the join, long-lived snapshots with reclamation, concurrent writer (per-table consistency) |
+| `bench_validate_join_*` (6) | `join_bench` experiments run briefly and pass their own validation |
 | `bench_validate_concurrent_rcu*` (6), `bench_rcu_retain_limit_invalidates_run` | Harness against the `rcu` build: default, paced, batch 8, single-thread, reclamation disabled, stop-the-world; the memory guard must invalidate a run |
 | `bench_histogram_test` | The benchmark's latency histogram: bucket error bound, percentiles against a sorted vector, exact maximum, merging |
 | `bench_validate_*` (7), `bench_rejects_concurrent_single` | Each harness runs briefly and must pass its own validity checks; the harness must refuse to run the unsynchronized variant concurrently |
@@ -182,13 +189,16 @@ for example, `rwlock` and `rcu` compares two whole designs and is not the cost o
 alone (`docs/decisions.md` D-038). Machine conditions also differed between milestones; only
 numbers taken in one session are comparable (D-046).
 
-## Part C.1: transactions and snapshots
+## Part C: transactions, snapshots, secondary index, join
 
-- **Design note (isolation level, write skew, durability):** `docs/transactions.md`
+- **Part C README (assignment deliverable):** `reports/part_c_readme.md`
+- **Design notes:** `docs/transactions.md` (C.1: isolation level, write skew, durability),
+  `docs/secondary_index.md` (C.2: index, atomic publication, reclamation, the join)
 - **Compliance checklist:** `docs/part_c_compliance.md`
-- **Milestone report:** `reports/milestones/C1.md`
-- **Part B → Part C source diff so far:** `results/diffs/part_b_to_part_c1.diff`, or
-  `git diff part-b-audited part-c-transactions -- src include`
+- **Milestone reports:** `reports/milestones/C1.md`, `C1_audit.md`, `C2.md`
+- **Part B → Part C source diff:** `results/diffs/part_b_to_part_c.diff`, or
+  `git diff part-b-audited part-c-final -- src include`
+- **Preliminary measurements:** `results/c2/` (`scripts/run_c2_observation.sh`)
 
 ```cpp
 Transaction t(store);                    // stage: copied, invisible
@@ -199,19 +209,32 @@ bool ok = t.commit();                    // all in one publication, or nothing
 KVStore::Snapshot snap = store.acquire_snapshot();   // rcu build
 store.get(snap, 1, &a, sizeof(a));       // always the version pinned above
 size_t n = store.keys(snap, keys, max);  // its keys, each once
+
+store.create_index(offsetof(Instrument, symbol), 8); // one index per store
+int m = store.index_get(snap, "SYM007\0", 8, keys, 16);   // that version's index
 ```
 
-A transaction of any size is one atomic pointer swap. Ordinary `get` calls each see the
-latest version at their own instant, so two of them may straddle a commit; reading several
-keys of one version needs one `Snapshot`. Writes from several threads are serialized by an
-internal writer mutex (readers never take it). There is no conflict detection and no
-durability: `docs/transactions.md` says exactly what isolation that is and is not.
+A transaction of any size is one atomic pointer swap, and the secondary index is part of the
+version, so rows and index entries change in that same swap. Ordinary `get` calls each see the
+latest version at their own instant; reading several keys of one version needs one `Snapshot`.
+Writes from several threads are serialized by an internal writer mutex (readers never take
+it). There is no conflict detection and no durability: `docs/transactions.md` says exactly what
+isolation that is and is not.
+
+The join (`benchmarks/join.h`) enumerates the outer table with `keys()`, fetches each row,
+probes the inner table's index, and fetches every matching inner row, all through snapshots:
+**one per store**, both taken at the start.
 
 ```bash
-build/release/transaction_test_rcu       # semantics; also _single, _global_lock, _rwlock
+build/release/transaction_test_rcu       # Transaction semantics; also _single, _global_lock, _rwlock
 build/release/snapshot_test_rcu          # lifetime, moves, keys(), all reclamation modes
 build/release/txn_failure_test_rcu       # every allocation of a commit failing in turn
 build/release/txn_concurrency_test       # none-then-all, atomicity stress, serialized writers
+build/release/index_test_rcu             # the index against a reference model
+build/release/index_failure_test         # allocation failure; forced hash collisions
+build/release/index_concurrency_test     # rows and index in one swap; create_index atomic
+build/release/join_test                  # the join against two index-free oracles
+build/release/join_bench --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --writer-cpu 15
 ```
 
 ## Part A results and how to reproduce them

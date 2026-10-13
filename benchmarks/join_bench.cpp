@@ -199,6 +199,7 @@ void write_csv(const Args& a) {
         std::fputs("run_id,variant,experiment,trades,instruments,threads,writer,txn_size,index,duration_s,metric,value,unit,detail,valid\n", f);
     }
     for (const Row& r : g_rows) {
+        // (Details are free text chosen in this file; they contain no commas.)
         std::fprintf(f, "%s,%s,%s,%ld,%d,%d,%s,%d,%s,%.3f,%s,%.6f,%s,%s,%d\n", a.run_id.c_str(), nova_kv_sync_mode_name(),
                      a.experiment.c_str(), a.trades, a.instruments, a.threads, a.writer ? "on" : "off", a.txn_size,
                      a.index ? "on" : "off", a.duration, r.metric.c_str(), r.value, r.unit.c_str(), r.detail.c_str(),
@@ -345,7 +346,7 @@ void experiment_maintain(const Args& a) {
         NovaKvInspector::settle(trades);
         const NovaKvStats st1 = NovaKvInspector::stats(trades);
         require(NovaKvInspector::validate(trades) == nullptr, "store valid after maintenance");
-        const char* label = mode == 0 ? "no index" : (mode == 1 ? "index, field unchanged" : "index, field changes");
+        const char* label = mode == 0 ? "no index" : (mode == 1 ? "index (field unchanged)" : "index (field changes)");
         report("put_per_s", static_cast<double>(n) / s, "1/s", label);
         report("index_segments_per_put", static_cast<double>(st1.index_segments_built - st0.index_segments_built) / static_cast<double>(n), "1/put", label);
         report("index_bytes_per_put", static_cast<double>(st1.index_segment_bytes_built - st0.index_segment_bytes_built) / static_cast<double>(n), "bytes/put", label);

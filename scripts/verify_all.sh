@@ -169,7 +169,7 @@ run_gate part_c1_artifacts yes sh -c '
     grep -q "Durability" docs/transactions.md || { echo "MISSING  durability statement"; status=1; }
     # Every tag that is a checkpoint so far still names the commit it was created on.
     for pair in a0-bootstrap:2ef5f19 part-a-core:80bc092 part-a-final:3444f23 part-b-publication:2d9c02c \
-                part-b-final:304a8ac part-b-audited:87d38aa; do
+                part-b-final:304a8ac part-b-audited:87d38aa part-c-transactions:1e6af10; do
         tag=${pair%%:*}; want=${pair##*:}
         have=$(git rev-parse --short=7 "$tag^{commit}" 2>/dev/null)
         if [ "$have" = "$want" ]; then echo "ok       tag $tag = $want"; else echo "MOVED    tag $tag: $have, expected $want"; status=1; fi
@@ -182,6 +182,32 @@ run_gate part_c1_artifacts yes sh -c '
         echo "ok       Part B -> Part C.1 diff matches: git diff part-b-audited $base -- src include"
     else
         echo "STALE    results/diffs/part_b_to_part_c1.diff differs from: git diff part-b-audited $base -- src include"; status=1
+    fi
+    exit $status'
+
+# ---- Part C deliverables (milestone C2: Part C complete) --------------------------
+run_gate part_c_artifacts yes sh -c '
+    status=0
+    for f in src/secondary_index.cpp src/secondary_index.h benchmarks/join.h benchmarks/join_bench.cpp \
+             tests/index_test.cpp tests/index_failure_test.cpp tests/index_concurrency_test.cpp tests/join_test.cpp \
+             docs/secondary_index.md docs/transactions.md docs/part_c_compliance.md reports/part_c_readme.md \
+             results/diffs/part_b_to_part_c.diff; do
+        if [ -s "$f" ]; then echo "ok       $f"; else echo "MISSING  $f"; status=1; fi
+    done
+    grep -q "bool create_index(size_t field_offset, size_t field_len);" include/kvstore.h || { echo "MISSING  create_index declaration"; status=1; }
+    # The cross-store deviation must be stated wherever the join is described.
+    for f in reports/part_c_readme.md docs/secondary_index.md docs/part_c_compliance.md benchmarks/join.h; do
+        grep -qi "two handles" "$f" || { echo "MISSING  one-snapshot-per-store limitation in $f"; status=1; }
+    done
+    grep -qi "write skew" reports/part_c_readme.md || { echo "MISSING  write-skew discussion in the Part C README"; status=1; }
+    # The Part B -> Part C diff is current: against the tag part-c-final once
+    # that exists, against HEAD before.
+    base=HEAD
+    git rev-parse --verify --quiet part-c-final^{commit} >/dev/null && base=part-c-final
+    if git diff part-b-audited "$base" -- src include | cmp -s - results/diffs/part_b_to_part_c.diff; then
+        echo "ok       Part B -> Part C diff matches: git diff part-b-audited $base -- src include"
+    else
+        echo "STALE    results/diffs/part_b_to_part_c.diff differs from: git diff part-b-audited $base -- src include"; status=1
     fi
     exit $status'
 
@@ -199,7 +225,7 @@ run_gate flamegraph_scripts_present no sh -c 'test -x .tools/FlameGraph/flamegra
     echo "- finished_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "- compiler: $(g++ --version | head -1)"
     echo "- cmake: ${NOVA_CMAKE:-not found}"
-    echo "- milestones covered: A0, A1, A2, B1, B2, C1"
+    echo "- milestones covered: A0, A1, A2, B1, B2, C1, C2"
     echo "- overall: $([ $OVERALL -eq 0 ] && echo PASS || echo FAIL)  (every mandatory gate must be PASS)"
     echo
     echo "| Gate | Mandatory | Result | Exit | Evidence / note |"

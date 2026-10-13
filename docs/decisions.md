@@ -778,13 +778,93 @@ Question for the instructor (verbatim proposal):
 >     valid for the other — and if so, may stores be coupled internally (shared writer order
 >     and reclamation) to achieve it?
 
+## D-060 — Cross-store joins use ONE SNAPSHOT PER KVSTORE ("Option A") (ACCEPTED, 2026-10-13, user decision; final)
+
+The user chose option (a) of D-059 and declared it final for this implementation: no further
+clarification is to be requested. A join over two `KVStore` objects acquires exactly one
+`Snapshot` from each store at its start (`benchmarks/join.h::acquire_join_snapshots`), uses
+each handle for every snapshot-aware call on its own store, acquires no other snapshot and
+makes no current-version read during the join, and keeps both handles until the join ends.
+
+Guaranteed: the Trades table is read from one immutable version; the Instruments table (rows
+and index) is read from one immutable version; each table is internally consistent for the
+whole join; writers keep publishing.
+
+Not guaranteed, and to be said wherever the join is described: the two snapshots are not one
+globally atomic point in time; and the implementation uses two handles, **not** the PDF's
+literal "exactly one Snapshot handle". Recorded as a **specification deviation**
+(`docs/part_c_compliance.md` J2), never as a satisfied requirement.
+
+Rationale: the PDF's benchmark shape (Appendix A.2) is two independently owned stores and the
+snapshot API (Appendix A.1) is per store. A single handle would need either a hidden global
+version coupling all stores (changes what independent stores mean, redesigns the audited
+publication path) or both tables in one store (incompatible with `create_index`'s single byte
+range and with Appendix A.2). Neither is done: no global cross-store versioning, no merged
+table. O-1 is closed by this decision as "deviation, documented".
+
+## D-061 — Secondary index structure (ACCEPTED, C2)
+
+- The index is part of the `Version`: definition (`index_offset`, `index_len`) and 64
+  pointers to immutable `IndexSegment`s. One root swap publishes data and index (INV-12).
+- An `IndexSegment` is one allocation: (field hash, key) pairs sorted by (hash, key), i.e.
+  posting lists in ascending key order, plus a linear-probing table over the distinct hashes.
+  It stores no field bytes and no pointers, so it owns nothing: ownership is one `owners`
+  count, as for primary segments, and no new kind of reference was needed.
+- Lookups verify each candidate against the primary data of the same version, byte for byte.
+  Hash collisions are therefore harmless, and tested by cutting the hash to a few bits.
+- Updates: a commit records index deltas from the private copies (so repeated writes to a key
+  inside one transaction are followed), then rebuilds each touched index partition by a
+  linear merge. An overwrite that does not change the field produces no delta.
+- 64 index partitions (not 256): the directory grows by 512 bytes and a commit takes at most
+  64 more owner references.
+- Cost accepted for now: a field change rebuilds whole index partitions (measured in
+  `results/c2/`); a finer-grained posting-list structure is a possible later optimization and
+  was not attempted ("profile before optimizing"; no profiler is available).
+
+## D-062 — `create_index` and `index_get` semantics the assignment leaves open (ACCEPTED, C2)
+
+- One index per store. Same range again: `true`, nothing published. Different range: `false`.
+- `field_len == 0`, or a range beyond the 1 GiB value limit (including overflow): `false`.
+- Backfill is built privately and published, with the unchanged primary data, in one swap.
+- **A value shorter than `offset + len` is not indexed.** (The blueprint §2.2 suggested
+  requiring values to cover the range; refusing such writes would make `put` fail for a
+  reason the Part A/B contract does not have, so they are stored and simply not indexed.)
+- `index_get`: `field_len` must equal the index's; null pointers or `max_keys <= 0` give 0;
+  ascending key order; on truncation the smallest `max_keys` keys; returns the number written.
+- Snapshot overload: the pinned version's index; moved-from or wrong-store handle gives 0.
+
+## D-063 — No secondary index on the lock-based baselines (ACCEPTED, C2)
+
+`create_index` returns `false` and `index_get` returns 0 on `single` / `global_lock` /
+`rwlock`. The Part C index is defined as part of a published version; those stores have none,
+and a join needs `Snapshot`, which they do not have either (D-055). The supplied generator's
+`use_join` path consequently finds nothing on them. The intended build for Part C.2 is
+`nova_kv_rcu`.
+
+## D-064 — The join lives outside the store, over the public API (ACCEPTED, C2)
+
+`benchmarks/join.h` (header, used by `tests/join_test.cpp` and `benchmarks/join_bench.cpp`).
+Appendix A has no join entry point, and writing the join against `kvstore.h` only shows that
+the public API suffices. `keys()` and `index_get()` report how many they wrote, not how many
+exist: the join asks again with a larger buffer when one comes back full (both results are in
+a repeatable order), which resolves O-18 without an API extension. Records of the wrong size
+are skipped and counted.
+
+## D-065 — The supplied generator's index probe may miss (RECORDED, C2)
+
+`supplied/workload_gen.cpp::make_trade` declares `Trade t;` and writes 7 bytes of `symbol`
+with `snprintf`; the 8th byte is indeterminate. `load_instruments` zero-initializes. The
+generator's probe passes all 8 bytes, and the index compares byte for byte (required), so the
+probe matches only if that stack byte happens to be 0. The file is not modified and the
+comparison is not loosened; the repository's own join code zero-fills symbols.
+
 ---
 
 ## Open items carried forward
 
 | ID | Item | Needed from | Blocks |
 |---|---|---|---|
-| O-1 | Exactly-one-Snapshot join across two `KVStore` instances (PDF p. 5 vs Appendix A two-table shape). Analysis, C2 position (one snapshot per store, labelled per-store) and the question to send: D-059 | Instructor | Full PASS of C2 |
+| O-1 | CLOSED by user decision D-060: one Snapshot per store; recorded as a deviation from the PDF's "exactly one Snapshot handle", not as compliance | — | — |
 | O-2 | RESOLVED for user-space profiling: `perf_event_paranoid = 1` (set by the user, D-022). Remaining: `kptr_restrict = 1` hides kernel symbols (D-025) | User, if kernel symbol names are wanted (`sudo sysctl kernel.kptr_restrict=0`) | Nothing mandatory |
 | O-3 | RESOLVED: FlameGraph installed project-locally at a pinned commit (D-021) | — | — |
 | O-4 | Team roll numbers for the ZIP name | User | Final packaging |
@@ -798,7 +878,7 @@ Question for the instructor (verbatim proposal):
 | O-15 | RESOLVED: the member is declared in `kvstore.h` (D-047) | — | — |
 | O-16 | RESOLVED in C1 (D-051) | — | — |
 | O-17 | RESOLVED: tag `part-b-audited` (D-050) | — | — |
-| O-18 | `keys()` cannot report a total or continue; the C2 join must size its buffer from what it knows about the table, or an internal count must be exposed to the join benchmark | C2 design | Nothing in C1 |
+| O-18 | RESOLVED: the join re-asks with a larger buffer (D-064) | — | — |
 | O-14 | `kernel.perf_event_paranoid` reverted to 4 after a reboot; perf unusable until set again (needs root; persistent via `/etc/sysctl.d/`) | User | B2 measurements, Part D |
 | O-5 | Instructor's original `workload_gen.h`, if one exists as a file | User | Nothing (transcription is in use) |
 | O-6 | Blueprint §14 review checklist: error contracts confirmed (D-012). Tunables (partition count, segment capacity, chunk size, thresholds) are in use at blueprint defaults (D-018); A2 did not sweep them | User / measurements in B1 | Should be settled before or during B1 |

@@ -49,7 +49,7 @@ for d in ("trades by symbol", "trades by trade_id (all distinct)"):
 
 lines += ["", "## Index maintenance: single-key puts on Trades (writer only)", "",
           "| Case | puts/s | index segments rebuilt per put | index bytes built per put |", "|---|---:|---:|---:|"]
-for d in ("no index", "index, field unchanged", "index, field changes"):
+for d in ("no index", "index (field unchanged)", "index (field changes)"):
     lines.append(f"| {d} | {cell(med('maintain', 'put_per_s', detail=d), '{:.0f}')} | {cell(med('maintain', 'index_segments_per_put', detail=d))} | {cell(med('maintain', 'index_bytes_per_put', detail=d), '{:.0f}')} |")
 
 lines += ["", "## Transaction commit on Trades, every write changing the indexed field", "",

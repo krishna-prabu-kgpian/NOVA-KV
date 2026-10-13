@@ -134,6 +134,10 @@ slot reassigned (O4 and the freeing rule). So the argument reduces to: **the ver
 loaded still exists.** In B1 that is true trivially, see §6. In B2 it becomes the EBR
 guarantee.
 
+**Since C2** a `Version` also holds the store's secondary index: its definition and 64
+pointers to immutable `IndexSegment`s, which are owner-counted and released exactly like the
+primary segments above (they reference nothing else). See `docs/secondary_index.md` §6.
+
 ## 6. Temporary lifetime strategy (B1 only; superseded in B2)
 
 **Every replaced version is retained until the store is destroyed.** Nothing a reader can reach

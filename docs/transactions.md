@@ -6,8 +6,8 @@ set), `src/versioned_store.{h,cpp}` (`commit`, `Pin`, `keys_pinned`, the writer 
 stop-the-world comparator), `src/epoch.h` (the reader slot a snapshot owns).
 
 Builds on `docs/versioning.md` (versions, publication, ownership) and `docs/reclamation.md`
-(epoch-based reclamation and its safety argument). The secondary index and the join are Part
-C.2 and are **not** implemented yet: `create_index` returns `false`, `index_get` finds nothing.
+(epoch-based reclamation and its safety argument). The secondary index and the join (Part
+C.2) are described in `docs/secondary_index.md`.
 
 ---
 
@@ -368,16 +368,18 @@ What is given up, then, is the "D" of ACID entirely, and with it any guarantee a
 about which transactions happened. Part E (optional) would add a write-ahead log so that a
 commit is acknowledged only after it is durable, without touching the read path.
 
-## 7. Two stores, one join (unresolved, for the instructor)
+## 7. Two stores, one join: one snapshot per store
 
 A `Snapshot` pins one version of **one** `KVStore`. Two stores (`trades`, `instruments`) have
 two independent roots, so two snapshots are two instants, not one database-wide instant. The
 PDF's wording for C.2 ("acquire exactly one Snapshot handle … pass that same handle to every
-keys(), index_get(), and get() call") against a two-table shape with two `KVStore` objects is
-an open question for the instructor (O-1). Nothing in C1 claims a cross-store snapshot, and
-C1 does not invent one. The analysis, the interpretation C2 will use unless told otherwise
-(one snapshot per store, labelled as per-store consistency) and the question to put to the
-instructor are in `docs/decisions.md` D-059.
+keys(), index_get(), and get() call") meets a two-table shape with two `KVStore` objects.
+
+**Decision (D-060, final): the join takes one Snapshot from each store at its start.** Each
+table is then read from one immutable version for the whole join. The two versions are not
+guaranteed to be one atomic point in time, and it is two handles, not the literal single
+handle: a documented deviation, described in `docs/secondary_index.md` §7.1. Nothing in the
+store provides or claims a cross-store snapshot.
 
 ## 8. Limits
 

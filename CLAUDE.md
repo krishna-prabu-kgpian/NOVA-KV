@@ -143,7 +143,7 @@ src/                   store implementation; src/sync_mode.h selects the sync po
 supplied/              instructor workload: .cpp original, .h transcribed from the PDF
 tests/                 dependency-free tests (tests/test_util.h), registered with CTest
 drivers/               single_thread.cpp, global_lock.cpp, rwlock.cpp, rcu.cpp (from A1)
-benchmarks/            own harnesses: layout, concurrent, reclamation, txn, join
+benchmarks/            own harnesses: layout, concurrent, join (join.h is the join itself)
 scripts/               verification, environment capture, tool bootstrap
 docs/                  assignment_contract.md, decisions.md, later design notes
 reports/milestones/    one report per milestone (blueprint §16.3 headings)
@@ -232,9 +232,13 @@ gates to it as the milestone lands.
 - **Post-C1 source audit: done** — `reports/milestones/C1_audit.md`. No source change;
   deterministic reclamation-progress tests added (D-058); isolation wording corrected
   (D-057); cross-store snapshot analysis and the question for the instructor (D-059).
-- **Next: C2** (secondary index, `index_get`, index-nested-loop join, final B→C diff and
-  Part C README). Requires user approval. `create_index`/`index_get` are still stubs that
-  report "no index".
+- **C2 (secondary index, `index_get`, index-nested-loop join; Part C deliverables):
+  complete** — `reports/milestones/C2.md`, tag `part-c-final`, branch `part-c/indexes-joins`.
+  Part C README `reports/part_c_readme.md`; design `docs/secondary_index.md`; checklist
+  `docs/part_c_compliance.md`; diff `results/diffs/part_b_to_part_c.diff`; preliminary
+  measurements `results/c2/`.
+- **Part C is complete, with one documented deviation** (the join uses one Snapshot per
+  store, D-060). **Next: D** (benchmark campaign). Requires user approval.
 
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
@@ -297,6 +301,29 @@ Part C rules (D-050…D-056, `docs/transactions.md`):
 - Run the test suite serially (`ctest` without `-j`): `reclamation_stress_test` has coverage
   assertions that need the cleaner to get CPU (D-056).
 - Mutation records: `results/C1/mutation_check.md` (20/20).
+
+Part C.2 rules (D-060…D-065, `docs/secondary_index.md`):
+
+- **Cross-store joins use ONE SNAPSHOT PER KVSTORE (D-060, user decision, final).** Both are
+  acquired once, in `benchmarks/join.h::acquire_join_snapshots`, at the start of a join; each
+  is used for every call on its own store; no current-version read inside a join. Always
+  state: each table is read from one immutable version; the two versions are NOT one atomic
+  instant; it is two handles, NOT the PDF's "exactly one Snapshot handle" (a deviation, never
+  "compliant"). No global cross-store versioning; do not merge the tables; do not ask the
+  instructor again.
+- The secondary index is PART OF THE VERSION (`Version::isegs`, immutable `IndexSegment`s).
+  Rows and index change in the same single root swap; there is no separate index
+  publication and no index update outside `commit_locked` / `create_index`.
+- `index_get` must verify every candidate key byte for byte against the primary data of the
+  SAME version (the index stores hashes only). Never return a key on the hash alone.
+- Index segments are owner-counted like primary segments and released only in `run_job`
+  after `[C6]`. They reference nothing. Published ones are never modified.
+- A value shorter than `offset + len` is not indexed and nothing is read beyond a value.
+- `validate()` checks, in every existing version, that the index equals what the primary data
+  implies: keep it that way when changing either.
+- No index and no Snapshot on the lock baselines (`create_index` false, `index_get` 0).
+- CSV rows written by benchmarks must not contain commas in free-text fields.
+- Mutation records: `results/C2/mutation_check.md` (21/21).
 
 Measurement rules (D-024…D-026, D-029, D-046): never label supplied-generator runs as
 concurrent (they are preload-only); active-writer numbers come from

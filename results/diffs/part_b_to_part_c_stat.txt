@@ -1,0 +1,16 @@
+ src/alloc.cpp           |  27 +--
+ src/alloc.h             |   4 +-
+ src/cow_segment.h       |   3 +
+ src/epoch.h             |   4 +
+ src/inspect.cpp         |   6 +
+ src/inspect.h           |   7 +
+ src/kvstore.cpp         | 341 ++++++++++++++++++++++++++++++------
+ src/kvstore_impl.h      |   6 +
+ src/secondary_index.cpp | 173 +++++++++++++++++++
+ src/secondary_index.h   | 122 +++++++++++++
+ src/staged_writes.cpp   |  72 ++++++++
+ src/staged_writes.h     |  52 ++++++
+ src/test_points.h       |   3 +-
+ src/versioned_store.cpp | 449 ++++++++++++++++++++++++++++++++++++++++++++++--
+ src/versioned_store.h   |  70 +++++++-
+ 15 files changed, 1257 insertions(+), 82 deletions(-)

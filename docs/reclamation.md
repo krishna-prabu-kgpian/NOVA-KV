@@ -250,6 +250,12 @@ entry for it has not yet been processed by `run_job`.
 So if any version that is not yet eligible (in particular any version a participant is
 protected in, by Theorem 1) points at a segment, that segment's count is at least 1.
 
+**Secondary-index segments (Part C.2)** follow the same three rules with their own count
+(`IndexSegment::owners`): `store(1)` for a segment built by the commit (or by `create_index`),
+`fetch_add(1)` for one shared with `base`, `fetch_sub(1)` in `run_job` after the version's own
+`[C6]`, the decrement to zero frees. The argument above applies word for word. An index
+segment references no chunk and no other segment, so nothing follows from freeing it.
+
 ### 5.5 A chunk cannot reach zero references while a published segment or an open commit references it
 
 `PinnedChunk::refs` (see `pinned_arena.h`) counts:
