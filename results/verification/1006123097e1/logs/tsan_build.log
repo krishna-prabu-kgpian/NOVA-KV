@@ -1,0 +1,298 @@
+# gate: tsan_build
+# started_utc: 2026-10-13T04:32:07Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: /usr/bin/cmake --build build/verify/tsan -j 16
+
+[  4%] Building CXX object CMakeFiles/layout_bench.dir/benchmarks/layout_bench.cpp.o
+[  4%] Building CXX object CMakeFiles/arena_test.dir/tests/arena_test.cpp.o
+[  4%] Building CXX object CMakeFiles/cow_segment_test.dir/tests/cow_segment_test.cpp.o
+[  4%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/kvstore.cpp.o
+[  4%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/kvstore.cpp.o
+[  4%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/kvstore.cpp.o
+[  5%] Building CXX object CMakeFiles/nova_kv_single.dir/src/kvstore.cpp.o
+[  5%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/kvstore.cpp.o
+[  6%] Building CXX object CMakeFiles/nova_workload.dir/supplied/workload_gen.cpp.o
+[  7%] Building CXX object CMakeFiles/pinned_arena_test.dir/tests/pinned_arena_test.cpp.o
+[  7%] Building CXX object CMakeFiles/hash_segment_test.dir/tests/hash_segment_test.cpp.o
+[  7%] Building CXX object CMakeFiles/versioned_store_test.dir/tests/versioned_store_test.cpp.o
+[  7%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/tests/versioned_alloc_failure_test.cpp.o
+[  7%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/tests/versioned_interleaving_test.cpp.o
+[  7%] Building CXX object CMakeFiles/epoch_test.dir/tests/epoch_test.cpp.o
+[  7%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/kvstore.cpp.o
+[  8%] Building CXX object CMakeFiles/nova_kv_single.dir/src/hash_segment.cpp.o
+[  8%] Building CXX object CMakeFiles/arena_test.dir/src/arena.cpp.o
+[  9%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/hash_segment.cpp.o
+[  9%] Building CXX object CMakeFiles/cow_segment_test.dir/src/versioned_store.cpp.o
+[ 10%] Building CXX object CMakeFiles/arena_test.dir/src/alloc.cpp.o
+[ 10%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/arena.cpp.o
+[ 10%] Building CXX object CMakeFiles/nova_kv_single.dir/src/arena.cpp.o
+[ 11%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/hash_segment.cpp.o
+[ 11%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/hash_segment.cpp.o
+[ 11%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/hash_segment.cpp.o
+[ 12%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/alloc.cpp.o
+[ 13%] Building CXX object CMakeFiles/nova_kv_single.dir/src/alloc.cpp.o
+[ 13%] Linking CXX executable arena_test
+[ 13%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/arena.cpp.o
+[ 13%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/hash_segment.cpp.o
+[ 14%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/arena.cpp.o
+[ 15%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/arena.cpp.o
+[ 16%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/alloc.cpp.o
+[ 16%] Building CXX object CMakeFiles/nova_kv_single.dir/src/staged_writes.cpp.o
+[ 16%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/arena.cpp.o
+[ 16%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/alloc.cpp.o
+[ 16%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/alloc.cpp.o
+[ 17%] Building CXX object CMakeFiles/hash_segment_test.dir/src/hash_segment.cpp.o
+[ 17%] Building CXX object CMakeFiles/nova_kv_single.dir/src/inspect.cpp.o
+[ 17%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/staged_writes.cpp.o
+[ 18%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/alloc.cpp.o
+[ 18%] Built target arena_test
+[ 18%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/staged_writes.cpp.o
+[ 18%] Building CXX object CMakeFiles/versioned_store_test.dir/src/versioned_store.cpp.o
+[ 19%] Building CXX object CMakeFiles/nova_kv_single_testhooks.dir/src/inspect.cpp.o
+[ 19%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/staged_writes.cpp.o
+[ 19%] Building CXX object CMakeFiles/hash_segment_test.dir/src/alloc.cpp.o
+[ 20%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/staged_writes.cpp.o
+[ 20%] Building CXX object CMakeFiles/nova_kv_rwlock.dir/src/inspect.cpp.o
+[ 21%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/staged_writes.cpp.o
+[ 21%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/inspect.cpp.o
+[ 21%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/inspect.cpp.o
+[ 22%] Building CXX object CMakeFiles/epoch_test.dir/src/versioned_store.cpp.o
+[ 23%] Building CXX object CMakeFiles/nova_kv_global_lock.dir/src/inspect.cpp.o
+[ 23%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/versioned_store.cpp.o
+[ 24%] Linking CXX executable hash_segment_test
+[ 25%] Linking CXX static library libnova_kv_single.a
+[ 25%] Linking CXX static library libnova_kv_single_testhooks.a
+[ 25%] Built target nova_kv_single
+[ 26%] Building CXX object CMakeFiles/versioned_store_test.dir/src/cow_segment.cpp.o
+[ 26%] Built target hash_segment_test
+[ 26%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/versioned_store.cpp.o
+[ 27%] Linking CXX static library libnova_kv_rwlock.a
+[ 27%] Built target nova_kv_single_testhooks
+[ 27%] Building CXX object CMakeFiles/cow_segment_test.dir/src/cow_segment.cpp.o
+[ 27%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/versioned_store.cpp.o
+[ 27%] Linking CXX static library libnova_kv_global_lock.a
+[ 27%] Building CXX object CMakeFiles/versioned_store_test.dir/src/secondary_index.cpp.o
+[ 28%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/versioned_store.cpp.o
+[ 28%] Built target nova_kv_rwlock
+[ 28%] Building CXX object CMakeFiles/epoch_test.dir/src/cow_segment.cpp.o
+[ 28%] Built target nova_kv_global_lock
+[ 28%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/versioned_store.cpp.o
+[ 28%] Linking CXX executable layout_bench
+[ 29%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/cow_segment.cpp.o
+[ 30%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/cow_segment.cpp.o
+[ 31%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/cow_segment.cpp.o
+[ 32%] Building CXX object CMakeFiles/cow_segment_test.dir/src/secondary_index.cpp.o
+[ 33%] Building CXX object CMakeFiles/reclamation_test.dir/tests/reclamation_test.cpp.o
+[ 34%] Building CXX object CMakeFiles/reclamation_stress_test.dir/tests/reclamation_stress_test.cpp.o
+[ 34%] Built target layout_bench
+[ 35%] Building CXX object CMakeFiles/versioned_store_test.dir/src/pinned_arena.cpp.o
+[ 35%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/versioned_store.cpp.o
+[ 35%] Building CXX object CMakeFiles/cow_segment_test.dir/src/pinned_arena.cpp.o
+[ 36%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/cow_segment.cpp.o
+[ 36%] Built target nova_workload
+[ 37%] Building CXX object CMakeFiles/epoch_test.dir/src/secondary_index.cpp.o
+[ 37%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/cow_segment.cpp.o
+[ 37%] Building CXX object CMakeFiles/versioned_store_test.dir/src/epoch.cpp.o
+[ 37%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/secondary_index.cpp.o
+[ 37%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/secondary_index.cpp.o
+[ 37%] Building CXX object CMakeFiles/txn_failure_test_single.dir/tests/txn_failure_test.cpp.o
+[ 37%] Building CXX object CMakeFiles/reclamation_test.dir/src/versioned_store.cpp.o
+[ 37%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/cow_segment.cpp.o
+[ 38%] Building CXX object CMakeFiles/cow_segment_test.dir/src/epoch.cpp.o
+[ 38%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/secondary_index.cpp.o
+[ 38%] Building CXX object CMakeFiles/epoch_test.dir/src/pinned_arena.cpp.o
+[ 38%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/secondary_index.cpp.o
+[ 39%] Building CXX object CMakeFiles/kvstore_test_single.dir/tests/kvstore_test.cpp.o
+[ 40%] Building CXX object CMakeFiles/versioned_store_test.dir/src/hash_segment.cpp.o
+[ 40%] Building CXX object CMakeFiles/versioned_store_test.dir/src/alloc.cpp.o
+[ 41%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/pinned_arena.cpp.o
+[ 42%] Building CXX object CMakeFiles/epoch_test.dir/src/epoch.cpp.o
+[ 43%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/pinned_arena.cpp.o
+[ 43%] Building CXX object CMakeFiles/cow_segment_test.dir/src/hash_segment.cpp.o
+[ 44%] Linking CXX executable versioned_store_test
+[ 44%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/secondary_index.cpp.o
+[ 45%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/pinned_arena.cpp.o
+[ 45%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/epoch.cpp.o
+[ 46%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/hash_segment.cpp.o
+[ 47%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/pinned_arena.cpp.o
+[ 47%] Building CXX object CMakeFiles/nova_kv_rcu_testhooks.dir/src/epoch.cpp.o
+[ 48%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/secondary_index.cpp.o
+[ 48%] Built target versioned_store_test
+[ 48%] Building CXX object CMakeFiles/epoch_test.dir/src/hash_segment.cpp.o
+[ 48%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/epoch.cpp.o
+[ 49%] Linking CXX executable txn_failure_test_single
+[ 50%] Building CXX object CMakeFiles/cow_segment_test.dir/src/alloc.cpp.o
+[ 50%] Building CXX object CMakeFiles/reclamation_test.dir/src/cow_segment.cpp.o
+[ 51%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/epoch.cpp.o
+[ 51%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/pinned_arena.cpp.o
+[ 52%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/hash_segment.cpp.o
+[ 52%] Building CXX object CMakeFiles/versioned_alloc_failure_test.dir/src/alloc.cpp.o
+[ 53%] Building CXX object CMakeFiles/epoch_test.dir/src/alloc.cpp.o
+[ 53%] Built target txn_failure_test_single
+[ 53%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/pinned_arena.cpp.o
+[ 54%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/hash_segment.cpp.o
+[ 54%] Building CXX object CMakeFiles/pinned_arena_test.dir/src/alloc.cpp.o
+[ 54%] Linking CXX executable cow_segment_test
+[ 54%] Building CXX object CMakeFiles/nova_kv_rcu.dir/src/epoch.cpp.o
+[ 55%] Building CXX object CMakeFiles/transaction_test_single.dir/tests/transaction_test.cpp.o
+[ 56%] Building CXX object CMakeFiles/reclamation_test.dir/src/secondary_index.cpp.o
+[ 57%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/epoch.cpp.o
+[ 57%] Linking CXX executable epoch_test
+[ 57%] Building CXX object CMakeFiles/snapshot_test_single.dir/tests/snapshot_test.cpp.o
+[ 57%] Building CXX object CMakeFiles/reclamation_test.dir/src/pinned_arena.cpp.o
+[ 57%] Building CXX object CMakeFiles/versioned_interleaving_test.dir/src/alloc.cpp.o
+[ 57%] Built target cow_segment_test
+[ 58%] Linking CXX static library libnova_kv_rcu_testhooks.a
+[ 59%] Building CXX object CMakeFiles/reclamation_test.dir/src/epoch.cpp.o
+[ 59%] Built target epoch_test
+[ 59%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/hash_segment.cpp.o
+[ 60%] Building CXX object CMakeFiles/reclamation_stress_test.dir/src/alloc.cpp.o
+[ 61%] Linking CXX executable pinned_arena_test
+[ 61%] Linking CXX executable versioned_alloc_failure_test
+[ 61%] Built target nova_kv_rcu_testhooks
+[ 61%] Building CXX object CMakeFiles/reclamation_test.dir/src/hash_segment.cpp.o
+[ 62%] Building CXX object CMakeFiles/reclamation_test.dir/src/alloc.cpp.o
+[ 62%] Building CXX object CMakeFiles/index_test_single.dir/tests/index_test.cpp.o
+[ 63%] Linking CXX executable versioned_interleaving_test
+[ 63%] Building CXX object CMakeFiles/smoke_test_single.dir/tests/smoke_test.cpp.o
+[ 63%] Building CXX object CMakeFiles/reference_workload_link_test_single.dir/tests/reference_workload_link_test.cpp.o
+[ 63%] Building CXX object CMakeFiles/kvstore_test_global_lock.dir/tests/kvstore_test.cpp.o
+[ 63%] Linking CXX executable kvstore_test_single
+[ 63%] Built target pinned_arena_test
+[ 64%] Building CXX object CMakeFiles/concurrent_lock_test_global_lock.dir/tests/concurrent_lock_test.cpp.o
+[ 64%] Built target versioned_alloc_failure_test
+[ 65%] Building CXX object CMakeFiles/transaction_test_global_lock.dir/tests/transaction_test.cpp.o
+[ 65%] Building CXX object CMakeFiles/snapshot_test_global_lock.dir/tests/snapshot_test.cpp.o
+[ 66%] Building CXX object CMakeFiles/index_test_global_lock.dir/tests/index_test.cpp.o
+[ 66%] Built target versioned_interleaving_test
+[ 66%] Linking CXX executable reclamation_stress_test
+[ 67%] Building CXX object CMakeFiles/smoke_test_global_lock.dir/tests/smoke_test.cpp.o
+[ 68%] Linking CXX static library libnova_kv_rcu.a
+[ 68%] Building CXX object CMakeFiles/reference_workload_link_test_global_lock.dir/tests/reference_workload_link_test.cpp.o
+[ 68%] Built target kvstore_test_single
+[ 69%] Building CXX object CMakeFiles/kvstore_test_rwlock.dir/tests/kvstore_test.cpp.o
+[ 69%] Linking CXX executable reclamation_test
+[ 70%] Linking CXX executable smoke_test_single
+[ 70%] Built target nova_kv_rcu
+[ 71%] Building CXX object CMakeFiles/concurrent_lock_test_rwlock.dir/tests/concurrent_lock_test.cpp.o
+[ 71%] Built target reclamation_stress_test
+[ 72%] Linking CXX executable reference_workload_link_test_single
+[ 73%] Building CXX object CMakeFiles/transaction_test_rwlock.dir/tests/transaction_test.cpp.o
+[ 73%] Built target smoke_test_single
+[ 73%] Built target reclamation_test
+[ 73%] Linking CXX executable smoke_test_global_lock
+[ 73%] Building CXX object CMakeFiles/snapshot_test_rwlock.dir/tests/snapshot_test.cpp.o
+[ 74%] Building CXX object CMakeFiles/index_test_rwlock.dir/tests/index_test.cpp.o
+[ 74%] Linking CXX executable concurrent_lock_test_global_lock
+[ 74%] Built target reference_workload_link_test_single
+[ 74%] Built target smoke_test_global_lock
+[ 75%] Building CXX object CMakeFiles/smoke_test_rwlock.dir/tests/smoke_test.cpp.o
+[ 75%] Building CXX object CMakeFiles/reference_workload_link_test_rwlock.dir/tests/reference_workload_link_test.cpp.o
+[ 75%] Linking CXX executable reference_workload_link_test_global_lock
+[ 75%] Built target concurrent_lock_test_global_lock
+[ 75%] Building CXX object CMakeFiles/kvstore_test_rcu.dir/tests/kvstore_test.cpp.o
+[ 75%] Linking CXX executable transaction_test_single
+[ 75%] Linking CXX executable concurrent_lock_test_rwlock
+[ 75%] Built target reference_workload_link_test_global_lock
+[ 75%] Linking CXX executable transaction_test_global_lock
+[ 76%] Building CXX object CMakeFiles/concurrent_lock_test_rcu.dir/tests/concurrent_lock_test.cpp.o
+[ 76%] Built target transaction_test_single
+[ 77%] Building CXX object CMakeFiles/transaction_test_rcu.dir/tests/transaction_test.cpp.o
+[ 77%] Built target concurrent_lock_test_rwlock
+[ 77%] Linking CXX executable smoke_test_rwlock
+[ 77%] Building CXX object CMakeFiles/snapshot_test_rcu.dir/tests/snapshot_test.cpp.o
+[ 78%] Linking CXX executable reference_workload_link_test_rwlock
+[ 78%] Built target transaction_test_global_lock
+[ 79%] Building CXX object CMakeFiles/index_test_rcu.dir/tests/index_test.cpp.o
+[ 80%] Linking CXX executable kvstore_test_global_lock
+[ 80%] Built target smoke_test_rwlock
+[ 81%] Building CXX object CMakeFiles/smoke_test_rcu.dir/tests/smoke_test.cpp.o
+[ 81%] Linking CXX executable transaction_test_rwlock
+[ 81%] Built target reference_workload_link_test_rwlock
+[ 81%] Building CXX object CMakeFiles/reference_workload_link_test_rcu.dir/tests/reference_workload_link_test.cpp.o
+[ 81%] Built target kvstore_test_global_lock
+[ 81%] Linking CXX executable snapshot_test_single
+[ 81%] Building CXX object CMakeFiles/bench_histogram_test.dir/tests/bench_histogram_test.cpp.o
+[ 82%] Linking CXX executable snapshot_test_global_lock
+[ 82%] Built target transaction_test_rwlock
+[ 82%] Building CXX object CMakeFiles/join_bench.dir/benchmarks/join_bench.cpp.o
+[ 82%] Linking CXX executable kvstore_test_rwlock
+[ 82%] Linking CXX executable index_test_global_lock
+[ 83%] Linking CXX executable index_test_single
+[ 83%] Built target snapshot_test_single
+[ 83%] Built target snapshot_test_global_lock
+[ 84%] Building CXX object CMakeFiles/reclaim_bench.dir/benchmarks/reclaim_bench.cpp.o
+[ 84%] Building CXX object CMakeFiles/single_thread.dir/drivers/single_thread.cpp.o
+[ 84%] Linking CXX executable concurrent_lock_test_rcu
+[ 84%] Built target kvstore_test_rwlock
+[ 84%] Linking CXX executable smoke_test_rcu
+[ 84%] Linking CXX executable kvstore_test_rcu
+[ 84%] Building CXX object CMakeFiles/global_lock.dir/drivers/global_lock.cpp.o
+[ 84%] Built target index_test_global_lock
+[ 84%] Building CXX object CMakeFiles/rwlock.dir/drivers/rwlock.cpp.o
+[ 84%] Built target index_test_single
+[ 85%] Building CXX object CMakeFiles/rcu.dir/drivers/rcu.cpp.o
+[ 86%] Linking CXX executable reference_workload_link_test_rcu
+[ 86%] Built target concurrent_lock_test_rcu
+[ 86%] Built target kvstore_test_rcu
+[ 86%] Built target smoke_test_rcu
+[ 86%] Building CXX object CMakeFiles/concurrent_bench_single.dir/benchmarks/concurrent_bench.cpp.o
+[ 86%] Linking CXX executable transaction_test_rcu
+[ 86%] Building CXX object CMakeFiles/concurrent_bench_global_lock.dir/benchmarks/concurrent_bench.cpp.o
+[ 86%] Building CXX object CMakeFiles/concurrent_bench_rwlock.dir/benchmarks/concurrent_bench.cpp.o
+[ 87%] Linking CXX executable snapshot_test_rwlock
+[ 87%] Linking CXX executable single_thread
+[ 87%] Built target reference_workload_link_test_rcu
+[ 87%] Built target transaction_test_rcu
+[ 87%] Building CXX object CMakeFiles/concurrent_bench_rcu.dir/benchmarks/concurrent_bench.cpp.o
+[ 88%] Building CXX object CMakeFiles/api_conformance_test.dir/tests/api_conformance_test.cpp.o
+[ 88%] Linking CXX executable rcu
+[ 89%] Linking CXX executable global_lock
+[ 89%] Built target single_thread
+[ 89%] Built target snapshot_test_rwlock
+[ 89%] Linking CXX executable index_test_rwlock
+[ 90%] Linking CXX executable rwlock
+[ 90%] Building CXX object CMakeFiles/alloc_failure_test.dir/tests/alloc_failure_test.cpp.o
+[ 90%] Building CXX object CMakeFiles/txn_failure_test_rcu.dir/tests/txn_failure_test.cpp.o
+[ 90%] Linking CXX executable api_conformance_test
+[ 90%] Built target rcu
+[ 90%] Built target global_lock
+[ 90%] Building CXX object CMakeFiles/index_failure_test.dir/tests/index_failure_test.cpp.o
+[ 91%] Linking CXX executable bench_histogram_test
+[ 92%] Linking CXX executable snapshot_test_rcu
+[ 92%] Building CXX object CMakeFiles/index_concurrency_test.dir/tests/index_concurrency_test.cpp.o
+[ 92%] Built target rwlock
+[ 92%] Built target index_test_rwlock
+[ 92%] Building CXX object CMakeFiles/join_test.dir/tests/join_test.cpp.o
+[ 92%] Building CXX object CMakeFiles/txn_concurrency_test.dir/tests/txn_concurrency_test.cpp.o
+[ 92%] Built target api_conformance_test
+[ 92%] Built target bench_histogram_test
+[ 92%] Linking CXX executable index_test_rcu
+[ 92%] Built target snapshot_test_rcu
+[ 92%] Built target index_test_rcu
+[ 92%] Linking CXX executable alloc_failure_test
+[ 92%] Built target alloc_failure_test
+[ 92%] Linking CXX executable reclaim_bench
+[ 92%] Built target reclaim_bench
+[ 92%] Linking CXX executable concurrent_bench_single
+[ 93%] Linking CXX executable txn_failure_test_rcu
+[ 94%] Linking CXX executable index_concurrency_test
+[ 95%] Linking CXX executable concurrent_bench_global_lock
+[ 95%] Built target concurrent_bench_single
+[ 96%] Linking CXX executable join_bench
+[ 96%] Built target txn_failure_test_rcu
+[ 96%] Built target index_concurrency_test
+[ 96%] Built target concurrent_bench_global_lock
+[ 97%] Linking CXX executable concurrent_bench_rcu
+[ 97%] Built target join_bench
+[ 98%] Linking CXX executable concurrent_bench_rwlock
+[ 98%] Built target concurrent_bench_rcu
+[ 98%] Built target concurrent_bench_rwlock
+[ 98%] Linking CXX executable index_failure_test
+[ 98%] Built target index_failure_test
+[ 99%] Linking CXX executable txn_concurrency_test
+[100%] Linking CXX executable join_test
+[100%] Built target txn_concurrency_test
+[100%] Built target join_test
+
+# exit_status: 0

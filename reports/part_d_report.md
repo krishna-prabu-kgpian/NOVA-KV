@@ -302,6 +302,7 @@ between two checks finite.
   101,000 updates/s), because the sweep has no batch limit and nothing else runs meanwhile.
   It pays with the readers: **read throughput falls to 4.6 M/s (one eleventh) and the longest
   reader stall rises to 6.4 ms in workload A and 25.1 ms in workload B.**
+  (The throughput figure is depressed by the measurement wrapper, see §6; the stall is not.)
 
 **Bounded reclamation against stop-the-world, worst reader pause** (median of the longest
 stall; the epoch figure is the worst batch size):
@@ -458,6 +459,19 @@ consistency for a reader costs nothing extra.
   averaged.
 - Throughput includes two clock reads per operation (about a third of the cycles of an
   uncontended read).
+- **Every timed run was wrapped in `perf stat`** (nine counters) and `/usr/bin/time`, and the
+  wrapper is not free where threads block often. A check made after the campaign
+  (`results/part_d_diagnostics/perf_stat_wrapper_effect.txt`; alternating runs with and
+  without the wrapper, 3 s, outside the campaign) found: RCU, 8 readers: within 1 % (paced
+  writer), 3–4 % higher with the wrapper (unthrottled); shared mutex: 0–6 % lower with the
+  wrapper; **global mutex at
+  8 readers: about 20 % higher with the wrapper** (9.6–9.7 M/s without it against 11.5–11.7
+  with it); **stop-the-world, workload B: about half** (3.5 M reads/s with the wrapper, 6.2–8.0
+  without), longest stall unchanged (23–25 ms with, 16–23 ms without). The tables in this
+  report are the campaign's wrapped runs, unchanged. No conclusion depends on the affected
+  figures (which store scales, the 100,000/s verdict, the pause reduction), but the global
+  mutex and stop-the-world *throughputs* carry this bias and the "one eleventh" of §3.3 is the
+  wrapped figure. The transaction and join cells were not checked this way.
 - perf stat counters are per process, not per thread; they cannot isolate the readers.
   Kernel frames in the flame graphs have no symbols (`kptr_restrict = 1`).
 - The cleaner thread is not pinned.

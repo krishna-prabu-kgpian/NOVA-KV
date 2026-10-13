@@ -967,6 +967,27 @@ Campaign `20261013T090846-615f4357f015-all` (`results/part_d/`, report `reports/
    store, and R8 stays an untested idea rather than a known fix.
 4. The supplied generator's index probe matched 100 % in these binaries (D-065).
 
+## D-070 — Two findings from the post-campaign verification run (Part D, 2026-10-13)
+
+1. **`bench_validate_reclaim_stw` failed under TSan** (`results/verification/1006123097e1/`,
+   kept as evidence; the other three modes passed). Cause: a wrong expectation in the new
+   benchmark, not the store. `reclaim_bench` required the retire list to reach zero after the
+   last pin is released, but the stop-the-world comparator sweeps only once the list is at
+   least 1,024 long (`kStwBacklogTrigger`); under TSan the writer is slow enough that the list
+   was 833 at release and stayed there. Correction: for `--reclaim stw` the run is also valid
+   when the list rests below the trigger (unchanged for 50 ms); the epoch mode still must reach
+   zero. The engine is unchanged. The campaign is unaffected: its five stop-the-world runs
+   released 7,178–10,596 versions and drained to zero in 10.5–15.9 ms; the measurement code
+   path for a list that reaches zero is the same as before. The campaign stays stamped with
+   615f435, the commit that produced it.
+2. **The `perf stat` wrapper around every timed run (plan deviation, D-068) is not neutral**
+   for cells whose threads block often: global mutex at 8 readers about +20 %, stop-the-world
+   read throughput about one half, shared mutex 0–6 % lower, RCU within 4 %; longest stalls
+   unaffected (`results/part_d_diagnostics/perf_stat_wrapper_effect.txt`). Decision: the
+   campaign tables stay as measured, with the bias stated in the report (§6), the checklist
+   and the milestone report. No conclusion changes. A second campaign with unwrapped timing
+   runs and separate counter runs would remove the bias; it is offered to the user, not done.
+
 ---
 
 ## Open items carried forward

@@ -1,0 +1,13 @@
+# After the validation-only change to benchmarks/reclaim_bench.cpp (decision D-070): one stop-the-world
+# backlog run with the campaign's arguments, to show the measured behaviour is unchanged. NOT part of the campaign;
+# not used in any table. 2026-10-13T10:09:44+05:30 ac_online=1 governor=performance
+# command: build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 615f4357f015  --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim stw --run-id backlog_stw_rep1 --scenario reclaim_stw 
+reclaim_bench variant=rcu reclaim=stw batch=64 readers=8 keys=2000 value_bytes=4096 pin=20ms/30ms
+  measure: 3.000 s  reads=21020365 rps=7006523 p50=290 ns p99=751 ns p999=5824 ns max=24147438 ns
+  writer : ok=882904 failed=0 wps=294290 stopped_at_limit=0  pin_cycles=70
+  backlog: max=9035 at_release=7879  held idle=10.7 MiB max=88.9 MiB at_end=27.3 MiB
+  cleanup: drained=1 in 13.473 ms  reads=13277 max=13201391 ns p999=5888 ns
+  reclaim: versions=1024196 passes=4173 max_per_pass=0 stw_pauses=4128 cleaner_cpu=2.065 s
+valid=1
+# exit=0
+# note: --git-sha in the command above is the campaign's label copied with its arguments; the binary is the post-D-070 build. Unwrapped run (no perf stat): see perf_stat_wrapper_effect.txt for why reads/s differs from the campaign's wrapped figure.

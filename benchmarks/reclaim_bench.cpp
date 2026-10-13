@@ -27,7 +27,8 @@
 //
 // The run fails if a reader sees a value that does not belong to its key, if
 // the writer completed no update, if (epoch mode) a pass freed more versions
-// than the batch, or if (epoch / stw) the backlog did not drain.
+// than the batch, or if the backlog did not drain (epoch: to zero; stw: to zero
+// or to rest below the comparator's trigger).
 #include "kvstore.h"
 
 #include "bench_common.h"
@@ -39,6 +40,10 @@
 #include <thread>
 
 namespace {
+
+// Mirrors kStwBacklogTrigger in src/versioned_store.cpp (the comparator frees
+// its retire list only once it is at least this long).
+constexpr std::uint64_t kStwTrigger = 1024;
 
 using bench::LatencyHistogram;
 
@@ -240,10 +245,26 @@ int main(int argc, char** argv) {
         backlog_at_release = NovaKvInspector::backlog(store);
     }                                   // final_pin released here: the cleaner may now free the backlog
     const std::uint64_t release_ns = bench::now_ns();
+    // The stop-the-world comparator sweeps only when the retire list has reached
+    // its trigger (kStwBacklogTrigger in versioned_store.cpp), so a shorter list
+    // stays: that is its resting state, not a failure to drain. The wait ends
+    // early once the list is below the trigger and has stopped changing.
+    const bool stw = reclaim == "stw";
+    bool stw_at_rest = false;
     if (reclaim != "disabled") {
         const std::uint64_t deadline = release_ns + 20ULL * 1000000000ULL;
-        while (NovaKvInspector::backlog(store) != 0 && bench::now_ns() < deadline) {
+        std::uint64_t last = NovaKvInspector::backlog(store), last_change_ns = release_ns;
+        while (last != 0 && bench::now_ns() < deadline) {
             std::this_thread::sleep_for(std::chrono::microseconds(50));
+            const std::uint64_t now_backlog = NovaKvInspector::backlog(store);
+            const std::uint64_t now = bench::now_ns();
+            if (now_backlog != last) {
+                last = now_backlog;
+                last_change_ns = now;
+            } else if (stw && last < kStwTrigger && now - last_change_ns > 50ULL * 1000000ULL) {
+                stw_at_rest = true;
+                break;
+            }
         }
         drained = NovaKvInspector::backlog(store) == 0;
         drain_ns = bench::now_ns() - release_ns;
@@ -290,6 +311,10 @@ int main(int argc, char** argv) {
                 static_cast<double>(drain_ns) / 1e6, static_cast<unsigned long long>(cleanup_ops),
                 static_cast<unsigned long long>(cleanup.max()),
                 static_cast<unsigned long long>(cleanup.percentile(0.999)));
+    if (stw_at_rest) {
+        std::printf("  cleanup: the retire list stayed below the stop-the-world trigger (%llu); nothing more is freed\n",
+                    static_cast<unsigned long long>(kStwTrigger));
+    }
     std::printf("  reclaim: versions=%llu passes=%llu max_per_pass=%llu stw_pauses=%llu cleaner_cpu=%.3f s\n",
                 static_cast<unsigned long long>(reclaimed), static_cast<unsigned long long>(passes),
                 static_cast<unsigned long long>(st.reclaim_max_versions_in_pass),
@@ -309,7 +334,9 @@ int main(int argc, char** argv) {
         require(st.reclaim_max_versions_in_pass <= static_cast<std::uint64_t>(st.reclaim_batch),
                 "a reclamation pass freed more versions than the batch");
     }
-    if (reclaim != "disabled") require(drained, "the backlog did not drain after the last snapshot was released");
+    if (reclaim != "disabled") {
+        require(drained || stw_at_rest, "the backlog did not drain after the last snapshot was released");
+    }
     require(NovaKvInspector::validate(store) == nullptr, "store invariants");
 
     if (!hist_path.empty()) {

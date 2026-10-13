@@ -1,0 +1,46 @@
+# Effect of the campaign's measurement wrapper (perf stat -e <9 events> -- /usr/bin/time ...) on the result.
+# Diagnostic, NOT part of the campaign and not used in any table. 2026-10-13T10:12:58+05:30; mains power, performance governor;
+# release binaries; campaign arguments except 3 s duration and no CSV/histogram output; plain and wrapped runs alternate.
+# The D.1 binaries are those of the campaign (615f435); reclaim_bench is the build after decision D-070 (validation only).
+
+## D.1 cells (concurrent_bench)
+global_lock_writer_paced_r4 plain rc=0   reads : ops=49014492 rps=16337842 hits=49014492 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=571 p99=3840 max=115416 ns 
+global_lock_writer_paced_r4 perfstat rc=0   reads : ops=52780370 rps=17592986 hits=52780370 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=331 p99=7424 max=137087 ns 
+global_lock_writer_paced_r4 plain rc=0   reads : ops=51702226 rps=17233804 hits=51702226 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=541 p99=3616 max=129453 ns 
+global_lock_writer_paced_r4 perfstat rc=0   reads : ops=49551635 rps=16516727 hits=49551635 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=320 p99=7296 max=124725 ns 
+global_lock_writer_paced_r8 plain rc=0   reads : ops=29028887 rps=9676214 hits=29028887 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=10000 p50=1360 p99=8320 max=132168 ns 
+global_lock_writer_paced_r8 perfstat rc=0   reads : ops=35182913 rps=11727386 hits=35182913 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=1152 p99=13184 max=122880 ns 
+global_lock_writer_paced_r8 plain rc=0   reads : ops=28884532 rps=9628035 hits=28884532 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=10000 p50=1392 p99=8832 max=131456 ns 
+global_lock_writer_paced_r8 perfstat rc=0   reads : ops=34626236 rps=11541952 hits=34626236 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=10000 p50=1088 p99=12672 max=121578 ns 
+global_lock_writer_max_r8 plain rc=0   reads : ops=18625850 rps=6208564 hits=18625850 misses=0 corrupt=0   writes: ok=1650020 failed=0 rps=550002 p50=1328 p99=8448 max=286037 ns 
+global_lock_writer_max_r8 perfstat rc=0   reads : ops=22652348 rps=7550691 hits=22652348 misses=0 corrupt=0   writes: ok=1820326 failed=0 rps=606768 p50=761 p99=11648 max=295324 ns 
+global_lock_writer_max_r8 plain rc=0   reads : ops=18706890 rps=6235515 hits=18706890 misses=0 corrupt=0   writes: ok=1614800 failed=0 rps=538257 p50=1344 p99=8704 max=282862 ns 
+global_lock_writer_max_r8 perfstat rc=0   reads : ops=22747075 rps=7582246 hits=22747075 misses=0 corrupt=0   writes: ok=1809912 failed=0 rps=603295 p50=781 p99=11648 max=281198 ns 
+rwlock_writer_paced_r4 plain rc=0   reads : ops=85937099 rps=28645104 hits=85937099 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=2720 p99=5760 max=106300 ns 
+rwlock_writer_paced_r4 perfstat rc=0   reads : ops=81845814 rps=27281421 hits=81845814 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=7232 p99=8320 max=2162060 ns 
+rwlock_writer_paced_r4 plain rc=0   reads : ops=86077783 rps=28692007 hits=86077783 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=2752 p99=8448 max=137979 ns 
+rwlock_writer_paced_r4 perfstat rc=0   reads : ops=81134551 rps=27044025 hits=81134551 misses=0 corrupt=0   writes: ok=30000 failed=0 rps=10000 p50=7232 p99=8320 max=2465309 ns 
+rwlock_writer_paced_r8 plain rc=0   reads : ops=65621216 rps=21873303 hits=65621216 misses=0 corrupt=0   writes: ok=8768 failed=0 rps=2923 p50=237568 p99=1671168 max=4152608 ns 
+rwlock_writer_paced_r8 perfstat rc=0   reads : ops=64276407 rps=21424986 hits=64276407 misses=0 corrupt=0   writes: ok=12445 failed=0 rps=4148 p50=161792 p99=1228800 max=3289477 ns 
+rwlock_writer_paced_r8 plain rc=0   reads : ops=66202505 rps=22067076 hits=66202505 misses=0 corrupt=0   writes: ok=11260 failed=0 rps=3753 p50=174080 p99=1294336 max=3125289 ns 
+rwlock_writer_paced_r8 perfstat rc=0   reads : ops=64929204 rps=21642840 hits=64929204 misses=0 corrupt=0   writes: ok=27776 failed=0 rps=9259 p50=76800 p99=462848 max=2596245 ns 
+rwlock_writer_max_r8 plain rc=0   reads : ops=65827922 rps=21942189 hits=65827922 misses=0 corrupt=0   writes: ok=9340 failed=0 rps=3113 p50=231424 p99=1490944 max=3336105 ns 
+rwlock_writer_max_r8 perfstat rc=0   reads : ops=65465808 rps=21821458 hits=65465808 misses=0 corrupt=0   writes: ok=8601 failed=0 rps=2867 p50=247808 p99=1589248 max=4140786 ns 
+rwlock_writer_max_r8 plain rc=0   reads : ops=65371657 rps=21790118 hits=65371657 misses=0 corrupt=0   writes: ok=11642 failed=0 rps=3881 p50=174080 p99=1261568 max=3428819 ns 
+rwlock_writer_max_r8 perfstat rc=0   reads : ops=64890826 rps=21629893 hits=64890826 misses=0 corrupt=0   writes: ok=17169 failed=0 rps=5723 p50=118784 p99=876544 max=3247148 ns 
+rcu_writer_paced_r8 plain rc=0   reads : ops=296440021 rps=98811934 hits=296440021 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=10000 p50=5184 p99=7680 max=47910 ns 
+rcu_writer_paced_r8 perfstat rc=0   reads : ops=295142319 rps=98379573 hits=295142319 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=10000 p50=5184 p99=7104 max=33853 ns 
+rcu_writer_paced_r8 plain rc=0   reads : ops=297418045 rps=99137526 hits=297418045 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=9999 p50=5120 p99=7232 max=43040 ns 
+rcu_writer_paced_r8 perfstat rc=0   reads : ops=294762536 rps=98252169 hits=294762536 misses=0 corrupt=0   writes: ok=29999 failed=0 rps=9999 p50=5120 p99=7296 max=34195 ns 
+rcu_writer_max_r8 plain rc=0   reads : ops=144415301 rps=48137395 hits=144415301 misses=0 corrupt=0   writes: ok=313848 failed=0 rps=104614 p50=7808 p99=16640 max=255320 ns 
+rcu_writer_max_r8 perfstat rc=0   reads : ops=150087057 rps=50027898 hits=150087057 misses=0 corrupt=0   writes: ok=314681 failed=0 rps=104891 p50=7616 p99=21760 max=264767 ns 
+rcu_writer_max_r8 plain rc=0   reads : ops=144716193 rps=48237725 hits=144716193 misses=0 corrupt=0   writes: ok=319137 failed=0 rps=106377 p50=7680 p99=16384 max=275418 ns 
+rcu_writer_max_r8 perfstat rc=0   reads : ops=148730999 rps=49575844 hits=148730999 misses=0 corrupt=0   writes: ok=312029 failed=0 rps=104007 p50=7744 p99=22016 max=159249 ns 
+
+## D.2 workload B, stop-the-world (reclaim_bench --readers 8 ... --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 3 --reclaim stw)
+plain:     measure: 3.000 s  reads=18561558 rps=6186919 p50=281 ns p99=752 ns p999=6016 ns max=23182977 ns
+perfstat:  measure: 3.000 s  reads=10616217 rps=3538574 p50=281 ns p99=822 ns p999=10112 ns max=25227547 ns
+plain:     measure: 3.000 s  reads=24059586 rps=8019547 p50=281 ns p99=741 ns p999=5696 ns max=16046043 ns
+perfstat:  measure: 3.000 s  reads=10599661 rps=3533029 p50=290 ns p99=821 ns p999=10240 ns max=23947272 ns
+plain:     measure: 3.000 s  reads=22561096 rps=7520049 p50=281 ns p99=731 ns p999=5696 ns max=23112715 ns
+perfstat:  measure: 3.000 s  reads=10543392 rps=3514276 p50=290 ns p99=821 ns p999=10240 ns max=25254857 ns

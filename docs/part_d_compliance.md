@@ -59,5 +59,9 @@ is `reports/part_d_report.md` / `.pdf`.
 5. **With an unthrottled writer and 4 or 8 readers the RCU store is not in a steady state**:
    the cleaner falls behind and memory grows for as long as the writer runs flat out.
 6. Throughput includes the harness's two clock reads per operation.
-7. One machine; mains power and `performance` governor verified at 56 checkpoints; battery
+7. Every timed run was wrapped in `perf stat`; a later check shows the wrapper changes the
+   global-mutex figure at 8 readers by about +20 % and halves stop-the-world read throughput
+   (stalls unaffected); RCU figures move by at most 4 %
+   (`results/part_d_diagnostics/perf_stat_wrapper_effect.txt`).
+8. One machine; mains power and `performance` governor verified at 56 checkpoints; battery
    charging and temperature rising during the campaign.
