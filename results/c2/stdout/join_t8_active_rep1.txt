@@ -1,0 +1,18 @@
+# command: build/release/join_bench --trades 100000 --instruments 50 --writer-cpu 15 --csv results/c2/runs.csv --run-id join_t8_active_rep1 --experiment join --threads 8 --cpus 0,2,4,6,1,3,5,7 --writer on --duration 2
+join_bench experiment=join trades=100000 instruments=50 threads=8 writer=on txn_size=1 index=on duration=2.0s
+  joins_per_s                               546.688 1/s        
+  joined_rows_per_s                          54.669 M/s        
+  join_p50_ms                                14.190 ms         
+  join_p99_ms                                22.065 ms         
+  join_max_ms                                23.092 ms         
+  joins_measured                           1098.000 joins      
+  writer_trade_puts_per_s                112520.561 1/s        
+  writer_instrument_txns_per_s             1758.064 1/s        
+  memory_held_max_mib                       490.916 MiB        
+  backlog_max_versions                    18644.000 versions   
+  memory_held_idle_mib                        9.116 MiB        
+  versions_reclaimed                     229966.000 versions   
+  index_segments_reclaimed                   16.000 segments   
+  cleaner_cpu_s                               2.046 s          
+valid=1
+# exit_status: 0

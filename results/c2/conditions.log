@@ -1,0 +1,4 @@
+2026-10-13T08:04:57 start ac_online=0 governor=performance epp=performance loadavg=1.47 1.90 1.11
+2026-10-13T08:05:50 rep1 ac_online=0 governor=performance epp=performance loadavg=3.55 2.31 1.29
+2026-10-13T08:06:43 rep2 ac_online=0 governor=performance epp=performance loadavg=3.82 2.51 1.40
+2026-10-13T08:07:35 rep3 ac_online=0 governor=performance epp=performance loadavg=4.26 2.75 1.55

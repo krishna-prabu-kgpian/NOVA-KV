@@ -1,0 +1,9 @@
+# command: build/release/join_bench --trades 100000 --instruments 50 --writer-cpu 15 --csv results/c2/runs.csv --run-id txn1_plain_rep3 --experiment txn --txn-size 1 --index off --duration 2
+join_bench experiment=txn trades=100000 instruments=50 threads=1 writer=off txn_size=1 index=off duration=2.0s
+  commits_per_s                          232378.865 1/s        
+  rows_per_s                             232378.865 1/s        
+  commit_p50_us                               3.747 us         
+  commit_p99_us                               8.655 us         
+  commit_max_us                             140.323 us         
+valid=1
+# exit_status: 0

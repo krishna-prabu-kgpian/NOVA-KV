@@ -243,7 +243,8 @@ gates to it as the milestone lands.
 Standing user decisions (details in `docs/decisions.md`): error contracts D-012; no `sudo` or
 kernel-setting changes without explicit permission D-013/D-021/D-040; do not merge into
 `main`, keep all milestone tags, no history rewrite or force-push D-014/D-030; cross-store
-snapshot ambiguity stays open D-015; no final submission ZIP until told; push only when asked.
+joins use one Snapshot per store, a documented deviation D-060 (closes D-015/O-1); no final
+submission ZIP until told; push only when asked.
 
 Part B rules (D-031…D-046, `docs/versioning.md`, `docs/reclamation.md`):
 

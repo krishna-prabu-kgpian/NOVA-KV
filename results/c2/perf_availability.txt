@@ -1,0 +1,2 @@
+perf_event_paranoid: 4
+perf: NOT usable by this user (no profiling was done)

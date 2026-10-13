@@ -1,0 +1,10 @@
+# command: build/release/join_bench --trades 100000 --instruments 50 --writer-cpu 15 --csv results/c2/runs.csv --run-id create_rep2 --experiment create
+join_bench experiment=create trades=100000 instruments=50 threads=1 writer=off txn_size=1 index=on duration=2.0s
+  backfill_ms                                10.759 ms         trades by symbol
+  backfill_ns_per_row                       107.594 ns/row     trades by symbol
+  index_bytes                           1603456.000 bytes      trades by symbol
+  backfill_ms                                10.024 ms         trades by trade_id (all distinct)
+  backfill_ns_per_row                       100.243 ns/row     trades by trade_id (all distinct)
+  index_bytes                           5796352.000 bytes      trades by trade_id (all distinct)
+valid=1
+# exit_status: 0

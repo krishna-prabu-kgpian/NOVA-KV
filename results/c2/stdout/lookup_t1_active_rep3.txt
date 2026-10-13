@@ -1,0 +1,10 @@
+# command: build/release/join_bench --trades 100000 --instruments 50 --writer-cpu 15 --csv results/c2/runs.csv --run-id lookup_t1_active_rep3 --experiment lookup --threads 1 --cpus 0 --writer on --duration 2
+join_bench experiment=lookup trades=100000 instruments=50 threads=1 writer=on txn_size=1 index=on duration=2.0s
+  index_get_mops                              9.925 M/s        
+  index_get_p50_us                            0.100 us         
+  index_get_p99_us                            0.170 us         
+  index_get_p999_us                           0.230 us         
+  index_get_max_us                          136.281 us         
+  writer_puts_per_s                      488053.053 1/s        
+valid=1
+# exit_status: 0

@@ -256,11 +256,14 @@ provides or claims a cross-store transaction or a global version.
   pairs of one or two of the 64 index partitions. For a small or high-cardinality index that
   is little. For a large table indexed on a low-cardinality field it is a lot: with 100,000
   Trades indexed on 50 symbols a partition holds whole posting lists of 2,000 keys, and one
-  symbol change copied about 114 KB of index (measured: `results/c2/`). The assignment's
-  indexed table, Instruments, has 50 rows.
-- An overwrite that does not change the field costs the index nothing.
-- Every commit to an indexed store takes one more owner reference per non-empty index
-  partition (up to 64), and the directory copy grows by 512 bytes.
+  symbol change copied about 114 KB of index and single-key writes ran at about a fifth of
+  the unindexed rate (`results/c2/summary.md`). The assignment's indexed table, Instruments,
+  has 50 rows.
+- An overwrite that does not change the field rebuilds nothing in the index, but an indexed
+  store still pays per commit: the field comparison, a delta buffer, one more owner reference
+  per non-empty index partition (up to 64) with the matching releases later, and 512 more
+  bytes of directory. Measured on Trades: about a third fewer single-key writes per second
+  than without an index.
 - `index_get` does one primary lookup per candidate key.
 - A long-lived snapshot holds back the reclamation of index segments exactly as it does of
   primary segments.

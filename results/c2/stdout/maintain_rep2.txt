@@ -1,0 +1,13 @@
+# command: build/release/join_bench --trades 100000 --instruments 50 --writer-cpu 15 --csv results/c2/runs.csv --run-id maintain_rep2 --experiment maintain --duration 2
+join_bench experiment=maintain trades=100000 instruments=50 threads=1 writer=off txn_size=1 index=on duration=2.0s
+  put_per_s                              234905.618 1/s        no index
+  index_segments_per_put                      0.000 1/put      no index
+  index_bytes_per_put                         0.000 bytes/put  no index
+  put_per_s                              159260.295 1/s        index (field unchanged)
+  index_segments_per_put                      0.000 1/put      index (field unchanged)
+  index_bytes_per_put                         0.000 bytes/put  index (field unchanged)
+  put_per_s                               49431.816 1/s        index (field changes)
+  index_segments_per_put                      1.947 1/put      index (field changes)
+  index_bytes_per_put                    114395.136 bytes/put  index (field changes)
+valid=1
+# exit_status: 0
