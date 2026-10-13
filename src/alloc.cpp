@@ -32,7 +32,7 @@ namespace test_hooks {
 namespace {
 std::atomic<PointFn> g_point_fn{nullptr};
 std::atomic<void*> g_point_context{nullptr};
-std::atomic<long> g_live[3] = {};
+std::atomic<long> g_live[4] = {};
 }  // namespace
 void set_point_hook(PointFn fn, void* context) noexcept {
     g_point_context.store(context);

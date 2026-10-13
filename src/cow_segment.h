@@ -95,6 +95,9 @@ public:
     bool erase(long key, std::uint64_t h) noexcept;
 
     bool changed() const noexcept { return changed_; }
+    // The entry of `key` in the private copy as it stands now, or null. Valid
+    // only until the next put or erase on this builder.
+    const Entry* find(long key, std::uint64_t h) const noexcept { return work_.find(key, h); }
 
     // Allocates the Segment header for the final contents. False on failure.
     bool prepare_finish() noexcept;

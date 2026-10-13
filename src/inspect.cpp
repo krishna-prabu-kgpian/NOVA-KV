@@ -70,6 +70,12 @@ NovaKvStats NovaKvInspector::stats(const KVStore& store) {
     s.stw_pauses = v.stw_pauses;
     s.cleaner_cpu_ns = v.cleaner_cpu_ns;
     s.reclaim_batch = vs.reclaim_batch();
+    s.indexed = v.indexed;
+    s.index_pairs = v.index_pairs;
+    s.index_segments_built = v.index_segments_built;
+    s.index_segments_released = v.index_segments_released;
+    s.index_segment_bytes_built = v.index_segment_bytes_built;
+    s.index_refs_taken = v.index_refs_taken;
     return s;
 }
 

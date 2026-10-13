@@ -103,6 +103,9 @@ VersionedStore::VersionedStore(const StoreOptions& options, std::atomic<int>* re
     NOVA_COUNT_OBJECT(LiveObject::Version, 1);
     v->sequence = 0;
     for (Segment*& s : v->segments) s = nullptr;
+    v->index_offset = 0;
+    v->index_len = 0;
+    for (IndexSegment*& s : v->isegs) s = nullptr;
     latest_ = v;
     w_.index_bytes_added = sizeof(Version);
     // The retirement queue always holds one dummy node; the writer appends
@@ -325,6 +328,16 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
     RetireNode* node = nullptr;
     bool arena_open = false;
 
+    // Secondary index (if the store has one): the changes this commit makes to
+    // it are collected as deltas while the operations are applied, and turned
+    // into replacement index segments before anything is published.
+    const bool indexed = base->index_len != 0;
+    const std::size_t field_end = std::size_t{base->index_offset} + base->index_len;
+    IndexDelta* deltas = nullptr;
+    std::size_t delta_count = 0;
+    IndexSegment* new_isegs[kIndexPartitionCount];
+    bool iseg_replaced[kIndexPartitionCount] = {};
+
     // Everything from here to "nothing can fail" works on private memory, plus
     // arena appends that are covered by writable / commit references. On any
     // failure: roll the arena back (which releases those references), let the
@@ -335,6 +348,11 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
         if (arena_open) arena_.rollback_commit();
         free_bytes(next);
         free_bytes(node);
+        free_bytes(deltas);
+        // Index segments built for this commit were never reachable.
+        for (std::uint32_t p = 0; p < kIndexPartitionCount; ++p) {
+            if (iseg_replaced[p]) index_destroy(new_isegs[p]);
+        }
         ++w_.commits_failed;
         return false;
     };
@@ -347,6 +365,14 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
         }
     }
 
+    if (indexed) {
+        // Each operation changes at most two index pairs (the key's old field
+        // value goes, its new one comes).
+        if (n > static_cast<std::size_t>(-1) / (2 * sizeof(IndexDelta))) return fail();
+        deltas = static_cast<IndexDelta*>(alloc_bytes(2 * n * sizeof(IndexDelta), alignof(IndexDelta)));
+        if (deltas == nullptr) return fail();
+    }
+
     // ---- Phase 2: apply the operations in order to the private copies. ------
     arena_.begin_commit();
     arena_open = true;
@@ -354,8 +380,33 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
     for (std::size_t i = 0; i < n; ++i) {
         const std::uint64_t h = hash_key(ops[i].key);
         SegmentBuilder& b = builders.at(builder_of[partition_of(h)]);
+
+        // The key's indexed field as it stands BEFORE this operation, in the
+        // private copy (so an earlier operation of this same commit counts).
+        // Hashed now: the entry pointer does not survive the operation.
+        bool old_indexed = false;
+        std::uint64_t old_hash = 0;
+        const std::byte* old_field = nullptr;
+        if (indexed) {
+            const Entry* before = b.find(ops[i].key, h);
+            if (before != nullptr && before->value.length >= field_end) {
+                old_indexed = true;
+                old_field = arena_.data(before->value) + base->index_offset;
+                old_hash = index_hash(old_field, base->index_len);
+            }
+        }
+
         bool took_effect;
         if (ops[i].kind == BatchOp::Kind::Put) {
+            // A value too short to contain the indexed range is not indexed.
+            const bool new_indexed = indexed && ops[i].length >= field_end;
+            const std::byte* new_field =
+                new_indexed ? static_cast<const std::byte*>(ops[i].value) + base->index_offset : nullptr;
+            // An overwrite that leaves the indexed bytes as they are changes
+            // nothing in the index. (Compared before the append below, while
+            // the old bytes are certainly still where `old_field` points.)
+            const bool same_field = old_indexed && new_indexed &&
+                                    std::memcmp(old_field, new_field, base->index_len) == 0;
             if (!b.prepare_put(ops[i].key, h)) return fail();
             ValueRef ref;
             if (!arena_.append(ops[i].value, static_cast<std::uint32_t>(ops[i].length), &ref)) {
@@ -364,8 +415,22 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
             }
             b.commit_put(ops[i].key, h, ref);
             took_effect = true;
+            if (indexed && !same_field) {
+                // The removal is ordered before the addition: if both name the
+                // same pair (two different field values with one hash), the
+                // addition decides.
+                const std::uint64_t seq = std::uint64_t{2} * i;
+                if (old_indexed) deltas[delta_count++] = IndexDelta{old_hash, ops[i].key, seq, false};
+                if (new_indexed) {
+                    deltas[delta_count++] =
+                        IndexDelta{index_hash(new_field, base->index_len), ops[i].key, seq + 1, true};
+                }
+            }
         } else {
             took_effect = b.erase(ops[i].key, h);
+            if (took_effect && old_indexed) {
+                deltas[delta_count++] = IndexDelta{old_hash, ops[i].key, std::uint64_t{2} * i, false};
+            }
         }
         any_change = any_change || took_effect;
         if (applied != nullptr) applied[i] = took_effect;
@@ -391,6 +456,25 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
     // version over afterwards cannot fail.
     node = static_cast<RetireNode*>(alloc_bytes(sizeof(RetireNode), alignof(RetireNode)));
     if (node == nullptr) return fail();
+
+    // The replacement index segments: one per index partition this commit
+    // touches, each the published segment merged with the commit's deltas.
+    // Built now, privately; they become reachable only through `next`.
+    if (delta_count != 0) {
+        index_sort_deltas(deltas, delta_count);
+        for (std::size_t first = 0; first < delta_count;) {
+            const std::uint32_t p = index_partition_of(deltas[first].hash);
+            std::size_t end = first + 1;
+            while (end < delta_count && index_partition_of(deltas[end].hash) == p) ++end;
+            bool failed = false;
+            new_isegs[p] = index_merge(base->isegs[p], deltas + first, end - first, &failed);
+            if (failed) return fail();
+            iseg_replaced[p] = true;
+            first = end;
+        }
+    }
+    free_bytes(deltas);
+    deltas = nullptr;
 
     // ================= Nothing below this line can fail. =======================
 
@@ -432,11 +516,44 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
         next->segments[p]->owners.fetch_add(1, std::memory_order_seq_cst);
         ++w_.owner_refs_taken;
     }
+    // The secondary index of the new version: the same definition, the
+    // replaced partitions' new segments, and every other segment shared with
+    // `base` (which owns it, so again never an increment from zero).
+    next->index_offset = base->index_offset;
+    next->index_len = base->index_len;
+    for (std::uint32_t p = 0; p < kIndexPartitionCount; ++p) {
+        if (iseg_replaced[p]) {
+            IndexSegment* is = new_isegs[p];
+            if (is != nullptr) {
+                is->owners.store(1, std::memory_order_seq_cst);
+                w_.index_bytes_added += index_segment_bytes(is);
+                w_.iseg_bytes_built += index_segment_bytes(is);
+                ++w_.isegs_built;
+            }
+            next->isegs[p] = is;
+        } else {
+            next->isegs[p] = base->isegs[p];
+            if (next->isegs[p] != nullptr) {
+                next->isegs[p]->owners.fetch_add(1, std::memory_order_seq_cst);
+                ++w_.iseg_refs_taken;
+            }
+        }
+    }
     w_.index_bytes_added += sizeof(Version);
     // The new segments hold their references now: the commit drops its own.
     arena_.end_commit();
 
-    // ---- Phase 5: publish. The linearization point of the whole write. ------
+    publish_locked(next, node);
+
+    // Deterministic single-threaded configurations: the writer also plays the
+    // cleaner. These are ordinary passes; they never wait for a reader.
+    if (options_.cleaner == CleanerMode::Inline) drain();
+    return true;
+}
+
+void VersionedStore::publish_locked(Version* next, RetireNode* node) noexcept {
+    // ---- Phase 5: publish. The linearization point of the whole write: primary
+    // data and secondary index of `next` become visible together.
     NOVA_TEST_POINT(TestPoint::WriterBeforePublish);
     Version* const old = current_.exchange(next, std::memory_order_seq_cst);     // [W1]
     latest_ = next;
@@ -459,11 +576,154 @@ bool VersionedStore::commit_locked(const BatchOp* ops, std::size_t n, bool* appl
     retired_.store(retired, std::memory_order_seq_cst);
     const std::uint64_t backlog = retired - reclaimed_.load(std::memory_order_seq_cst);
     if (backlog > w_.backlog_max) w_.backlog_max = backlog;
+}
 
-    // Deterministic single-threaded configurations: the writer also plays the
-    // cleaner. These are ordinary passes; they never wait for a reader.
+// ---- Secondary index -----------------------------------------------------------------
+
+bool VersionedStore::create_index(std::size_t field_offset, std::size_t field_len) noexcept {
+    // The range must fit inside the largest value the store accepts.
+    if (field_len == 0 || field_len > kMaxValueBytes || field_offset > kMaxValueBytes - field_len) return false;
+    std::lock_guard<std::mutex> writer(writer_mutex_);
+    Version* const base = latest_;
+    if (base->index_len != 0) {
+        // One index per store. The same request again is not an error.
+        return base->index_offset == field_offset && base->index_len == field_len;
+    }
+    const std::uint32_t offset = static_cast<std::uint32_t>(field_offset);
+    const std::uint32_t len = static_cast<std::uint32_t>(field_len);
+
+    // Everything is built privately; `current_` is written once, at the end.
+    IndexPair* pairs = nullptr;
+    Version* next = nullptr;
+    RetireNode* node = nullptr;
+    IndexSegment* built[kIndexPartitionCount];
+    for (IndexSegment*& b : built) b = nullptr;
+    auto fail = [&]() {
+        free_bytes(pairs);
+        free_bytes(next);
+        free_bytes(node);
+        for (IndexSegment* b : built) index_destroy(b);
+        ++w_.commits_failed;
+        return false;
+    };
+
+    // Backfill: one pair per existing value that is long enough to contain the
+    // field. Values that are shorter (and empty values) are not indexed.
+    std::uint64_t live = 0;
+    for (const Segment* seg : base->segments) {
+        if (seg != nullptr) live += seg->live;
+    }
+    std::uint32_t count = 0;
+    if (live != 0) {
+        if (live > 0xFFFFFFFFu) return fail();
+        pairs = static_cast<IndexPair*>(alloc_bytes(sizeof(IndexPair) * live, alignof(IndexPair)));
+        if (pairs == nullptr) return fail();
+        for (const Segment* seg : base->segments) {
+            if (seg == nullptr) continue;
+            for (std::uint32_t i = 0; i < seg->capacity; ++i) {
+                const Entry& e = seg->slots[i];
+                if (e.state != SlotState::Occupied) continue;
+                if (e.value.length < std::size_t{offset} + len) continue;
+                pairs[count++] = IndexPair{index_hash(arena_.data(e.value) + offset, len), e.key};
+            }
+        }
+        std::sort(pairs, pairs + count, [](const IndexPair& a, const IndexPair& b) {
+            const std::uint32_t pa = index_partition_of(a.hash), pb = index_partition_of(b.hash);
+            if (pa != pb) return pa < pb;
+            return a.hash != b.hash ? a.hash < b.hash : a.key < b.key;
+        });
+    }
+    next = static_cast<Version*>(alloc_bytes(sizeof(Version), alignof(Version)));
+    if (next == nullptr) return fail();
+    node = static_cast<RetireNode*>(alloc_bytes(sizeof(RetireNode), alignof(RetireNode)));
+    if (node == nullptr) return fail();
+    for (std::uint32_t first = 0; first < count;) {
+        const std::uint32_t p = index_partition_of(pairs[first].hash);
+        std::uint32_t end = first + 1;
+        while (end < count && index_partition_of(pairs[end].hash) == p) ++end;
+        bool failed = false;
+        built[p] = index_build(pairs + first, end - first, &failed);
+        if (failed) return fail();
+        // Some index segments exist now; none is reachable by any reader.
+        NOVA_TEST_POINT(TestPoint::WriterDuringIndexBuild);
+        first = end;
+    }
+    free_bytes(pairs);
+    pairs = nullptr;
+
+    // ================= Nothing below this line can fail. =======================
+    new (next) Version();
+    NOVA_COUNT_OBJECT(LiveObject::Version, 1);
+    next->sequence = base->sequence + 1;
+    // The primary data is unchanged: every segment is shared with `base`.
+    std::memcpy(next->segments, base->segments, sizeof(next->segments));
+    w_.directory_bytes_copied += sizeof(next->segments);
+    for (Segment* seg : next->segments) {
+        if (seg == nullptr) continue;
+        seg->owners.fetch_add(1, std::memory_order_seq_cst);
+        ++w_.owner_refs_taken;
+    }
+    next->index_offset = offset;
+    next->index_len = len;
+    for (std::uint32_t p = 0; p < kIndexPartitionCount; ++p) {
+        next->isegs[p] = built[p];
+        if (built[p] == nullptr) continue;
+        built[p]->owners.store(1, std::memory_order_seq_cst);
+        w_.index_bytes_added += index_segment_bytes(built[p]);
+        w_.iseg_bytes_built += index_segment_bytes(built[p]);
+        ++w_.isegs_built;
+    }
+    w_.index_bytes_added += sizeof(Version);
+    ++w_.index_creations;
+    // One publication: the same primary data, now with its complete index.
+    publish_locked(next, node);
     if (options_.cleaner == CleanerMode::Inline) drain();
     return true;
+}
+
+int VersionedStore::index_read(const Version* v, const void* field_value, std::size_t field_len,
+                               long* keys_out, int max_keys) const noexcept {
+    if (v->index_len == 0 || field_value == nullptr || keys_out == nullptr || max_keys <= 0) return 0;
+    if (field_len != v->index_len) return 0;  // only whole-field, exact-length probes can match
+    const std::uint64_t h = index_hash(field_value, field_len);
+    std::uint32_t count = 0;
+    const IndexPair* pairs = index_find(v->isegs[index_partition_of(h)], h, &count);
+    // The posting list is in ascending key order. Each candidate is checked
+    // against the primary data of THIS version: the index stores hashes, and
+    // only the bytes can tell two field values with one hash apart.
+    int n = 0;
+    for (std::uint32_t i = 0; i < count && n < max_keys; ++i) {
+        const long key = pairs[i].key;
+        const std::uint64_t kh = hash_key(key);
+        const Entry* e = segment_find(v->segments[partition_of(kh)], key, kh);
+        if (e == nullptr || e->value.length < std::size_t{v->index_offset} + v->index_len) continue;
+        if (std::memcmp(arena_.data(e->value) + v->index_offset, field_value, field_len) != 0) continue;
+        keys_out[n++] = key;
+    }
+    return n;
+}
+
+int VersionedStore::index_get(const void* field_value, std::size_t field_len, long* keys_out,
+                              int max_keys) const {
+    std::shared_lock<std::shared_mutex> stw(stw_lock_, std::defer_lock);
+    if (options_.reclaim == ReclaimMode::StopTheWorld) stw.lock();
+    // Exactly the protocol of get(): announce, validate, ONE load of the root.
+    // Index and primary data are then both read from that one version.
+    ReaderSlot* slot = epochs_.thread_slot();
+    epochs_.pin(slot);                                                   // [P1]-[P3]
+    const Version* v = current_.load(std::memory_order_seq_cst);        // [P4]
+    NOVA_TEST_POINT(TestPoint::ReaderAfterRootLoad);
+    const int n = index_read(v, field_value, field_len, keys_out, max_keys);
+    epochs_.unpin(slot);                                                 // [P5]
+    return n;
+}
+
+int VersionedStore::index_get_pinned(const Pin& pin, const void* field_value, std::size_t field_len,
+                                     long* keys_out, int max_keys) const noexcept {
+    // The pinned version's own index: never the current one.
+    std::shared_lock<std::shared_mutex> stw(stw_lock_, std::defer_lock);
+    if (options_.reclaim == ReclaimMode::StopTheWorld) stw.lock();
+    return index_read(pin.version, field_value, field_len, keys_out, max_keys);
 }
 
 // ---- Reclamation ---------------------------------------------------------------------
@@ -484,7 +744,7 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
     Version* v = job_.version;
     for (;;) {
         if (job_.segment == nullptr) {
-            if (job_.partition == kPartitionCount) break;
+            if (job_.partition >= kPartitionCount) break;
             if (budget == 0) return false;
             --budget;
             Segment* seg = v->segments[job_.partition];
@@ -512,6 +772,20 @@ bool VersionedStore::run_job(std::uint64_t& budget) noexcept {
         job_.segment = nullptr;
         ++job_.partition;
         NOVA_TEST_POINT(TestPoint::CleanerMidVersion);
+    }
+    // The version's references on its secondary-index segments, by the same
+    // rule: the decrement that reaches zero frees. An index segment references
+    // nothing else, so one work unit each.
+    while (job_.partition < kPartitionCount + kIndexPartitionCount) {
+        if (budget == 0) return false;
+        --budget;
+        IndexSegment* is = v->isegs[job_.partition - kPartitionCount];
+        if (is != nullptr && is->owners.fetch_sub(1, std::memory_order_seq_cst) == 1) {
+            index_bytes_released_.fetch_add(index_segment_bytes(is), std::memory_order_relaxed);
+            isegs_released_.fetch_add(1, std::memory_order_relaxed);
+            index_destroy(is);
+        }
+        ++job_.partition;
     }
     index_bytes_released_.fetch_add(sizeof(Version), std::memory_order_relaxed);
     NOVA_COUNT_OBJECT(LiveObject::Version, -1);
@@ -692,6 +966,16 @@ VersionedStats VersionedStore::stats() const noexcept {
     s.index_bytes_copied = w_.index_bytes_copied;
     s.directory_bytes_copied = w_.directory_bytes_copied;
     s.owner_refs_taken = w_.owner_refs_taken;
+    s.indexed = latest_ != nullptr && latest_->index_len != 0;
+    s.index_segments_built = w_.isegs_built;
+    s.index_segments_released = isegs_released_.load(std::memory_order_relaxed);
+    s.index_segment_bytes_built = w_.iseg_bytes_built;
+    s.index_refs_taken = w_.iseg_refs_taken;
+    if (latest_ != nullptr) {
+        for (const IndexSegment* is : latest_->isegs) {
+            if (is != nullptr) s.index_pairs += is->pair_count;
+        }
+    }
     s.index_bytes_held = w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed);
     s.arena = arena_.stats();
     // Commits that changed nothing also unwind the arena, without being failures.
@@ -705,6 +989,65 @@ void VersionedStore::for_each_version(void (*fn)(const Version*, void*), void* c
          node != nullptr; node = node->next.load(std::memory_order_seq_cst)) {
         fn(node->version, context);
     }
+}
+
+// Checks one version's secondary index against that version's primary data:
+// every value long enough to hold the field has exactly its pair, there is no
+// other pair, and every index segment is well formed.
+const char* VersionedStore::validate_index(const Version* v) const {
+    if (v->index_len == 0) {
+        for (const IndexSegment* is : v->isegs) {
+            if (is != nullptr) return "version without an index has an index segment";
+        }
+        return nullptr;
+    }
+    const std::size_t end = std::size_t{v->index_offset} + v->index_len;
+    std::uint64_t expected = 0;
+    for (const Segment* seg : v->segments) {
+        if (seg == nullptr) continue;
+        for (std::uint32_t i = 0; i < seg->capacity; ++i) {
+            const Entry& e = seg->slots[i];
+            if (e.state != SlotState::Occupied || e.value.length < end) continue;
+            const std::uint64_t h = index_hash(arena_.data(e.value) + v->index_offset, v->index_len);
+            std::uint32_t count = 0;
+            const IndexPair* pairs = index_find(v->isegs[index_partition_of(h)], h, &count);
+            bool found = false;
+            for (std::uint32_t k = 0; k < count && !found; ++k) found = pairs[k].key == e.key;
+            if (!found) return "a value's indexed field has no index pair";
+            ++expected;
+        }
+    }
+    std::uint64_t total = 0;
+    for (std::uint32_t p = 0; p < kIndexPartitionCount; ++p) {
+        const IndexSegment* is = v->isegs[p];
+        if (is == nullptr) continue;
+        if (is->pair_count == 0) return "empty index segment exists";
+        if (is->bucket_capacity == 0 || (is->bucket_capacity & (is->bucket_capacity - 1)) != 0) return "index bucket capacity invalid";
+        std::uint32_t distinct = 0;
+        for (std::uint32_t i = 0; i < is->pair_count; ++i) {
+            const IndexPair& pr = is->pairs[i];
+            if (index_partition_of(pr.hash) != p) return "index pair in the wrong partition";
+            if (i != 0) {
+                const IndexPair& prev = is->pairs[i - 1];
+                if (prev.hash > pr.hash || (prev.hash == pr.hash && prev.key >= pr.key)) return "index pairs not sorted or duplicated";
+            }
+            if (i == 0 || is->pairs[i - 1].hash != pr.hash) {
+                ++distinct;
+                std::uint32_t count = 0;
+                if (index_find(is, pr.hash, &count) != &pr) return "index bucket does not lead to its posting list";
+                std::uint32_t run = 1;
+                while (i + run < is->pair_count && is->pairs[i + run].hash == pr.hash) ++run;
+                if (count != run) return "index bucket count mismatch";
+            }
+        }
+        if (distinct != is->distinct) return "index distinct count mismatch";
+        if (std::uint64_t{distinct} * kMaxLoadDen > std::uint64_t{is->bucket_capacity} * kMaxLoadNum) return "index segment exceeds the load bound";
+        total += is->pair_count;
+    }
+    // Each expected pair was found, pairs are unique, and the totals agree: the
+    // index holds exactly the expected pairs.
+    if (total != expected) return "index holds a pair that matches no primary value";
+    return nullptr;
 }
 
 const char* VersionedStore::validate() {
@@ -800,6 +1143,32 @@ const char* VersionedStore::validate() {
             if (!found) return "segment chunk entry does not match its entries";
             ++chunk_refs[s->pins[k].chunk_id];
         }
+    }
+    // ---- Secondary index: in EVERY version that exists, the index must
+    // describe exactly that version's primary data.
+    std::vector<const IndexSegment*> irefs;
+    struct IndexCtx {
+        const VersionedStore* self;
+        std::vector<const IndexSegment*>* irefs;
+        const char* error;
+    } ictx{this, &irefs, nullptr};
+    for_each_version(
+        [](const Version* v, void* c) {
+            IndexCtx* x = static_cast<IndexCtx*>(c);
+            if (x->error == nullptr) x->error = x->self->validate_index(v);
+            for (const IndexSegment* is : v->isegs) {
+                if (is != nullptr) x->irefs->push_back(is);
+            }
+        },
+        &ictx);
+    if (ictx.error != nullptr) return ictx.error;
+    std::sort(irefs.begin(), irefs.end());
+    for (std::size_t i = 0; i < irefs.size();) {
+        std::size_t j = i;
+        while (j < irefs.size() && irefs[j] == irefs[i]) ++j;
+        if (irefs[i]->owners.load(std::memory_order_seq_cst) != j - i) return "index segment owner count mismatch";
+        held += index_segment_bytes(irefs[i]);
+        i = j;
     }
     if (held != w_.index_bytes_added - index_bytes_released_.load(std::memory_order_relaxed)) return "index bytes held mismatch";
 

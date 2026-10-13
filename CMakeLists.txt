@@ -62,6 +62,7 @@ set(NOVA_STORE_SOURCES
 set(NOVA_RCU_SOURCES
     src/versioned_store.cpp
     src/cow_segment.cpp
+    src/secondary_index.cpp
     src/pinned_arena.cpp
     src/epoch.cpp)
 set(NOVA_LOCK_VARIANTS single global_lock rwlock)
@@ -204,9 +205,9 @@ foreach(variant IN LISTS NOVA_VARIANTS)
         nova_add_test(concurrent_lock_test_${variant})
     endif()
 
-    # Part C.1 through the public API: Transaction on every variant; Snapshot
-    # on rcu (the lock-based variants must refuse it).
-    foreach(c1test transaction_test snapshot_test)
+    # Part C through the public API: Transaction on every variant; Snapshot and
+    # the secondary index on rcu (the lock-based variants must refuse them).
+    foreach(c1test transaction_test snapshot_test index_test)
         add_executable(${c1test}_${variant} tests/${c1test}.cpp)
         target_include_directories(${c1test}_${variant} PRIVATE src)
         target_link_libraries(${c1test}_${variant} PRIVATE nova_kv_${variant} nova_warnings)

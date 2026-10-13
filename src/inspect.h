@@ -55,6 +55,13 @@ struct NovaKvStats {
     std::uint64_t stw_pauses = 0;
     std::uint64_t cleaner_cpu_ns = 0;         // background cleaner CPU time, up to its last stop
     int reclaim_batch = 0;
+    // Secondary index (rcu variant)
+    bool indexed = false;                       // the current version has an index
+    std::uint64_t index_pairs = 0;              // (field, key) pairs in the current version's index
+    std::uint64_t index_segments_built = 0;     // index segments published, cumulative
+    std::uint64_t index_segments_released = 0;
+    std::uint64_t index_segment_bytes_built = 0;
+    std::uint64_t index_refs_taken = 0;
 };
 
 // One operation of an internal multi-key write (rcu variant; the public

@@ -41,6 +41,7 @@
 #include "cow_segment.h"
 #include "epoch.h"
 #include "pinned_arena.h"
+#include "secondary_index.h"
 
 #include <atomic>
 #include <cstddef>
@@ -51,10 +52,17 @@
 
 namespace nova {
 
-// One complete, immutable state of the store.
+// One complete, immutable state of the store: the primary index and, if one
+// has been created, the secondary index that describes exactly this state.
 struct Version {
     std::uint64_t sequence;                 // commits since creation; diagnostic only
     Segment* segments[kPartitionCount];     // the directory; null = empty partition
+    // Part C.2. index_len == 0: the store has no secondary index. Otherwise the
+    // index covers bytes [index_offset, index_offset + index_len) of every
+    // value long enough to contain them (secondary_index.h).
+    std::uint32_t index_offset;
+    std::uint32_t index_len;
+    IndexSegment* isegs[kIndexPartitionCount];  // null = no pair in this index partition
 };
 
 struct BatchOp {
@@ -118,6 +126,13 @@ struct VersionedStats {
     std::uint64_t index_bytes_copied = 0;     // slot bytes copied/rebuilt for published segments
     std::uint64_t directory_bytes_copied = 0;
     std::uint64_t owner_refs_taken = 0;       // segment references acquired by new versions
+    // Secondary index
+    bool indexed = false;                     // the current version has an index
+    std::uint64_t index_segments_built = 0;   // index segments published (built or rebuilt)
+    std::uint64_t index_segments_released = 0;
+    std::uint64_t index_segment_bytes_built = 0;  // bytes of those segments, cumulative
+    std::uint64_t index_refs_taken = 0;       // index-segment references acquired by new versions
+    std::uint64_t index_pairs = 0;            // (field, key) pairs in the current version's index
     // Memory held by index structures (versions + segments), current and retired
     std::uint64_t index_bytes_held = 0;
     PinnedArenaStats arena;
@@ -170,6 +185,26 @@ public:
     std::size_t keys_pinned(const Pin& pin, long* keys_out, std::size_t max_keys) const noexcept;
     // Number of keys in the pinned version.
     std::size_t size_pinned(const Pin& pin) const noexcept;
+
+    // ---- Secondary index (Part C.2) ------------------------------------------------
+    // Creates the store's one index over value bytes [field_offset, field_offset
+    // + field_len). Existing values are indexed (backfill) and the index becomes
+    // visible, complete, in ONE publication together with the unchanged primary
+    // data. Returns false, with the store unchanged, if field_len is 0, the
+    // range does not fit a value, memory runs out, or the store already has an
+    // index over a different range. Asking again for the same range returns
+    // true and publishes nothing. A writer operation: takes the writer mutex.
+    bool create_index(std::size_t field_offset, std::size_t field_len) noexcept;
+    // Up to max_keys primary keys whose value contains exactly the `field_len`
+    // bytes at `field_value` in the indexed range, in ascending key order (so a
+    // truncated result is the smallest keys). Reads one version: the current
+    // one, loaded once under protection (index_get), or the pinned one
+    // (index_get_pinned). Returns the number written. 0 if there is no index,
+    // field_len differs from the index's, a pointer is null or max_keys <= 0.
+    // index_get may throw std::bad_alloc on a thread's first read, like get.
+    int index_get(const void* field_value, std::size_t field_len, long* keys_out, int max_keys) const;
+    int index_get_pinned(const Pin& pin, const void* field_value, std::size_t field_len,
+                         long* keys_out, int max_keys) const noexcept;
 
     // ---- Writes ------------------------------------------------------------------
     // One writer at a time: put, erase and commit take an internal writer mutex
@@ -248,7 +283,7 @@ private:
     // A version in the middle of being released, and where to resume.
     struct Job {
         Version* version = nullptr;
-        std::uint32_t partition = 0;
+        std::uint32_t partition = 0;  // [0, kPartitionCount): primary; then the index partitions
         Segment* segment = nullptr;   // segment whose last owner we were; chunk refs in progress
         std::uint32_t pin = 0;
     };
@@ -256,6 +291,12 @@ private:
     bool read(const Version* v, long key, std::uint64_t h, void* value_out,
               std::size_t value_out_len) const noexcept;
     bool commit_locked(const BatchOp* ops, std::size_t n, bool* applied) noexcept;  // writer_mutex_ held
+    // Swaps `next` in as the current version and hands the replaced one to the
+    // retirement queue in `node`. Cannot fail. writer_mutex_ held.
+    void publish_locked(Version* next, RetireNode* node) noexcept;
+    const char* validate_index(const Version* v) const;
+    int index_read(const Version* v, const void* field_value, std::size_t field_len, long* keys_out,
+                   int max_keys) const noexcept;
     bool run_job(std::uint64_t& budget) noexcept;     // cleaner role
     bool epoch_pass() noexcept;                       // cleaner role
     bool stw_pass() noexcept;                         // cleaner role
@@ -277,6 +318,7 @@ private:
         std::uint64_t segments_built = 0, segments_dropped = 0, segment_growths = 0, segment_rebuilds = 0;
         std::uint64_t index_bytes_copied = 0, directory_bytes_copied = 0, owner_refs_taken = 0;
         std::uint64_t index_bytes_added = 0, backlog_max = 0;
+        std::uint64_t isegs_built = 0, iseg_bytes_built = 0, iseg_refs_taken = 0, index_creations = 0;
     } w_;
 
     // ---- Written by the writer, read by anyone -----------------------------------
@@ -288,6 +330,7 @@ private:
     std::atomic<bool> pass_running_{false};
     std::atomic<std::uint64_t> reclaimed_{0};
     std::atomic<std::uint64_t> segments_released_{0};
+    std::atomic<std::uint64_t> isegs_released_{0};
     std::atomic<std::uint64_t> index_bytes_released_{0};
     std::atomic<std::uint64_t> passes_{0}, passes_with_work_{0};
     std::atomic<std::uint64_t> max_versions_in_pass_{0}, max_units_in_pass_{0};

@@ -18,8 +18,10 @@
 // get() and keys() on the rcu build (docs/transactions.md). The lock-based
 // baselines have no versions to pin, so acquire_snapshot() throws there.
 //
-// Part C.2 (secondary index, index_get) is declared in kvstore.h but NOT
-// implemented yet: create_index() returns false and index_get() finds nothing.
+// Part C.2 (milestone C2): the secondary index (create_index, both index_get
+// overloads) on the rcu build, stored in the version and published with the
+// data (docs/secondary_index.md). The lock-based baselines have no index:
+// create_index() returns false there and index_get() finds nothing.
 #include "kvstore.h"
 
 #include "build_info.h"
@@ -154,6 +156,43 @@ size_t KVStore::keys(const Snapshot& snap, long* keys_out, size_t max_keys) cons
     const nova::VersionedStore::Pin pin = pin_for(this, snap.owner_, snap.pin_);
     if (!pin) return 0;
     return impl_->store.keys_pinned(pin, keys_out, max_keys);
+}
+
+// ---- Part C.2: secondary index ----------------------------------------------------------
+//
+// One index per store, over one byte range of each value (secondary_index.h).
+// It lives inside the version: a write publishes its primary changes and the
+// matching index changes in the same single root swap, so no reader ever sees
+// one without the other, and a Snapshot sees the index of its own version.
+
+// Builds the index over the values already stored and publishes it, complete,
+// in one publication. False (store unchanged) if field_len is 0, the range
+// cannot fit in a value, memory runs out, or an index over a different range
+// exists. The same range again: true, nothing published. Values too short to
+// contain the range are simply not indexed. A writer operation.
+bool KVStore::create_index(size_t field_offset, size_t field_len) {
+    return impl_->store.create_index(field_offset, field_len);
+}
+
+// Primary keys of the values whose indexed bytes equal the field_len bytes at
+// field_value (byte for byte; zero bytes are ordinary bytes), from the CURRENT
+// version, loaded once. Ascending key order; at most max_keys are written, and
+// if there are more the smallest max_keys are returned. Returns the number
+// written; 0 if there is no index, field_len is not the index's field length,
+// a pointer is null, or max_keys <= 0. No lock; like get(), it can throw
+// std::bad_alloc on a thread's first read.
+int KVStore::index_get(const void* field_value, size_t field_len,
+                       long* keys_out, int max_keys) const {
+    return impl_->store.index_get(field_value, field_len, keys_out, max_keys);
+}
+
+// The same lookup in the version the snapshot is pinned to, using THAT
+// version's index. A moved-from handle, or one from another store, yields 0.
+int KVStore::index_get(const Snapshot& snap, const void* field_value, size_t field_len,
+                       long* keys_out, int max_keys) const {
+    const nova::VersionedStore::Pin pin = pin_for(this, snap.owner_, snap.pin_);
+    if (!pin) return 0;
+    return impl_->store.index_get_pinned(pin, field_value, field_len, keys_out, max_keys);
 }
 
 #else
@@ -329,11 +368,10 @@ size_t KVStore::keys(const Snapshot& snap, long* keys_out, size_t max_keys) cons
     return 0;
 }
 
-#endif  // NOVA_KV_SYNC_MODE
-
-// ---- Part C.2 (secondary index): not implemented until milestone C2 ------------------
-// These report "no index": create_index() fails and the lookups find nothing.
-
+// A secondary index is NOT supported on the lock-based baselines either. The
+// Part C index is defined as part of a published version, updated in the same
+// pointer swap as the data; these stores have no versions. create_index()
+// reports failure and the lookups find nothing: "this store has no index".
 bool KVStore::create_index(size_t field_offset, size_t field_len) {
     (void)field_offset;
     (void)field_len;
@@ -358,6 +396,8 @@ int KVStore::index_get(const Snapshot& snap, const void* field_value, size_t fie
     (void)max_keys;
     return 0;
 }
+
+#endif  // NOVA_KV_SYNC_MODE
 
 // ---- Snapshot handle: the parts common to every build ----------------------------------
 

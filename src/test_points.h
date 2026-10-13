@@ -21,6 +21,7 @@ enum class TestPoint : int {
     WriterBeforePublish = 12,          // new version fully built, not yet visible
     WriterAfterPublish = 13,           // root swapped, old version not yet tagged or queued
     WriterAfterRetireTag = 14,         // retirement epoch sampled, record not yet queued
+    WriterDuringIndexBuild = 15,       // create_index: some index segments built, none visible
     // ---- cleaner (reclamation pass) ----
     CleanerBeforeScan = 20,      // epoch read, no slot examined yet
     CleanerMidScan = 21,         // after examining each slot
@@ -31,7 +32,7 @@ enum class TestPoint : int {
 // Kinds of engine objects whose creation and destruction are counted in hook
 // builds, so a test can assert that destroying a store released everything
 // (independently of a leak checker).
-enum class LiveObject : int { Version = 0, Segment = 1, Chunk = 2 };
+enum class LiveObject : int { Version = 0, Segment = 1, Chunk = 2, IndexSegment = 3 };
 
 #ifdef NOVA_KV_TEST_HOOKS
 namespace test_hooks {
