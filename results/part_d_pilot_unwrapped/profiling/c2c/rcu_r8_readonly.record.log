@@ -1,0 +1,27 @@
+# command: perf c2c record -o build/perf_data/rcu_r8_readonly.c2c.data -- build/release/concurrent_bench_rcu --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer off --warmup 0.5 --duration 5 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/c2c/profiled_runs.csv --run-id c2c_rcu_r8_readonly --scenario readonly_c2c
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rcu          scenario=readonly_c2c readers=8 writer=none keys=hit seconds=5.000
+  store lock object at 0x6039f9ee2cc0, 8 bytes (cache lines 0x6039f9ee2cc0..0x6039f9ee2cc0)
+  reads : ops=560276574 rps=112053933 hits=560276574 misses=0 corrupt=0
+  read latency ns: p50=41 p99=90 p999=170 max=182817 mean=46.5
+  writes: ok=0 failed=0 rps=0 p50=0 p99=0 max=0 ns
+  rcu   : publications=0 (writes incl. warm-up=0) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=0.00 index_bytes_copied=0 directory_bytes_copied=0 owner_refs=0.0 chunk_refs=0.0 value_bytes=0.0
+  rcu reclamation: reclaimed=0 backlog_at_end=0 backlog_max=1044 passes=21998 epoch_advances=0/0 attempts (0 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=0 reader_slots=0 validation_retries=0 cleaner_cpu=0.045s (0.8% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=9.0 MiB settled=9.0 MiB (versions + segments + chunks)
+[ perf record: Woken up 50 times to write data ]
+[ perf record: Captured and wrote 13.475 MB build/perf_data/rcu_r8_readonly.c2c.data (176309 samples) ]
+# exit_status: 0

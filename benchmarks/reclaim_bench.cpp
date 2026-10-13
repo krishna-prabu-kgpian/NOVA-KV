@@ -337,6 +337,14 @@ int main(int argc, char** argv) {
     if (reclaim != "disabled") {
         require(drained || stw_at_rest, "the backlog did not drain after the last snapshot was released");
     }
+    if (stw) {
+        // Progress, independently of where the list comes to rest: once the list
+        // has reached the trigger the comparator must have swept.
+        require(backlog_max < kStwTrigger || st.stw_pauses > 0,
+                "the retire list reached the stop-the-world trigger but no sweep ran");
+        require(NovaKvInspector::backlog(store) < kStwTrigger,
+                "the retire list is still at or above the stop-the-world trigger");
+    }
     require(NovaKvInspector::validate(store) == nullptr, "store invariants");
 
     if (!hist_path.empty()) {

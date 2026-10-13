@@ -1,0 +1,29 @@
+experiment,cell,measure,timing_median,timing_runs,perf_stat_median,perf_stat_runs,ratio_profiled_over_timing
+D.1,global_lock; refkeys_paced; 8 reader(s),reads/s,1.04536e+07,1,1.31577e+07,1,1.2587
+D.1,global_lock; writer_max; 8 reader(s),reads/s,6.43973e+06,1,7.78895e+06,1,1.2095
+D.1,global_lock; writer_paced; 8 reader(s),reads/s,9.65152e+06,1,1.15837e+07,1,1.2002
+D.1,rcu; readonly; 8 reader(s),reads/s,1.13344e+08,1,1.1272e+08,1,0.9945
+D.1,rcu; refkeys_paced; 8 reader(s),reads/s,1.06327e+08,1,1.05082e+08,1,0.9883
+D.1,rcu; writer_max; 8 reader(s),reads/s,4.94902e+07,1,5.00364e+07,1,1.0110
+D.1,rcu; writer_paced; 8 reader(s),reads/s,1.00821e+08,1,9.92774e+07,1,0.9847
+D.1,rwlock; refkeys_paced; 8 reader(s),reads/s,2.32264e+07,1,2.2401e+07,1,0.9645
+D.1,rwlock; writer_max; 8 reader(s),reads/s,2.28037e+07,1,1.51913e+07,1,0.6662
+D.1,rwlock; writer_paced; 8 reader(s),reads/s,2.22286e+07,1,2.20432e+07,1,0.9917
+D.1,single; inline_writer; 1 reader(s),reads/s,1.69692e+07,1,1.69815e+07,1,1.0007
+D.1,single; readonly; 1 reader(s),reads/s,1.81753e+07,1,1.83364e+07,1,1.0089
+D.2 A,batch 64,reads/s,4.95347e+07,1,5.21763e+07,1,1.0533
+D.2 A,batch 64,longest stall ns,548853,1,139876,1,0.2549
+D.2 A,stop-the-world,reads/s,7.92171e+06,1,5.20924e+06,1,0.6576
+D.2 A,stop-the-world,longest stall ns,4.21679e+06,1,6.61315e+06,1,1.5683
+D.2 A,disabled,reads/s,7.39231e+07,1,7.36758e+07,1,0.9967
+D.2 A,disabled,longest stall ns,285262,1,266466,1,0.9341
+D.2 B,batch 64,reads/s,4.03783e+07,1,4.09863e+07,1,1.0151
+D.2 B,batch 64,longest stall ns,147309,1,202885,1,1.3773
+D.2 B,stop-the-world,reads/s,8.03311e+06,1,3.40935e+06,1,0.4244
+D.2 B,stop-the-world,longest stall ns,1.95348e+07,1,2.32585e+07,1,1.1906
+D.2 B,disabled,reads/s,3.97057e+07,1,3.96757e+07,1,0.9992
+D.2 B,disabled,longest stall ns,157810,1,145877,1,0.9244
+D.3 txn,4 key(s); index off,commits/s,102895,1,103810,1,1.0089
+D.3 txn,4 key(s); index on,commits/s,17649.1,1,17579.4,1,0.9960
+D.3 join,8 joiner(s); writer paused,joins/s,1043.59,1,1034.99,1,0.9918
+D.3 join,8 joiner(s); writer active,joins/s,540.361,1,586.289,1,1.0850

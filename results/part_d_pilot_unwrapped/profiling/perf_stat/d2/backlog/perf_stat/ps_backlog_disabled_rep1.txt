@@ -1,0 +1,21 @@
+# started on Tue Oct 13 10:47:37 2026
+
+
+ Performance counter stats for '/usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d2/backlog/rss/ps_backlog_disabled_rep1.txt build/release/reclaim_bench --readers 8 --reader-cpus 0,2,4,6,1,3,5,7 --writer-cpu 15 --warmup 0.5 --seed 1 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d2/backlog/runs.csv --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30 --duration 1 --reclaim disabled --retain-limit-mb 8000 --run-id ps_backlog_disabled_rep1 --scenario reclaim_disabled --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d2/backlog/hist/ps_backlog_disabled_rep1.csv':
+
+         16,505.44 msec task-clock                                                            
+    70,482,517,463      cycles                                                                  (82.89%)
+    58,609,477,711      instructions                                                            (83.42%)
+    12,487,513,252      cache-references                                                        (83.43%)
+     2,761,589,535      cache-misses                                                            (83.42%)
+            12,074      context-switches                                                      
+                47      cpu-migrations                                                        
+       362,597,834      branch-misses                                                           (83.44%)
+     5,238,533,068      L1-dcache-load-misses                                                   (83.42%)
+
+       4.419937390 seconds time elapsed
+
+      15.634012000 seconds user
+       0.897536000 seconds sys
+
+

@@ -1,0 +1,8 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/perf_stat/ps_global_lock_writer_max_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/rss/ps_global_lock_writer_max_r8_rep1.txt build/release/concurrent_bench_global_lock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id ps_global_lock_writer_max_r8_rep1 --git-sha 9062d838457f-dirty --scenario writer_max --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/hist/ps_global_lock_writer_max_r8_rep1.csv --writer on --writer-cpu 15
+global_lock  scenario=writer_max readers=8 writer=thread_max keys=hit seconds=1.000
+  store lock object at 0x56786e0e0e10, 40 bytes (cache lines 0x56786e0e0e00..0x56786e0e0e00)
+  reads : ops=7789414 rps=7788946 hits=7789414 misses=0 corrupt=0
+  read latency ns: p50=180 p99=9728 p999=17664 max=363320 mean=991.7
+  writes: ok=631378 failed=0 rps=631340 p50=702 p99=11392 max=281896 ns
+# exit_status: 0

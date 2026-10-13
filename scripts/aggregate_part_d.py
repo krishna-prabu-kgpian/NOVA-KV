@@ -10,7 +10,15 @@ Writes <dir>/summary/*.csv, <dir>/summary/summary.md, <dir>/summary/problems.txt
   - an INVALID marker, or a conditions.log line without mains power / performance governor;
   - an expected cell of the matrix with fewer runs than the campaign's repetition count;
   - a run without exit status 0, without its histogram, without its perf stat output;
-  - a row a harness marked invalid.
+  - a row a harness marked invalid; a duplicate run id; a malformed row;
+  - a reported percentile that is not what the run's raw histogram gives;
+  - (campaigns with an unwrapped timing track) a timing run whose recorded command starts a
+    profiler or tracer, or a profiling run without its perf stat output.
+
+Two campaign layouts are understood. In the first campaign every timed run was wrapped in
+perf stat (counters beside the runs, profiles under perf/). Since decision D-071 the timing
+track is unwrapped and the counters come from separate runs under profiling/perf_stat/; the
+throughput of those profiled runs is reported only as the profiler's effect on each cell.
 
 Nothing is estimated: every number is the median, minimum or maximum of values read from
 the raw files, and no run is dropped. `--pilot` checks the same things for the reduced
@@ -88,6 +96,9 @@ if os.path.isfile(cfg_path):
             cfg[key] = m.group(1).split()
 else:
     problem(f"missing: {cfg_path}")
+V2 = os.path.isfile(cfg_path) and "timing_track=unwrapped" in open(cfg_path).read()
+PROF = "profiling" if V2 else "perf"                 # where flame graphs and c2c reports are
+PSTAT = os.path.join(OUT, "profiling", "perf_stat") if V2 else OUT   # base of the perf stat runs
 REPS = int(cfg.get("reps", 0))
 READERS = [int(x) for x in cfg.get("reader_counts", [])]
 BATCHES = [int(x) for x in cfg.get("reclaim_batches", [])]
@@ -95,7 +106,10 @@ TXN_SIZES = [int(x) for x in cfg.get("txn_sizes", [])]
 JOIN_THREADS = [int(x) for x in cfg.get("join_threads", [])]
 
 STAGE_DIRS = ["d1/concurrent", "d1/reference", "d2/steady", "d2/backlog", "d3/txn", "d3/join", "d3/cow",
-              "d3/generator", "perf/flamegraphs", "perf/c2c"]
+              "d3/generator", PROF + "/flamegraphs", PROF + "/c2c"]
+PROFILED_STAGES = ["d1/concurrent", "d2/steady", "d2/backlog", "d3/txn", "d3/join"]
+if V2:
+    STAGE_DIRS += ["profiling/perf_stat"] + ["profiling/perf_stat/" + d for d in PROFILED_STAGES]
 for d in STAGE_DIRS:
     stamp = os.path.join(OUT, d, ".campaign")
     if not os.path.isfile(stamp):
@@ -115,11 +129,30 @@ else:
     problem("missing conditions.log")
 
 
-def check_run_files(stage, run_id, need_hist=True, need_perf=True):
-    base = os.path.join(OUT, stage)
+TRACERS = re.compile(r"^# command: *(perf|strace|ltrace|valgrind|/usr/bin/time|time|gdb)\b", re.M)
+checked = {"timing": 0, "profiling": 0, "percentiles": 0}
+
+
+def check_run_files(stage, run_id, need_hist=True, need_perf=True, base_dir=None):
+    """base_dir None: a timing run (must be unwrapped in a V2 campaign)."""
+    timing = base_dir is None
+    base = os.path.join(OUT if timing else base_dir, stage)
     so = os.path.join(base, "stdout", run_id + ".txt")
-    if not os.path.isfile(so) or "# exit_status: 0" not in open(so, errors="replace").read():
+    text = open(so, errors="replace").read() if os.path.isfile(so) else ""
+    if "# exit_status: 0" not in text:
         problem(f"{stage}: run {run_id} has no stdout with exit status 0")
+    if "# command: " not in text:
+        problem(f"{stage}: run {run_id} has no recorded command")
+    if V2 and timing:
+        need_perf = False
+        if TRACERS.search(text):
+            problem(f"{stage}: TIMING run {run_id} was started under a profiler or tracer")
+        if stage not in ("d1/reference", "d3/generator") and "# wrapper: none" not in text:
+            problem(f"{stage}: TIMING run {run_id} does not record 'wrapper: none'")
+        for junk in ("perf_stat", "rss"):
+            if os.path.isdir(os.path.join(base, junk)):
+                problem(f"{stage}: the timing track has a {junk}/ directory")
+    checked["timing" if timing else "profiling"] += 1
     if need_hist:
         h = os.path.join(base, "hist", run_id + ".csv")
         if not os.path.isfile(h) or os.path.getsize(h) < 40:
@@ -132,7 +165,7 @@ def check_run_files(stage, run_id, need_hist=True, need_perf=True):
 
 def perf_of(stage, run_id):
     """Counters of one run from its perf stat file: {event: value}, plus elapsed seconds."""
-    p = os.path.join(OUT, stage, "perf_stat", run_id + ".txt")
+    p = os.path.join(PSTAT, stage, "perf_stat", run_id + ".txt")
     out = {}
     if not os.path.isfile(p):
         return out
@@ -150,12 +183,75 @@ def perf_of(stage, run_id):
 
 
 def rss_of(stage, run_id):
-    p = os.path.join(OUT, stage, "rss", run_id + ".txt")
+    p = os.path.join(PSTAT, stage, "rss", run_id + ".txt")
     if os.path.isfile(p):
         m = re.search(r"maxrss_kb=(\d+)", open(p).read())
         if m:
             return int(m.group(1)) / 1024.0
     return float("nan")
+
+
+def audit_rows(stage, path, rows, keyf=lambda r: r["run_id"]):
+    """Malformed rows (wrong field count) and duplicate records."""
+    seen = set()
+    for i, r in enumerate(rows):
+        if None in r or any(v is None for v in r.values()):
+            problem(f"{stage}: malformed row {i + 2} in {path}")
+        k = keyf(r)
+        if k in seen:
+            problem(f"{stage}: duplicate record {k} in {path}")
+        seen.add(k)
+
+
+def hist_percentiles(path, series):
+    """p50, p99, p99.9 exactly as bench::LatencyHistogram::percentile computes them (rank =
+    floor(total * p), value = lower bound of the bucket holding that rank), from the dumped
+    histogram. Returns None if the series is absent."""
+    buckets = []
+    if not os.path.isfile(path):
+        return None
+    for line in open(path):
+        parts = line.strip().split(",")
+        if len(parts) == 3 and parts[0] == series and parts[1].isdigit():
+            buckets.append((int(parts[1]), int(parts[2])))
+    total = sum(c for _, c in buckets)
+    if total == 0:
+        return None
+    out = []
+    for q in (0.50, 0.99, 0.999):
+        rank = min(int(total * q), total - 1)
+        seen = 0
+        for lower, c in buckets:
+            seen += c
+            if seen > rank:
+                out.append(lower)
+                break
+    return out
+
+
+def check_percentiles(stage, run_id, series, reported_ns, base_dir=None):
+    """reported_ns: (p50, p99, p999) in nanoseconds as the run reported them."""
+    got = hist_percentiles(os.path.join(base_dir or OUT, stage, "hist", run_id + ".csv"), series)
+    if got is None:
+        problem(f"{stage}: {run_id}: histogram has no '{series}' series")
+        return
+    for name, a, b in zip(("p50", "p99", "p99.9"), got, reported_ns):
+        if abs(a - b) > max(1.0, 1e-5 * a):      # CSV values are printed with 6 significant digits or 3 decimals
+            problem(f"{stage}: {run_id}: reported {name} {b:g} ns, histogram gives {a} ns")
+    checked["percentiles"] += 1
+
+
+def prof_rows(stage):
+    """Rows of the perf stat profiling track for a stage (the campaign's own rows in the first layout)."""
+    if not V2:
+        return None
+    rows = read_csv(os.path.join(PSTAT, stage, "runs.csv"))
+    for run_id in sorted({r["run_id"] for r in rows}):
+        check_run_files(stage, run_id, need_hist=True, need_perf=True, base_dir=PSTAT)
+    return rows
+
+
+overhead = []      # (stage, cell label, measure, timing median, profiled median, n timing, n profiled)
 
 
 def group(rows, keyf):
@@ -173,6 +269,11 @@ def expect_cells(stage, groups, cells, what):
 
 
 md = [f"# Part D summary — campaign `{campaign}`", "",
+      *((["**Corrected campaign: UNWRAPPED timing track.** Every throughput, latency and stall figure comes from an executable",
+          "started directly. Profiler output (perf stat, perf record, perf c2c) comes from separate runs and is confined to",
+          "the section headed PROFILING TRACK.", ""]) if V2 else
+        (["**Original campaign: every timed run was wrapped in `perf stat`**, which changed some results (decision D-070).",
+          "Superseded as a source of timing figures by the unwrapped campaign (decision D-071); kept for audit.", ""])),
       "Generated by `scripts/aggregate_part_d.py` from the raw files in this directory. Every cell is",
       "**median [min–max]** over the campaign's repetitions unless it says otherwise; no run is dropped.", ""]
 
@@ -180,11 +281,17 @@ md = [f"# Part D summary — campaign `{campaign}`", "",
 # D.1 track C
 # =============================================================================================
 d1 = read_csv(os.path.join(OUT, "d1/concurrent/runs.csv"))
+audit_rows("d1/concurrent", "runs.csv", d1)
 for r in d1:
     check_run_files("d1/concurrent", r["run_id"])
+    check_percentiles("d1/concurrent", r["run_id"], "read", (float(r["p50_ns"]), float(r["p99_ns"]), float(r["p999_ns"])))
     if int(r["read_corrupt"]) != 0:
         problem(f"d1/concurrent: {r['run_id']} read a foreign record")
+    if int(r["read_hits"]) + int(r["read_misses"]) + int(r["read_corrupt"]) != int(r["read_ops"]):
+        problem(f"d1/concurrent: {r['run_id']}: hits + misses do not add up to the reads")
 g1 = group(d1, lambda r: (r["variant"], r["scenario"], int(r["readers"])))
+p1 = prof_rows("d1/concurrent")
+gp1 = group(p1, lambda r: (r["variant"], r["scenario"], int(r["readers"]))) if p1 is not None else g1
 cells = [(v, s, n) for v in ("global_lock", "rwlock", "rcu") for s in ("writer_paced", "writer_max") for n in READERS]
 cells += [("single", "readonly", 1), ("single", "inline_writer", 1)]
 expect_cells("d1/concurrent", g1, cells, "(variant, scenario, readers)")
@@ -192,11 +299,17 @@ d1_rows = []
 d1_stats = {}
 for key in sorted(g1):
     runs = g1[key]
-    perf = [perf_of("d1/concurrent", r["run_id"]) for r in runs]
+    pruns = gp1.get(key, [])          # the runs the counters come from (the same runs in the first layout)
+    if V2 and not pruns:
+        problem(f"profiling/perf_stat/d1/concurrent: no profiled run for cell {key}")
+    perf = [perf_of("d1/concurrent", r["run_id"]) for r in pruns]
     f = lambda col: [float(r[col]) for r in runs]
     cpus = [p["task-clock"] / 1000.0 / p["elapsed_s"] for p in perf if "task-clock" in p and p.get("elapsed_s")]
     ipc = [p["instructions"] / p["cycles"] for p in perf if p.get("cycles")]
-    reads = [float(r["read_ops"]) for r in runs]
+    reads = [float(r["read_ops"]) for r in pruns]
+    if V2 and pruns:
+        overhead.append(("D.1", f"{key[0]}, {key[1]}, {key[2]} reader(s)", "reads/s", med(f("read_rps")),
+                         med([float(r["read_rps"]) for r in pruns]), len(runs), len(pruns)))
     st = {
         "reps": len(runs), "read_rps": f("read_rps"), "write_rps": f("write_rps"),
         "p50": f("p50_ns"), "p99": f("p99_ns"), "p999": f("p999_ns"), "max": f("max_ns"),
@@ -205,7 +318,7 @@ for key in sorted(g1):
         "cpus": cpus, "ipc": ipc,
         "ctx": [p.get("context-switches", float("nan")) for p in perf],
         "cache_miss_per_read": [p["cache-misses"] / n for p, n in zip(perf, reads) if "cache-misses" in p and n > 0],
-        "rss": [rss_of("d1/concurrent", r["run_id"]) for r in runs],
+        "rss": [rss_of("d1/concurrent", r["run_id"]) for r in pruns],
         "write_p99": f("write_p99_ns"), "write_max": f("write_max_ns"),
     }
     d1_stats[key] = st
@@ -224,16 +337,21 @@ write_csv("d1_concurrent.csv",
 md += ["## D.1 — point-get scaling, track C: writer ACTIVE during the measured window", "",
        "`benchmarks/concurrent_bench.cpp`, the generator's schema with every requested key present (hit rate 100 %",
        "unless stated), one writer thread overwriting existing trades for the whole window.", ""]
+if V2:
+    md += ["**Timing track: every executable was started directly, with no profiler or other wrapper.** The two columns",
+           "marked *(prof.)* are perf stat counters from the separate profiling track (other runs of the same commands);",
+           "throughput and latency are never taken from those runs.", ""]
+PF = " *(prof.)*" if V2 else ""
 for scen, title in (("writer_paced", "Writer paced at 10,000 updates/s"), ("writer_max", "Writer unthrottled")):
     md += [f"### {title}", "",
-           "| Store | Readers | Reads/s (M) | Writer updates/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | CPUs used | ctx switches |",
-           "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+           f"| Store | Readers | Reads/s (M) | Hit rate | Writer updates/s | p50 µs | p99 µs | p99.9 µs | max µs (median / worst) | CPUs used{PF} | ctx switches{PF} |",
+           "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for v in ("global_lock", "rwlock", "rcu"):
         for n in READERS:
             st = d1_stats.get((v, scen, n))
             if not st:
                 continue
-            md.append(f"| {v} | {n} | {mmm(st['read_rps'], 2, 1e-6)} | {mmm(st['write_rps'], 0)} | {fmt(med(st['p50']) / 1e3, 3)} | "
+            md.append(f"| {v} | {n} | {mmm(st['read_rps'], 2, 1e-6)} | {fmt(med(st['hit_rate']) * 100, 0)} % | {mmm(st['write_rps'], 0)} | {fmt(med(st['p50']) / 1e3, 3)} | "
                       f"{fmt(med(st['p99']) / 1e3, 3)} | {fmt(med(st['p999']) / 1e3, 3)} | {fmt(med(st['max']) / 1e3, 0)} / {fmt(max(st['max']) / 1e3, 0)} | "
                       f"{fmt(med(st['cpus']), 2)} | {fmt(med(st['ctx']), 0)} |")
     md.append("")
@@ -278,6 +396,8 @@ md.append("")
 cow1 = {r["run_id"]: r for r in read_csv(os.path.join(OUT, "d1/concurrent/cow.csv"))}
 md += ["### RCU store during D.1: copy-on-write and reclamation", "",
        "\"Backlog max\" and \"Peak RSS\" include the loading of the 100,000 trades before the measured window; \"at end\"",
+       *(["Peak RSS is from the profiling track (`/usr/bin/time` around other runs of the same command); everything else",
+          "is the store's own counters in the timing runs."] if V2 else []),
        "is the state when the window closes. A backlog at the end that is close to the maximum means it was still growing.", "",
        "| Writer | Readers | Peak RSS MiB | Memory held at end MiB | Backlog max (versions) | Backlog at end | Cleaner CPU s | Bytes copied per update |",
        "|---|---:|---:|---:|---:|---:|---:|---:|"]
@@ -313,6 +433,7 @@ for s, st in rcu8.items():
 # D.1 track R
 # =============================================================================================
 ref = read_csv(os.path.join(OUT, "d1/reference/runs.csv"))
+audit_rows("d1/reference", "runs.csv", ref)
 for r in ref:
     check_run_files("d1/reference", r["run_id"], need_hist=False, need_perf=False)
 gr = group(ref, lambda r: (r["driver"], int(r["readers"])))
@@ -357,9 +478,21 @@ def label(s):
 
 steady = read_csv(os.path.join(OUT, "d2/steady/runs.csv"))
 cow = {r["run_id"]: r for r in read_csv(os.path.join(OUT, "d2/steady/cow.csv"))}
+audit_rows("d2/steady", "runs.csv", steady)
 for r in steady:
     check_run_files("d2/steady", r["run_id"])
+    check_percentiles("d2/steady", r["run_id"], "read", (float(r["p50_ns"]), float(r["p99_ns"]), float(r["p999_ns"])))
+    if int(r["read_corrupt"]) != 0:
+        problem(f"d2/steady: {r['run_id']} read a foreign record")
 gs = group(steady, lambda r: r["scenario"])
+ps_ = prof_rows("d2/steady")
+if ps_ is not None:
+    for s_, pr in group(ps_, lambda r: r["scenario"]).items():
+        if s_ in gs:
+            overhead.append(("D.2 A", label(s_), "reads/s", med([float(r["read_rps"]) for r in gs[s_]]),
+                             med([float(r["read_rps"]) for r in pr]), len(gs[s_]), len(pr)))
+            overhead.append(("D.2 A", label(s_), "longest stall ns", med([float(r["max_ns"]) for r in gs[s_]]),
+                             med([float(r["max_ns"]) for r in pr]), len(gs[s_]), len(pr)))
 expect_cells("d2/steady", gs, SETTINGS, "setting")
 md += ["", "## D.2 — reclamation batch, workload A: STEADY point gets", "",
        "The D.1 track C benchmark (RCU, 8 readers, unthrottled writer, 32-byte values). \"Steady\" describes the",
@@ -402,11 +535,23 @@ write_csv("d2_steady.csv", ["setting", "reps", "read_rps_median", "read_rps_min"
                             "versions_reclaimed_per_s_median"], steady_rows)
 
 backlog = read_csv(os.path.join(OUT, "d2/backlog/runs.csv"))
+audit_rows("d2/backlog", "runs.csv", backlog)
 for r in backlog:
     check_run_files("d2/backlog", r["run_id"])
+    check_percentiles("d2/backlog", r["run_id"], "read_measure", (float(r["p50_ns"]), float(r["p99_ns"]), float(r["p999_ns"])))
     if r["valid"] != "1":
         problem(f"d2/backlog: {r['run_id']} marked invalid by the harness")
+    if r["stopped_at_retain_limit"] != "0":
+        problem(f"d2/backlog: {r['run_id']} stopped at the memory guard")
 gb = group(backlog, lambda r: r["scenario"])
+pb_ = prof_rows("d2/backlog")
+if pb_ is not None:
+    for s_, pr in group(pb_, lambda r: r["scenario"]).items():
+        if s_ in gb:
+            overhead.append(("D.2 B", label(s_), "reads/s", med([float(r["read_rps"]) for r in gb[s_]]),
+                             med([float(r["read_rps"]) for r in pr]), len(gb[s_]), len(pr)))
+            overhead.append(("D.2 B", label(s_), "longest stall ns", med([float(r["max_ns"]) for r in gb[s_]]),
+                             med([float(r["max_ns"]) for r in pr]), len(gb[s_]), len(pr)))
 expect_cells("d2/backlog", gb, SETTINGS, "setting")
 md += ["", "## D.2 — reclamation batch, workload B: BACKLOG-BUILDING", "",
        "`benchmarks/reclaim_bench.cpp`: 2,000 keys with 4 KiB values, 8 readers, unthrottled writer, and a thread that",
@@ -460,13 +605,35 @@ for name, stats in (("A (steady)", steady_stats), ("B (backlog-building)", backl
 # =============================================================================================
 # D.3
 # =============================================================================================
-def jb_table(stage):
-    rows = read_csv(os.path.join(OUT, stage, "runs.csv"))
+def jb_table(stage, base_dir=None):
+    rows = read_csv(os.path.join(base_dir or OUT, stage, "runs.csv"))
+    audit_rows(stage, "runs.csv", rows, lambda r: (r["run_id"], r["metric"], r["detail"]))
     for run_id in sorted({r["run_id"] for r in rows}):
-        check_run_files(stage, run_id, need_hist=(stage != "d3/cow"))
+        check_run_files(stage, run_id, need_hist=(stage != "d3/cow"), base_dir=base_dir)
     for r in rows:
         if r["valid"] != "1":
             problem(f"{stage}: {r['run_id']} marked invalid by the harness")
+    # Percentiles against the raw histogram (timing runs): commit latencies are reported in µs, joins in ms.
+    if base_dir is None and stage in ("d3/txn", "d3/join"):
+        series, pre, unit = ("commit", "commit", 1e3) if stage == "d3/txn" else ("join", "join", 1e6)
+        suffix = "us" if stage == "d3/txn" else "ms"
+        by_run = group(rows, lambda r: r["run_id"])
+        for run_id, rr in by_run.items():
+            m = {r["metric"]: float(r["value"]) for r in rr}
+            keys = [f"{pre}_p50_{suffix}", f"{pre}_p99_{suffix}", f"{pre}_p999_{suffix}"]
+            if all(k in m for k in keys):
+                got = hist_percentiles(os.path.join(OUT, stage, "hist", run_id + ".csv"), series)
+                if got is None:
+                    problem(f"{stage}: {run_id}: histogram has no '{series}' series")
+                    continue
+                # join_bench takes these from the sorted samples, the histogram is bucketed (width <= 1/64 of
+                # the value): the reported value must lie in the bucket holding that rank, or a neighbour
+                # (the two rank conventions can differ by one sample).
+                for k, a in zip(keys, got):
+                    lo, hi = a / unit * (1 - 1 / 64.0) - 0.002, a / unit * (1 + 2 / 64.0) + 0.002
+                    if not lo <= m[k] <= hi:
+                        problem(f"{stage}: {run_id}: reported {k} {m[k]:g}, histogram bucket starts at {a / unit:g}")
+                checked["percentiles"] += 1
     return rows
 
 
@@ -477,6 +644,14 @@ for size in TXN_SIZES:
         if len(gt.get((size, idx, "commits_per_s"), [])) < REPS:
             problem(f"d3/txn: cell (size {size}, index {idx}) has {len(gt.get((size, idx, 'commits_per_s'), []))} of {REPS} runs")
 tv = lambda size, idx, metric: [float(r["value"]) for r in gt.get((size, idx, metric), [])]
+if V2:
+    gpt = group(jb_table("d3/txn", PSTAT), lambda r: (int(r["txn_size"]), r["index"], r["metric"]))
+    for size in TXN_SIZES:
+        for idx in ("off", "on"):
+            pv = [float(r["value"]) for r in gpt.get((size, idx, "commits_per_s"), [])]
+            if pv and tv(size, idx, "commits_per_s"):
+                overhead.append(("D.3 txn", f"{size} key(s), index {idx}", "commits/s", med(tv(size, idx, "commits_per_s")), med(pv),
+                                 len(tv(size, idx, "commits_per_s")), len(pv)))
 md += ["", "## D.3 — multi-key transaction commit throughput", "",
        "`join_bench --experiment txn`: one writer committing transactions of N Trades (100,000-row table, keys spread",
        "over the table, every write changes the symbol). \"Index off\" is the Trades table as the assignment loads it.", "",
@@ -506,6 +681,14 @@ for t in JOIN_THREADS:
         if len(gj.get((t, wr, "joins_per_s"), [])) < REPS:
             problem(f"d3/join: cell ({t} joiners, writer {wr}) has {len(gj.get((t, wr, 'joins_per_s'), []))} of {REPS} runs")
 jv = lambda t, wr, metric: [float(r["value"]) for r in gj.get((t, wr, metric), [])]
+if V2:
+    gpj = group(jb_table("d3/join", PSTAT), lambda r: (int(r["threads"]), r["writer"], r["metric"]))
+    for t in JOIN_THREADS:
+        for wr in ("off", "on"):
+            pv = [float(r["value"]) for r in gpj.get((t, wr, "joins_per_s"), [])]
+            if pv and jv(t, wr, "joins_per_s"):
+                overhead.append(("D.3 join", f"{t} joiner(s), writer {'active' if wr == 'on' else 'paused'}", "joins/s",
+                                 med(jv(t, wr, "joins_per_s")), med(pv), len(jv(t, wr, "joins_per_s")), len(pv)))
 md += ["", "## D.3 — index-nested-loop join, writer active and paused", "",
        "`join_bench --experiment join` (`benchmarks/join.h`): 100,000 Trades ⋈ 50 Instruments on `symbol`; every join",
        "enumerates the outer table with `keys()`, fetches each row, probes the inner index and fetches each match.",
@@ -560,6 +743,9 @@ for case in cases:
 write_csv("d3_cow.csv", ["case", "metric", "reps", "median", "min", "max"], cow_rows)
 
 gen = read_csv(os.path.join(OUT, "d3/generator/runs.csv"))
+audit_rows("d3/generator", "runs.csv", gen)
+for r in gen:
+    check_run_files("d3/generator", r["run_id"], need_hist=False, need_perf=False)
 gg = group(gen, lambda r: r["mode"])
 for mode in ("put", "txn:16", "join"):
     if len(gg.get(mode, [])) < REPS:
@@ -584,6 +770,10 @@ write_csv("d3_generator.csv", ["mode", "reps", "rps_median", "rps_min", "rps_max
 # =============================================================================================
 # perf: counters per read, flame graphs, c2c
 # =============================================================================================
+if V2:
+    md += ["", "# PROFILING TRACK (separate runs; not timing results)", "",
+           "Everything below comes from runs made under a profiler after the timing track was complete. They explain",
+           "where time goes. Their throughput is shown only in the table of profiler effects."]
 md += ["", "## perf stat (track C, 8 readers, unthrottled writer; whole process)", "",
        "| Store | CPUs utilized | Instructions per cycle | Cache misses per read | Context switches per second | Peak RSS MiB |", "|---|---:|---:|---:|---:|---:|"]
 for v in ("global_lock", "rwlock", "rcu"):
@@ -592,15 +782,22 @@ for v in ("global_lock", "rwlock", "rcu"):
         dur = float(cfg.get("d1_duration_s", 1)) + 0.5
         md.append(f"| {v} | {fmt(med(st['cpus']), 2)} | {fmt(med(st['ipc']), 2)} | {fmt(med(st['cache_miss_per_read']), 4)} | "
                   f"{fmt(med(st['ctx']) / dur, 0)} | {fmt(med(st['rss']), 0)} |")
-fgdir = os.path.join(OUT, "perf/flamegraphs")
+fgdir = os.path.join(OUT, PROF, "flamegraphs")
 svgs = sorted(f for f in os.listdir(fgdir) if f.endswith(".svg")) if os.path.isdir(fgdir) else []
 if not svgs:
     problem("perf/flamegraphs: no flame graph was produced")
 for s in svgs:
     if os.path.getsize(os.path.join(fgdir, s)) < 2000:
         problem(f"perf/flamegraphs: {s} is empty")
-md += ["", f"Flame graphs ({len(svgs)}): " + ", ".join(f"`perf/flamegraphs/{s}`" for s in svgs) + "."]
-c2dir = os.path.join(OUT, "perf/c2c")
+    base_ = s[:-4]
+    rl = os.path.join(fgdir, base_ + ".record.log")
+    if not os.path.isfile(rl) or "# exit_status: 0" not in open(rl, errors="replace").read() or f"{base_}.data" not in open(rl, errors="replace").read():
+        problem(f"flame graph {s}: no perf record log naming its own data file with exit status 0")
+    for ext in (".folded", ".perf-script.txt.xz"):
+        if not os.path.isfile(os.path.join(fgdir, base_ + ext)) or os.path.getsize(os.path.join(fgdir, base_ + ext)) == 0:
+            problem(f"flame graph {s}: missing {base_}{ext}")
+md += ["", f"Flame graphs ({len(svgs)}): " + ", ".join(f"`{PROF}/flamegraphs/{s}`" for s in svgs) + "."]
+c2dir = os.path.join(OUT, PROF, "c2c")
 reports = sorted(f for f in os.listdir(c2dir) if f.endswith(".c2c-report.txt")) if os.path.isdir(c2dir) else []
 if not reports:
     problem("perf/c2c: no report was produced")
@@ -620,6 +817,39 @@ for rep in reports:
     c2c_rows.append([rep.replace(".c2c-report.txt", ""), loads, hitm, lines])
 write_csv("perf_c2c.csv", ["run", "load_operations", "load_hitm", "shared_cache_lines"], c2c_rows)
 
+# ---- What each profiler does to the cell it observes (V2 campaigns) ------------------------------
+if V2:
+    md += ["", "## What the profilers do to the numbers", "",
+           "Timing-track median against the median of the same cell run under `perf stat` (with `/usr/bin/time`).",
+           "This is why no profiled run supplies a throughput or latency figure. Stalls are single maxima and vary from",
+           "run to run by more than this effect; the reads/s rows are the ones to read.", "",
+           "| Experiment | Cell | Measure | Timing track (median of n) | Under perf stat (median of n) | Profiled / timing |",
+           "|---|---|---|---:|---:|---:|"]
+    oh_rows = []
+    for stage_, cell, measure, tm, pm, nt, np_ in overhead:
+        ratio = pm / tm if tm else float("nan")
+        md.append(f"| {stage_} | {cell} | {measure} | {fmt(tm, 1)} ({nt}) | {fmt(pm, 1)} ({np_}) | {ratio:.2f} |")
+        oh_rows.append([stage_, cell.replace(",", ";"), measure, f"{tm:.6g}", nt, f"{pm:.6g}", np_, f"{ratio:.4f}"])
+    write_csv("profiling_overhead.csv", ["experiment", "cell", "measure", "timing_median", "timing_runs", "perf_stat_median",
+                                         "perf_stat_runs", "ratio_profiled_over_timing"], oh_rows)
+    # perf record and perf c2c runs: their own throughput against the timing cell they repeat.
+    md += ["", "Runs under `perf record` (flame graphs) and `perf c2c record`, against the timing median of the same cell:", "",
+           "| Profiled run | Reads/s under the profiler (M) | Timing-track median (M) | Profiled / timing |", "|---|---:|---:|---:|"]
+    pr_rows = []
+    for sub_ in ("flamegraphs", "c2c"):
+        path_ = os.path.join(OUT, PROF, sub_, "profiled_runs.csv")
+        for r in (read_csv(path_) if os.path.isfile(path_) else []):
+            scen = r["scenario"].replace("_profiled", "").replace("_c2c", "")
+            st = d1_stats.get((r["variant"], scen, int(r["readers"])))
+            if scen == "reclaim_stw":
+                st = {"read_rps": steady_stats["reclaim_stw"]["read_rps"]} if "reclaim_stw" in steady_stats else None
+            tm = med(st["read_rps"]) if st else float("nan")
+            pm = float(r["read_rps"])
+            md.append(f"| {r['run_id']} | {fmt(pm / 1e6, 2)} | {fmt(tm / 1e6, 2)} | {pm / tm:.2f} |" if st else
+                      f"| {r['run_id']} | {fmt(pm / 1e6, 2)} | — | — |")
+            pr_rows.append([r["run_id"], f"{pm:.6g}", f"{tm:.6g}", f"{pm / tm:.4f}" if st else ""])
+    write_csv("profiling_record_overhead.csv", ["run", "read_rps_profiled", "read_rps_timing_median", "ratio"], pr_rows)
+
 # ---- Conditions ---------------------------------------------------------------------------------
 md += ["", "## Conditions", "", f"- {len(cond_lines)} condition records; all on mains power with the `performance` governor: "
                                  f"{'yes' if not any('conditions changed' in p for p in problems) else 'NO'}."]
@@ -628,7 +858,12 @@ if cond_lines:
     temps = [int(re.search(r"temp=(\d+)C", line).group(1)) for line in cond_lines if re.search(r"temp=(\d+)C", line)]
     md.append(f"- 1-minute load average while the campaign ran its own threads: {min(loads):.2f}–{max(loads):.2f}; "
               f"ACPI temperature {min(temps)}–{max(temps)} °C; first record `{cond_lines[0]}`; last `{cond_lines[-1]}`.")
-md += ["", "## Completeness", "", f"- Repetitions per cell: {REPS}. Problems found: {len(problems)}."]
+md += ["", "## Completeness", "", f"- Repetitions per cell: {REPS}. Problems found: {len(problems)}.",
+       f"- Timing runs checked (recorded command, exit status 0, histogram{', started without any wrapper' if V2 else ''}): {checked['timing']}."
+       + (f" Profiling runs checked (perf stat output present): {checked['profiling']}." if V2 else ""),
+       f"- Runs whose reported p50 / p99 / p99.9 were recomputed from the raw histogram: {checked['percentiles']} (point reads: equal;",
+       "  commits and joins, which the harness computes from the sorted samples: within the histogram bucket, width at most 1.6 %).",
+       "- No duplicate run id and no malformed row in any raw CSV, unless listed below."]
 md += [f"  - {p}" for p in problems]
 
 open(os.path.join(SUM, "summary.md"), "w").write("\n".join(md) + "\n")

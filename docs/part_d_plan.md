@@ -166,3 +166,54 @@ changes; none of them alters a requirement of D.1–D.3.
 8. **No optimization is attempted in this milestone.** If perf c2c confirms the cache-line
    hypothesis it is reported as evidence, with the experiment that would test a fix; the store
    measured is the audited Part C store.
+
+## 10. Corrected campaign: unwrapped timing, separate profiling (decision D-071; written before it was run)
+
+**Why a second campaign.** Deviation 7 of §9 was a mistake in method. A check made after the
+first campaign (`results/part_d_diagnostics/perf_stat_wrapper_effect.txt`, decision D-070)
+showed that running a benchmark under `perf stat` changes the result where threads block
+often: global mutex at 8 readers about 20 % higher, stop-the-world read throughput about one
+half, shared mutex up to 6 % lower, RCU within 4 %. Counting mode is not free: the kernel
+saves and restores the counters at every context switch, and a contended lock makes millions
+of them. The first campaign's timing figures are therefore superseded. Its data stays, moved
+unchanged (same Git tree, `607e836…`, as `results/part_d/` at tag `part-d-final`) to
+`results/part_d/original-wrapped-20261013T090846-615f4357f015/`.
+
+**What changes.**
+
+1. **Timing track.** Every measured executable is started directly by the campaign script:
+   no `perf`, no `/usr/bin/time`, no tracer. (`taskset` for the supplied drivers stays: it
+   sets the affinity mask and then *becomes* the driver; nothing remains around it.) These
+   runs are the only source of throughput, latency, stall, backlog and store-memory figures.
+   Each run's file records `# wrapper: none`, its command, start and end time, exit status.
+2. **Profiling track**, run after all timing stages, under `<campaign>/profiling/`:
+   - `perf_stat/`: every track C, D.2 and D.3 cell again, 2 repetitions, under `perf stat`
+     with `/usr/bin/time` (counters, CPUs used, context switches, peak resident set);
+   - `flamegraphs/`: `perf record` at 1,999 Hz with frame pointers: RCU at 1/2/4/8 readers
+     with the unthrottled writer, RCU at 8 with the paced writer / no writer / the
+     stop-the-world comparator (new), both lock stores at 8 readers, the join with 8 joiners;
+   - `c2c/`: `perf c2c` for RCU at 8 readers (writer, no writer), RCU at 1 reader, the
+     shared mutex and (new) the global mutex at 8 readers.
+   The throughput printed by a profiled run is reported in one place only: a table of what
+   each profiler does to the cell it observes.
+3. **Peak resident set** is no longer available for timing runs (it came from
+   `/usr/bin/time`); memory in the timing tables is the store's own accounting, and peak RSS
+   is quoted from the profiling track, labelled.
+4. **Everything else is unchanged**: matrix, programs, arguments, CPU placement, five
+   repetitions, windows (5 s D.1; 3 s D.2/D.3; 1 s with reclamation disabled), 16 GB memory
+   guard (8 GB for workload B disabled), repetitions outermost, conditions recorded after
+   every repetition (now also swap, a 1 s idle sample and the busiest process), INVALID
+   marker on any change of power source or governor.
+5. **A campaign directory is never reused**: `run_part_d.sh all` creates
+   `results/part_d/unwrapped-<start time>-<commit>/` and refuses an existing one.
+6. **Aggregator audits added**: a timing run whose recorded command starts a profiler; a
+   duplicate run id; a malformed row; every reported p50/p99/p99.9 recomputed from the run's
+   raw histogram.
+7. **No ratio mixes the two campaigns.** A separate table sets original beside corrected to
+   show what the wrapper did; all results come from the corrected campaign alone.
+8. `reclaim_bench` validation (corrected in `e09da24`) is kept, and one assertion added: in
+   stop-the-world mode, a retire list that reached the trigger must have been swept. The
+   store is unchanged.
+
+Pilot of the corrected method: `results/part_d_pilot_unwrapped/` (one repetition, 1 s
+windows; passed).

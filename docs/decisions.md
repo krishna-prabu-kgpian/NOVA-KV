@@ -988,6 +988,26 @@ Campaign `20261013T090846-615f4357f015-all` (`results/part_d/`, report `reports/
    and the milestone report. No conclusion changes. A second campaign with unwrapped timing
    runs and separate counter runs would remove the bias; it is offered to the user, not done.
 
+## D-071 — Corrected Part D campaign: unwrapped timing track, separate profiling track (user decision, 2026-10-13)
+
+The user authorized a second campaign after D-070. Method: `docs/part_d_plan.md` §10.
+
+- Timing runs start the executable directly; profilers run in separate sessions afterwards and
+  never supply a throughput or latency figure.
+- The first campaign is preserved at tag `part-d-final` (9062d83, never moved) and, in the
+  tree, moved unchanged to `results/part_d/original-wrapped-20261013T090846-615f4357f015/`
+  (Git tree `607e836`, identical to `part-d-final:results/part_d`; a gate checks it). It is
+  diagnostic evidence, not a source of results.
+- The corrected campaign lives in its own directory `results/part_d/unwrapped-<time>-<sha>/`,
+  named in `results/part_d/PRIMARY`; `results/part_d/summary/summary.md` is a copy of its
+  summary. No ratio mixes the two campaigns.
+- The stop-the-world validation of `e09da24` stays. The comparator's behaviour below its
+  trigger is specified by the engine test `reclamation_test::test_comparator_modes` since B2
+  (500 retired versions: no sweep; 3,000: one sweep frees all), and pin safety in that mode by
+  `test_pin_protected_in_mode`; neither depends on the benchmark. The benchmark gained one
+  assertion (a list that reached the trigger must have been swept).
+- The store is unchanged. No optimization.
+
 ---
 
 ## Open items carried forward

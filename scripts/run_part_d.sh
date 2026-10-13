@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 # run_part_d.sh -- the Part D measurement campaign. Every number in the Part D
-# report is derived from files this script writes under results/part_d/.
+# report is derived from files this script writes into one campaign directory.
 #
 #   scripts/run_part_d.sh check       prerequisites only (changes nothing)
-#   scripts/run_part_d.sh pilot       a small run of every stage into results/part_d_pilot/
-#   scripts/run_part_d.sh all         the full campaign into results/part_d/ (about 40 minutes)
-#   scripts/run_part_d.sh <stage>     one stage of an existing campaign:
-#                                     d1_concurrent d1_reference d2_steady d2_backlog
-#                                     d3_txn d3_join d3_cow d3_generator flamegraphs c2c
+#   scripts/run_part_d.sh pilot       a small run of every stage into results/part_d_pilot_unwrapped/
+#   scripts/run_part_d.sh all         the full campaign into a NEW directory
+#                                     results/part_d/unwrapped-<time>-<sha>/ (about 50 minutes)
+#   OUT=<campaign dir> scripts/run_part_d.sh <stage>     one stage of an existing campaign:
+#                                     d1_concurrent d1_reference d2_steady d2_backlog d3_txn d3_join
+#                                     d3_cow d3_generator profile_perf_stat flamegraphs c2c
+#
+# TIMING TRACK and PROFILING TRACK, never mixed (decision D-071):
+#   timing     every measured executable is started DIRECTLY: no perf, no
+#              /usr/bin/time, no tracer. These runs are the only source of
+#              throughput, latency and stall figures.
+#   profiling  separate runs of the same commands under perf stat (with
+#              /usr/bin/time for the peak resident set), perf record and
+#              perf c2c, all under <campaign>/profiling/. They explain; their
+#              throughput is reported only as "what the profiler does to it".
+# The first Part D campaign (results/part_d/original-wrapped-*) wrapped every
+# timed run in perf stat, which changed some results by 20-50 %.
 #
 # TWO TRACKS, never mixed in one table:
 #   track R  the UNMODIFIED supplied generator (drivers/): its writer finishes
@@ -39,8 +51,9 @@ cd "$NOVA_ROOT"
 MODE="${1:-check}"
 BUILD="${BUILD:-build/release}"
 if [ "$MODE" = pilot ]; then
-    OUT="${OUT:-results/part_d_pilot}"
+    OUT="${OUT:-results/part_d_pilot_unwrapped}"
     REPS="${REPS:-1}"
+    PERF_REPS="${PERF_REPS:-1}"
     DURATION="${DURATION:-1}"
     REF_DURATION="${REF_DURATION:-1}"
     SHORT="${SHORT:-1}"
@@ -49,8 +62,9 @@ if [ "$MODE" = pilot ]; then
     TXN_SIZES="${TXN_SIZES:-4}"
     JOIN_THREADS="${JOIN_THREADS:-8}"
 else
-    OUT="${OUT:-results/part_d}"
+    OUT="${OUT:-}"                     # `all` creates a new directory; a stage rerun must name one
     REPS="${REPS:-5}"
+    PERF_REPS="${PERF_REPS:-2}"        # repetitions of each cell in the perf stat profiling track
     DURATION="${DURATION:-5}"          # D.1 measured window, seconds
     REF_DURATION="${REF_DURATION:-5}"  # the generator's default duration_sec
     SHORT="${SHORT:-3}"                # D.2 / D.3 measured window, seconds
@@ -70,6 +84,7 @@ MIN_IDLE_PCT="${MIN_IDLE_PCT:-97}"
 RETAIN_LIMIT_MB="${RETAIN_LIMIT_MB:-16000}"   # the writer stops (and the run is INVALID) above this
 GIT_SHA="$(git rev-parse --short=12 HEAD)"
 [ "$(nova_git_dirty)" = yes ] && GIT_SHA="${GIT_SHA}-dirty"
+if [ "$MODE" = all ] && [ -z "$OUT" ]; then OUT="results/part_d/unwrapped-$(date +%Y%m%dT%H%M%S)-$GIT_SHA"; fi
 export DEBUGINFOD_URLS=     # or `perf script` spends minutes on network lookups
 
 log() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
@@ -93,14 +108,16 @@ idle_pct() {
     echo $(( 100 * (${b[4]} - ${a[4]}) / (t2 - t1) ))
 }
 conditions() {
-    printf '%s %s ac_online=%s governor=%s epp=%s loadavg=%s battery=%s/%s%% temp=%sC mem_available_mb=%s\n' \
+    printf '%s %s ac_online=%s governor=%s epp=%s loadavg=%s battery=%s/%s%% temp=%sC mem_available_mb=%s swap_free_mb=%s idle_pct_1s=%s top_cpu=%s\n' \
         "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$(ac_online)" "$(governors)" \
         "$(cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference 2>/dev/null)" \
         "$(cut -d' ' -f1-3 /proc/loadavg)" \
         "$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -1)" \
         "$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1)" \
         "$(( $(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0) / 1000 ))" \
-        "$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)" >> "$OUT/conditions.log"
+        "$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)" \
+        "$(awk '/SwapFree/ {print int($2/1024)}' /proc/meminfo)" "$(idle_pct 1)" \
+        "$(ps -eo pcpu,comm --sort=-pcpu --no-headers | awk '$2 != "ps" {print $2 ":" $1; exit}')" >> "$OUT/conditions.log"
     # Any change of power source or governor invalidates the campaign.
     if [ "$(ac_online)" != 1 ] || [ "$(governors)" != performance ]; then
         echo "$(date +%Y-%m-%dT%H:%M:%S) $1: power source or governor changed" >> "$OUT/INVALID"
@@ -128,11 +145,12 @@ check_prerequisites() {
             chk "perf record" ok "works"; else chk "perf record" no "perf record failed"; fi
         if perf c2c record -o "$OUT/.perf_probe.data" -- true > /dev/null 2>&1; then
             chk "perf c2c" ok "works"; else chk "perf c2c" no "perf c2c record failed (cache-line evidence would be missing)"; fi
-        rm -f "$OUT/.perf_probe" "$OUT/.perf_probe.data"
+        rm -f "$OUT/.perf_probe" "$OUT/.perf_probe.data" "$OUT/.perf_probe.data.old"
         [ -x "$FG/stackcollapse-perf.pl" ] && [ -x "$FG/flamegraph.pl" ] && chk "FlameGraph" ok "$FG" || chk "FlameGraph" no "not in $FG"
         [ -x /usr/bin/time ] && chk "/usr/bin/time" ok present || chk "/usr/bin/time" no missing
         local mem; mem="$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)"
-        [ "$mem" -ge 12000 ] && chk "memory available" ok "${mem} MiB" || chk "memory available" no "${mem} MiB (needs 12000)"
+        [ "$mem" -ge 20000 ] && chk "memory available" ok "${mem} MiB (guard: runs stop at ${RETAIN_LIMIT_MB} MiB retained)" || chk "memory available" no "${mem} MiB (needs 20000: the memory guard is ${RETAIN_LIMIT_MB})"
+        echo "  info    swap: $(awk '/SwapTotal/ {t=int($2/1024)} /SwapFree/ {f=int($2/1024)} END {print f " of " t " MiB free"}' /proc/meminfo)"
         local disk; disk="$(df -Pm . | awk 'NR==2 {print $4}')"
         [ "$disk" -ge 5000 ] && chk "disk free" ok "${disk} MiB" || chk "disk free" no "${disk} MiB (needs 5000)"
         local ncpu; ncpu="$(nproc)"
@@ -144,7 +162,9 @@ check_prerequisites() {
         [ -z "$busy" ] && chk "no busy process" ok "none above 15% CPU" || chk "no busy process" no "$busy"
         local other; other="$(pgrep -fa 'cc1plus|ctest|verify_all|concurrent_bench|join_bench|reclaim_bench|run_part_' | grep -v -E "pgrep|run_part_d.sh" | head -3 | cut -c1-80 | tr '\n' ';')"
         [ -z "$other" ] && chk "no build / test / benchmark running" ok none || chk "no build / test / benchmark running" no "$other"
-        echo "  load average: $(cut -d' ' -f1-3 /proc/loadavg)   top CPU users: $(ps -eo pcpu,comm --sort=-pcpu --no-headers | head -4 | awk '{printf "%s=%s%% ", $2, $1}')"
+        echo "  load average: $(cut -d' ' -f1-3 /proc/loadavg) (informational; idleness is judged from CPU time above)"
+        echo "  top CPU users (lifetime average): $(ps -eo pcpu,comm --sort=-pcpu --no-headers | head -6 | awk '{printf "%s=%s%% ", $2, $1}')"
+        echo "  affinity plan: readers/joiners on CPUs $READER_CPUS (in that order), writer on CPU $WRITER_CPU, cleaner not pinned; this shell may run on: $(taskset -cp $$ 2>/dev/null | sed 's/.*: //')"
     } > "$report" 2>&1
     [ "$report" != /dev/stdout ] && cat "$report"
     return $((1 - ok))
@@ -166,6 +186,8 @@ build_release() {
         echo "campaign: $CAMPAIGN"
         echo "git_sha: $GIT_SHA"
         echo "mode: $MODE"
+        echo "timing_track=unwrapped (measured executables started directly; no perf, no /usr/bin/time)"
+        echo "profiling_track=separate (profiling/perf_stat, profiling/flamegraphs, profiling/c2c) perf_stat_reps=$PERF_REPS"
         echo "build_dir: $BUILD (CMAKE_BUILD_TYPE=Release)"
         echo "compile command (kvstore.cpp, rcu variant):"
         echo "$flags" | sed 's/"command": "/  /'
@@ -181,12 +203,37 @@ build_release() {
 
 stamp() { mkdir -p "$1"; echo "$CAMPAIGN" > "$1/.campaign"; }
 
-# run_perf <dir> <id> <command...>: one measured process under `perf stat`,
-# with its peak resident set from /usr/bin/time. Command and exit status are kept.
+# The track being run: BASE is where its stage directories go, RUN the function
+# that starts one process, IDP a run-id prefix (ids are unique across tracks),
+# NREPS its repetition count.
+BASE="$OUT"; RUN=run_plain; IDP=""; NREPS="$REPS"
+
+# run_plain <dir> <id> <command...>: TIMING TRACK. The executable is started
+# directly by this shell; nothing observes it. Command, start and end time and
+# exit status are kept.
+run_plain() {
+    local dir="$1" id="$2"; shift 2
+    mkdir -p "$dir/stdout"
+    [ -e "$dir/stdout/$id.txt" ] && { fail "$id: duplicate run id"; return; }
+    {
+        echo "# command: $*"
+        echo "# wrapper: none"
+        echo "# start: $(date +%Y-%m-%dT%H:%M:%S.%N | cut -c1-23)"
+        "$@"
+        echo "# exit_status: $?"
+        echo "# end: $(date +%Y-%m-%dT%H:%M:%S.%N | cut -c1-23)"
+    } > "$dir/stdout/$id.txt" 2>&1
+    grep -q '^# exit_status: 0$' "$dir/stdout/$id.txt" || fail "$id (see $dir/stdout/$id.txt)"
+}
+
+# run_perf <dir> <id> <command...>: PROFILING TRACK only. One process under
+# `perf stat`, with its peak resident set from /usr/bin/time.
 run_perf() {
     local dir="$1" id="$2"; shift 2
     mkdir -p "$dir/perf_stat" "$dir/stdout" "$dir/rss"
+    [ -e "$dir/stdout/$id.txt" ] && { fail "$id: duplicate run id"; return; }
     {
+        echo "# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)"
         echo "# command: perf stat -e $PERF_EVENTS -o $dir/perf_stat/$id.txt -- /usr/bin/time -f maxrss_kb=%M -o $dir/rss/$id.txt $*"
         perf stat -e "$PERF_EVENTS" -o "$dir/perf_stat/$id.txt" -- /usr/bin/time -f 'maxrss_kb=%M' -o "$dir/rss/$id.txt" "$@"
         echo "# exit_status: $?"
@@ -198,22 +245,23 @@ run_perf() {
 # d1c <variant> <scenario> <readers> <rep> <extra args...>
 d1c() {
     local variant="$1" scenario="$2" readers="$3" rep="$4"; shift 4
-    local dir="$OUT/d1/concurrent" id="${variant}_${scenario}_r${readers}_rep${rep}"
+    local dir="$BASE/d1/concurrent" id="${IDP}${variant}_${scenario}_r${readers}_rep${rep}"
     mkdir -p "$dir/hist"
+    # (Timing track: started directly. Profiling track: the same command under perf stat.)
     # RCU: copy-on-write and reclamation counters; and a memory guard well above
     # anything a 5 s run retains (if the writer outruns the cleaner the run must
     # show that, not be cut short at the harness's 6 GB default).
     local cow=()
     [ "$variant" = rcu ] && cow=(--cow-csv "$dir/cow.csv" --retain-limit-mb "$RETAIN_LIMIT_MB")
-    run_perf "$dir" "$id" "$BUILD/concurrent_bench_${variant}" --readers "$readers" --duration "$DURATION" \
+    "$RUN" "$dir" "$id" "$BUILD/concurrent_bench_${variant}" --readers "$readers" --duration "$DURATION" \
         --warmup "$WARMUP" --reader-cpus "$(reader_cpus_for "$readers")" --seed "$rep" --run-id "$id" \
         --git-sha "$GIT_SHA" --scenario "$scenario" --csv "$dir/runs.csv" --hist "$dir/hist/$id.csv" "${cow[@]}" "$@"
 }
 stage_d1_concurrent() {
-    rm -rf "$OUT/d1/concurrent"; stamp "$OUT/d1/concurrent"
-    log "D.1 track C: {global_lock,rwlock,rcu} x {$READER_COUNTS} readers x {paced,unthrottled} writer, $REPS reps of ${DURATION}s"
+    rm -rf "$BASE/d1/concurrent"; stamp "$BASE/d1/concurrent"
+    log "D.1 track C: {global_lock,rwlock,rcu} x {$READER_COUNTS} readers x {paced,unthrottled} writer, $NREPS reps of ${DURATION}s"
     local rep variant readers W="--writer on --writer-cpu $WRITER_CPU"
-    for rep in $(seq 1 "$REPS"); do     # repetitions outermost: drift is spread over all cells
+    for rep in $(seq 1 "$NREPS"); do     # repetitions outermost: drift is spread over all cells
         for variant in global_lock rwlock rcu; do
             for readers in $READER_COUNTS; do
                 d1c "$variant" writer_paced "$readers" "$rep" $W --writer-rate "$PACED_RATE"
@@ -231,19 +279,19 @@ stage_d1_concurrent() {
         for variant in global_lock rwlock rcu; do
             echo " $READER_COUNTS " | grep -q " 8 " && d1c "$variant" refkeys_paced 8 "$rep" $W --writer-rate "$PACED_RATE" --keys reference
         done
-        conditions "d1_concurrent:rep$rep"
-        log "  repetition $rep/$REPS done"
+        conditions "${IDP}d1_concurrent:rep$rep"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
 # ---- D.1, track R: the unmodified supplied generator (PRELOAD-ONLY) ----------------
 stage_d1_reference() {
-    local dir="$OUT/d1/reference"
+    local dir="$BASE/d1/reference"
     rm -rf "$dir"; stamp "$dir"; mkdir -p "$dir/stdout"
     echo "run_id,driver,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,random_hit_rate,expected_overall_hit_rate" > "$dir/runs.csv"
     log "D.1 track R: supplied generator, default parameters, PRELOAD-ONLY (no writer while readers run)"
     local rep driver readers counts id line hit
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         for driver in single_thread global_lock rwlock rcu; do
             counts="$READER_COUNTS"
             [ "$driver" = single_thread ] && counts=1
@@ -262,58 +310,58 @@ stage_d1_reference() {
             done
         done
         conditions "d1_reference:rep$rep"
-        log "  repetition $rep/$REPS done"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
 # ---- D.2, workload A: the steady point-get workload at each reclaim setting --------
 stage_d2_steady() {
-    local dir="$OUT/d2/steady"
+    local dir="$BASE/d2/steady"
     rm -rf "$dir"; stamp "$dir"; mkdir -p "$dir/hist"
     log "D.2 workload A (steady): rcu, 8 readers, unthrottled writer; batches {$BATCHES}, disabled, stop-the-world"
     local rep batch id common
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         common=(--readers 8 --reader-cpus "$(reader_cpus_for 8)" --writer on --writer-cpu "$WRITER_CPU" --warmup "$WARMUP"
                 --seed "$rep" --git-sha "$GIT_SHA" --csv "$dir/runs.csv" --cow-csv "$dir/cow.csv" --retain-limit-mb "$RETAIN_LIMIT_MB")
         for batch in $BATCHES; do
-            id="steady_batch${batch}_rep${rep}"
-            run_perf "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration "$SHORT" --reclaim-batch "$batch" \
+            id="${IDP}steady_batch${batch}_rep${rep}"
+            "$RUN" "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration "$SHORT" --reclaim-batch "$batch" \
                 --run-id "$id" --scenario "batch_${batch}" --hist "$dir/hist/$id.csv"
         done
-        id="steady_stw_rep${rep}"
-        run_perf "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration "$SHORT" --reclaim stw \
+        id="${IDP}steady_stw_rep${rep}"
+        "$RUN" "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration "$SHORT" --reclaim stw \
             --run-id "$id" --scenario reclaim_stw --hist "$dir/hist/$id.csv"
         # Reclamation disabled retains every version: a 1 s window (the memory guard is in `common`).
-        id="steady_disabled_rep${rep}"
-        run_perf "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration 1 --reclaim disabled \
+        id="${IDP}steady_disabled_rep${rep}"
+        "$RUN" "$dir" "$id" "$BUILD/concurrent_bench_rcu" "${common[@]}" --duration 1 --reclaim disabled \
             --run-id "$id" --scenario reclaim_disabled --hist "$dir/hist/$id.csv"
-        conditions "d2_steady:rep$rep"
-        log "  repetition $rep/$REPS done"
+        conditions "${IDP}d2_steady:rep$rep"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
 # ---- D.2, workload B: reclamation falls behind (4 KiB values, snapshot pinning) ----
 stage_d2_backlog() {
-    local dir="$OUT/d2/backlog"
+    local dir="$BASE/d2/backlog"
     rm -rf "$dir"; stamp "$dir"; mkdir -p "$dir/hist"
     log "D.2 workload B (backlog-building): 4 KiB values, snapshot held 20 ms every 50 ms; same settings"
     local rep batch id common
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         common=(--readers 8 --reader-cpus "$(reader_cpus_for 8)" --writer-cpu "$WRITER_CPU" --warmup "$WARMUP" --seed "$rep"
                 --git-sha "$GIT_SHA" --csv "$dir/runs.csv" --value-bytes 4096 --keys 2000 --pin-hold-ms 20 --pin-gap-ms 30)
         for batch in $BATCHES; do
-            id="backlog_batch${batch}_rep${rep}"
-            run_perf "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration "$SHORT" --reclaim-batch "$batch" \
+            id="${IDP}backlog_batch${batch}_rep${rep}"
+            "$RUN" "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration "$SHORT" --reclaim-batch "$batch" \
                 --run-id "$id" --scenario "batch_${batch}" --hist "$dir/hist/$id.csv"
         done
-        id="backlog_stw_rep${rep}"
-        run_perf "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration "$SHORT" --reclaim stw \
+        id="${IDP}backlog_stw_rep${rep}"
+        "$RUN" "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration "$SHORT" --reclaim stw \
             --run-id "$id" --scenario reclaim_stw --hist "$dir/hist/$id.csv"
-        id="backlog_disabled_rep${rep}"
-        run_perf "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration 1 --reclaim disabled --retain-limit-mb 8000 \
+        id="${IDP}backlog_disabled_rep${rep}"
+        "$RUN" "$dir" "$id" "$BUILD/reclaim_bench" "${common[@]}" --duration 1 --reclaim disabled --retain-limit-mb 8000 \
             --run-id "$id" --scenario reclaim_disabled --hist "$dir/hist/$id.csv"
-        conditions "d2_backlog:rep$rep"
-        log "  repetition $rep/$REPS done"
+        conditions "${IDP}d2_backlog:rep$rep"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
@@ -321,62 +369,62 @@ stage_d2_backlog() {
 jb() {
     local dir="$1" id="$2"; shift 2
     mkdir -p "$dir/hist"
-    run_perf "$dir" "$id" "$BUILD/join_bench" --writer-cpu "$WRITER_CPU" --csv "$dir/runs.csv" --hist "$dir/hist/$id.csv" \
+    "$RUN" "$dir" "$id" "$BUILD/join_bench" --writer-cpu "$WRITER_CPU" --csv "$dir/runs.csv" --hist "$dir/hist/$id.csv" \
         --run-id "$id" --git-sha "$GIT_SHA" "$@"
 }
 
 # ---- D.3: transaction commit throughput by size --------------------------------------
 stage_d3_txn() {
-    local dir="$OUT/d3/txn"
+    local dir="$BASE/d3/txn"
     rm -rf "$dir"; stamp "$dir"
     log "D.3 transactions: sizes {$TXN_SIZES} keys, Trades table without and with a secondary index"
     local rep size
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         for size in $TXN_SIZES; do
-            jb "$dir" "txn${size}_plain_rep${rep}" --experiment txn --txn-size "$size" --index off --duration "$SHORT"
-            jb "$dir" "txn${size}_indexed_rep${rep}" --experiment txn --txn-size "$size" --index on --duration "$SHORT"
+            jb "$dir" "${IDP}txn${size}_plain_rep${rep}" --experiment txn --txn-size "$size" --index off --duration "$SHORT"
+            jb "$dir" "${IDP}txn${size}_indexed_rep${rep}" --experiment txn --txn-size "$size" --index on --duration "$SHORT"
         done
-        conditions "d3_txn:rep$rep"
-        log "  repetition $rep/$REPS done"
+        conditions "${IDP}d3_txn:rep$rep"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
 # ---- D.3: the index-nested-loop join, writer active and paused -----------------------
 stage_d3_join() {
-    local dir="$OUT/d3/join"
+    local dir="$BASE/d3/join"
     rm -rf "$dir"; stamp "$dir"
     log "D.3 join: {$JOIN_THREADS} joiner threads, writer paused and active (one Snapshot per store)"
     local rep t
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         for t in $JOIN_THREADS; do
-            jb "$dir" "join_t${t}_paused_rep${rep}" --experiment join --threads "$t" --cpus "$(reader_cpus_for "$t")" --writer off --duration "$SHORT"
-            jb "$dir" "join_t${t}_active_rep${rep}" --experiment join --threads "$t" --cpus "$(reader_cpus_for "$t")" --writer on --duration "$SHORT"
+            jb "$dir" "${IDP}join_t${t}_paused_rep${rep}" --experiment join --threads "$t" --cpus "$(reader_cpus_for "$t")" --writer off --duration "$SHORT"
+            jb "$dir" "${IDP}join_t${t}_active_rep${rep}" --experiment join --threads "$t" --cpus "$(reader_cpus_for "$t")" --writer on --duration "$SHORT"
         done
-        conditions "d3_join:rep$rep"
-        log "  repetition $rep/$REPS done"
+        conditions "${IDP}d3_join:rep$rep"
+        log "  repetition $rep/$NREPS done"
     done
 }
 
 # ---- D.3: where copy-on-write hurts ---------------------------------------------------
 stage_d3_cow() {
-    local dir="$OUT/d3/cow"
+    local dir="$BASE/d3/cow"
     rm -rf "$dir"; stamp "$dir"
     log "D.3 copy-on-write cost: the same rows as one transaction and as single puts"
     local rep
-    for rep in $(seq 1 "$REPS"); do
-        jb "$dir" "cow_rep${rep}" --experiment cow
+    for rep in $(seq 1 "$NREPS"); do
+        jb "$dir" "${IDP}cow_rep${rep}" --experiment cow
     done
     conditions "d3_cow:end"
 }
 
 # ---- Track R with the generator's own transaction and index-probe paths --------------
 stage_d3_generator() {
-    local dir="$OUT/d3/generator"
+    local dir="$BASE/d3/generator"
     rm -rf "$dir"; stamp "$dir"; mkdir -p "$dir/stdout"
     echo "run_id,driver,mode,readers,duration_s,rep,total_ops,rps,p50_us,p99_us,p999_us,probe_hit_rate" > "$dir/runs.csv"
     log "track R, generator's use_txn and use_join paths on the rcu store (an index PROBE, not a join; PRELOAD-ONLY)"
     local rep mode id line probe
-    for rep in $(seq 1 "$REPS"); do
+    for rep in $(seq 1 "$NREPS"); do
         for mode in put txn:16 join; do
             id="rcu_$(echo "$mode" | tr ':' '_')_r8_rep${rep}"
             {
@@ -394,10 +442,22 @@ stage_d3_generator() {
     conditions "d3_generator:end"
 }
 
+# ---- PROFILING TRACK: the timing cells again, under perf stat --------------------------
+# Counters (CPUs used, instructions per cycle, cache misses, context switches)
+# and the peak resident set. The throughput these runs print is kept only to
+# show what the wrapper does to each cell; it is never used as a result.
+stage_profile_perf_stat() {
+    rm -rf "$OUT/profiling/perf_stat"; stamp "$OUT/profiling/perf_stat"
+    BASE="$OUT/profiling/perf_stat"; RUN=run_perf; IDP="ps_"; NREPS="$PERF_REPS"
+    log "PROFILING TRACK: perf stat around $PERF_REPS repetition(s) of every D.1 (track C), D.2 and D.3 cell"
+    stage_d1_concurrent; stage_d2_steady; stage_d2_backlog; stage_d3_txn; stage_d3_join
+    BASE="$OUT"; RUN=run_plain; IDP=""; NREPS="$REPS"
+}
+
 # ---- perf record + flame graphs ---------------------------------------------------------
 # fg <id> <title> <command...>
 fg() {
-    local dir="$OUT/perf/flamegraphs" tmp="build/perf_data" id="$1" title="$2"; shift 2
+    local dir="$OUT/profiling/flamegraphs" tmp="build/perf_data" id="$1" title="$2"; shift 2
     mkdir -p "$tmp"
     log "perf record: $id"
     {
@@ -417,7 +477,7 @@ fg() {
     echo "$id: $(grep -c 'cycles' "$tmp/$id.perf-script.txt") samples, $(awk '{s+=$NF} END{print s}' "$dir/$id.folded") cycles" >> "$dir/sample_counts.txt"
 }
 stage_flamegraphs() {
-    local dir="$OUT/perf/flamegraphs"
+    local dir="$OUT/profiling/flamegraphs"
     rm -rf "$dir"; stamp "$dir"
     {
         echo "FlameGraph: https://github.com/brendangregg/FlameGraph @ $(git -C "$FG" rev-parse HEAD 2>/dev/null)"
@@ -449,6 +509,9 @@ stage_flamegraphs() {
                 "$BUILD/concurrent_bench_${variant}" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c \
                 --run-id "fg_${variant}_r8_writer_max" --scenario writer_max_profiled
         done
+        fg rcu_r8_stw "NOVA-KV Part D: rcu, 8 readers + unthrottled writer, stop-the-world comparator (on-CPU cycles)" \
+            "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --reclaim stw \
+            --run-id fg_rcu_r8_stw --scenario reclaim_stw_profiled
         fg join_t8_writer_active "NOVA-KV Part D: index-nested-loop join, 8 joiners + writer (on-CPU cycles)" \
             "$BUILD/join_bench" --experiment join --threads 8 --cpus "$(reader_cpus_for 8)" --writer on --writer-cpu "$WRITER_CPU" \
             --duration 3 --run-id fg_join_t8_active --csv "$dir/profiled_join_runs.csv"
@@ -460,7 +523,7 @@ stage_flamegraphs() {
 # The evidence a flame graph cannot give for the "owner counts share cache lines
 # with reader data" hypothesis (audit item R8).
 c2c() {
-    local dir="$OUT/perf/c2c" tmp="build/perf_data" id="$1"; shift
+    local dir="$OUT/profiling/c2c" tmp="build/perf_data" id="$1"; shift
     mkdir -p "$tmp"
     log "perf c2c: $id"
     {
@@ -472,17 +535,19 @@ c2c() {
     perf c2c report -i "$tmp/$id.c2c.data" --stdio > "$dir/$id.c2c-report.txt" 2> "$dir/$id.report.log" || fail "perf c2c report $id"
 }
 stage_c2c() {
-    local dir="$OUT/perf/c2c"
+    local dir="$OUT/profiling/c2c"
     rm -rf "$dir"; stamp "$dir"
-    local W="--writer on --writer-cpu $WRITER_CPU" c="--warmup $WARMUP --duration 5 --git-sha $GIT_SHA"
+    local W="--writer on --writer-cpu $WRITER_CPU" c="--warmup $WARMUP --duration 5 --git-sha $GIT_SHA --csv $dir/profiled_runs.csv"
     c2c rcu_r8_writer_max "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_rcu_r8_writer_max --scenario writer_max_c2c
     c2c rcu_r8_readonly "$BUILD/concurrent_bench_rcu" --readers 8 --reader-cpus "$(reader_cpus_for 8)" --writer off $c --run-id c2c_rcu_r8_readonly --scenario readonly_c2c
     c2c rcu_r1_writer_max "$BUILD/concurrent_bench_rcu" --readers 1 --reader-cpus "$(reader_cpus_for 1)" $W $c --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
     c2c rwlock_r8_writer_max "$BUILD/concurrent_bench_rwlock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_rwlock_r8_writer_max --scenario writer_max_c2c
+    c2c global_lock_r8_writer_max "$BUILD/concurrent_bench_global_lock" --readers 8 --reader-cpus "$(reader_cpus_for 8)" $W $c --run-id c2c_global_lock_r8_writer_max --scenario writer_max_c2c
     conditions "c2c:end"
 }
 
-STAGES="d1_concurrent d1_reference d2_steady d2_backlog d3_txn d3_join d3_cow d3_generator flamegraphs c2c"
+# Timing stages first, all of them; profiling afterwards.
+STAGES="d1_concurrent d1_reference d2_steady d2_backlog d3_txn d3_join d3_cow d3_generator profile_perf_stat flamegraphs c2c"
 
 case "$MODE" in
     check)
@@ -491,8 +556,11 @@ case "$MODE" in
         exit $rc ;;
     all|pilot)
         [ "$(nova_git_dirty)" = no ] || [ "$MODE" = pilot ] || die "the working tree is not clean: commit first, so that results name an exact revision"
-        rm -rf "$OUT"; mkdir -p "$OUT/env"
-        CAMPAIGN="$(date +%Y%m%dT%H%M%S)-$GIT_SHA-$MODE"
+        # A campaign never overwrites another one: `all` needs a directory that does not exist.
+        if [ "$MODE" = all ]; then [ -e "$OUT" ] && die "$OUT exists: a campaign is never overwritten"; else rm -rf "$OUT"; fi
+        mkdir -p "$OUT/env"; BASE="$OUT"
+        CAMPAIGN="$(basename "$OUT" | sed -E 's/^unwrapped-//')-$MODE"
+        [ "$MODE" = pilot ] && CAMPAIGN="$(date +%Y%m%dT%H%M%S)-$GIT_SHA-pilot"
         echo "$CAMPAIGN" > "$OUT/CAMPAIGN"
         check_prerequisites "$OUT/env/prerequisites.txt" || die "prerequisites not met (see above): nothing was measured"
         scripts/env_info.sh > "$OUT/env/environment.txt" 2>&1
@@ -506,7 +574,8 @@ case "$MODE" in
         done
         conditions "campaign:end"
         ;;
-    d1_concurrent|d1_reference|d2_steady|d2_backlog|d3_txn|d3_join|d3_cow|d3_generator|flamegraphs|c2c)
+    d1_concurrent|d1_reference|d2_steady|d2_backlog|d3_txn|d3_join|d3_cow|d3_generator|profile_perf_stat|flamegraphs|c2c)
+        [ -n "$OUT" ] || die "name the campaign: OUT=results/part_d/unwrapped-... scripts/run_part_d.sh $MODE"
         [ -f "$OUT/CAMPAIGN" ] || die "no campaign in $OUT: run 'all' first"
         CAMPAIGN="$(cat "$OUT/CAMPAIGN")"
         [ "${CAMPAIGN#*-}" = "$GIT_SHA-all" ] || [ "${CAMPAIGN#*-}" = "$GIT_SHA-pilot" ] || die "the campaign in $OUT was measured at another revision (${CAMPAIGN}); a stage rerun must use the same one"

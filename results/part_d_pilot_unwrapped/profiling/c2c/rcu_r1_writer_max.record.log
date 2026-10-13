@@ -1,0 +1,27 @@
+# command: perf c2c record -o build/perf_data/rcu_r1_writer_max.c2c.data -- build/release/concurrent_bench_rcu --readers 1 --reader-cpus 0 --writer on --writer-cpu 15 --warmup 0.5 --duration 5 --git-sha 9062d838457f-dirty --csv results/part_d_pilot_unwrapped/profiling/c2c/profiled_runs.csv --run-id c2c_rcu_r1_writer_max --scenario writer_max_c2c
+WARNING: Kernel address maps (/proc/{kallsyms,modules}) are restricted,
+check /proc/sys/kernel/kptr_restrict and /proc/sys/kernel/perf_event_paranoid.
+
+Samples in kernel functions may not be resolved if a suitable vmlinux
+file is not found in the buildid cache or in the vmlinux path.
+
+Samples in kernel modules won't be resolved at all.
+
+If some relocation was applied (e.g. kexec) symbols may be misresolved
+even with a suitable vmlinux or kallsyms file.
+
+Couldn't record kernel reference relocation symbol
+Symbol resolution may be skewed if relocation was used (e.g. kexec).
+Check /proc/kallsyms permission or run as root.
+rcu          scenario=writer_max_c2c readers=1 writer=thread_max keys=hit seconds=5.000
+  store lock object at 0x61ec7a632cc0, 8 bytes (cache lines 0x61ec7a632cc0..0x61ec7a632cc0)
+  reads : ops=42338761 rps=8467600 hits=42338761 misses=0 corrupt=0
+  read latency ns: p50=80 p99=270 p999=481 max=146398 mean=95.6
+  writes: ok=898566 failed=0 rps=179710 p50=4672 p99=11648 max=111983 ns
+  rcu   : publications=1003994 (writes incl. warm-up=1003994) commits_failed=0 reclaim=epoch batch=64
+  rcu per publication: segments_cloned=1.00 index_bytes_copied=23932 directory_bytes_copied=2048 owner_refs=255.0 chunk_refs=122.0 value_bytes=32.0
+  rcu reclamation: reclaimed=1003961 backlog_at_end=0 backlog_max=1203 passes=96202 epoch_advances=91604/95489 attempts (3885 blocked by a reader) max_versions_in_pass=64 interrupted=0 chunk_ids_reused=120 reader_slots=0 validation_retries=9809 cleaner_cpu=4.176s (75.9% of one CPU over warm-up + window)
+  rcu memory held: after_load=9.0 MiB at_end=31.9 MiB settled=31.9 MiB (versions + segments + chunks)
+[ perf record: Woken up 18 times to write data ]
+[ perf record: Captured and wrote 4.950 MB build/perf_data/rcu_r1_writer_max.c2c.data (62314 samples) ]
+# exit_status: 0

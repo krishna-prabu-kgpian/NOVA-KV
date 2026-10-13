@@ -1,0 +1,8 @@
+# wrapper: perf stat + /usr/bin/time (profiling track; not a timing result)
+# command: perf stat -e task-clock,cycles,instructions,cache-references,cache-misses,context-switches,cpu-migrations,branch-misses,L1-dcache-load-misses -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/perf_stat/ps_rwlock_writer_paced_r8_rep1.txt -- /usr/bin/time -f maxrss_kb=%M -o results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/rss/ps_rwlock_writer_paced_r8_rep1.txt build/release/concurrent_bench_rwlock --readers 8 --duration 1 --warmup 0.5 --reader-cpus 0,2,4,6,1,3,5,7 --seed 1 --run-id ps_rwlock_writer_paced_r8_rep1 --git-sha 9062d838457f-dirty --scenario writer_paced --csv results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/runs.csv --hist results/part_d_pilot_unwrapped/profiling/perf_stat/d1/concurrent/hist/ps_rwlock_writer_paced_r8_rep1.csv --writer on --writer-cpu 15 --writer-rate 10000
+rwlock       scenario=writer_paced readers=8 writer=thread_paced keys=hit seconds=1.000
+  store lock object at 0x60a339de5e10, 56 bytes (cache lines 0x60a339de5e00..0x60a339de5e40)
+  reads : ops=22044660 rps=22043157 hits=22044660 misses=0 corrupt=0
+  read latency ns: p50=311 p99=711 p999=10240 max=2950995 mean=332.6
+  writes: ok=3940 failed=0 rps=3940 p50=174080 p99=1196032 max=3079649 ns
+# exit_status: 0
