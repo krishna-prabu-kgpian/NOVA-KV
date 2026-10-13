@@ -1,0 +1,85 @@
+# gate: part_a_artifacts
+# started_utc: 2026-10-13T08:03:45Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: scripts/check_part_a_artifacts.sh
+
+-- store, sanity test, drivers
+ok       include/kvstore.h
+ok       src/kvstore.cpp
+ok       tests/kvstore_test.cpp
+ok       drivers/single_thread.cpp
+ok       drivers/global_lock.cpp
+ok       drivers/rwlock.cpp
+ok       supplied/workload_gen.cpp
+ok       supplied/workload_gen.h
+-- benchmark harness and layout microbenchmark
+ok       benchmarks/concurrent_bench.cpp
+ok       benchmarks/layout_bench.cpp
+-- raw measurements
+ok       results/part_a/environment.txt
+ok       results/part_a/campaign_config.txt
+ok       results/part_a/conditions.log
+ok       results/part_a/concurrent/runs.csv
+ok       results/part_a/reference/runs.csv
+ok       results/part_a/layout/runs.csv
+-- perf stat: global_lock and rwlock at 1/2/4/8 readers, writer active
+ok       5 x perf stat global_lock r1 (writer_max)
+ok       5 x perf stat global_lock r2 (writer_max)
+ok       5 x perf stat global_lock r4 (writer_max)
+ok       5 x perf stat global_lock r8 (writer_max)
+ok       5 x perf stat rwlock r1 (writer_max)
+ok       5 x perf stat rwlock r2 (writer_max)
+ok       5 x perf stat rwlock r4 (writer_max)
+ok       5 x perf stat rwlock r8 (writer_max)
+-- perf record / perf script / flame graphs: global_lock and rwlock at 1/2/4/8 readers
+ok       results/part_a/flamegraphs/global_lock_r1.svg
+ok       results/part_a/flamegraphs/global_lock_r1.folded
+ok       results/part_a/flamegraphs/global_lock_r1.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r2.svg
+ok       results/part_a/flamegraphs/global_lock_r2.folded
+ok       results/part_a/flamegraphs/global_lock_r2.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r4.svg
+ok       results/part_a/flamegraphs/global_lock_r4.folded
+ok       results/part_a/flamegraphs/global_lock_r4.perf-script.txt.xz
+ok       results/part_a/flamegraphs/global_lock_r8.svg
+ok       results/part_a/flamegraphs/global_lock_r8.folded
+ok       results/part_a/flamegraphs/global_lock_r8.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r1.svg
+ok       results/part_a/flamegraphs/rwlock_r1.folded
+ok       results/part_a/flamegraphs/rwlock_r1.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r2.svg
+ok       results/part_a/flamegraphs/rwlock_r2.folded
+ok       results/part_a/flamegraphs/rwlock_r2.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r4.svg
+ok       results/part_a/flamegraphs/rwlock_r4.folded
+ok       results/part_a/flamegraphs/rwlock_r4.perf-script.txt.xz
+ok       results/part_a/flamegraphs/rwlock_r8.svg
+ok       results/part_a/flamegraphs/rwlock_r8.folded
+ok       results/part_a/flamegraphs/rwlock_r8.perf-script.txt.xz
+ok       results/part_a/flamegraphs/COMMANDS.txt
+-- perf c2c cache-line contention reports
+ok       results/part_a/c2c/global_lock_r1.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r2.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r4.c2c-report.txt
+ok       results/part_a/c2c/global_lock_r8.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r1.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r2.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r4.c2c-report.txt
+ok       results/part_a/c2c/rwlock_r8.c2c-report.txt
+-- layout hardware counters
+ok       18 x layout perf stat files
+-- summaries, figures, report
+ok       results/part_a/summary/concurrent_summary.csv
+ok       results/part_a/summary/reference_summary.csv
+ok       results/part_a/summary/layout_summary.csv
+ok       results/part_a/summary/layout_perf_summary.csv
+ok       results/part_a/summary/flamegraph_breakdown.csv
+ok       results/part_a/summary/c2c_summary.csv
+ok       results/part_a/figures/fig_scaling.pdf
+ok       results/part_a/figures/fig_layout.pdf
+ok       reports/part_a_report.pdf
+ok       reports/part_a_report.md
+ok       docs/part_a_compliance.md
+all Part A artifacts present
+
+# exit_status: 0

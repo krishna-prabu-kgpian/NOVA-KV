@@ -1,0 +1,155 @@
+captured_utc: 2026-10-13T07:52:32Z
+git_sha: ccfe8c5f038c81c6e8b3abda570687b9d9758149
+git_dirty: no
+
+== kernel / OS ==
+Linux overmind-Yoga-Pro-7-14AKP10 7.0.0-28-generic #28-Ubuntu SMP PREEMPT_DYNAMIC Sun Jun 21 01:01:36 UTC 2026 x86_64 GNU/Linux
+NAME="Ubuntu"
+VERSION="26.04 (Resolute Raccoon)"
+
+== CPU ==
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  16
+On-line CPU(s) list:                     0-15
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen AI 7 350 w/ Radeon 860M
+CPU family:                              26
+Model:                                   96
+Thread(s) per core:                      2
+Core(s) per socket:                      8
+Socket(s):                               1
+Stepping:                                0
+Frequency boost:                         enabled
+CPU(s) scaling MHz:                      99%
+CPU max MHz:                             5090.9102
+CPU min MHz:                             623.3770
+BogoMIPS:                                3992.07
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d amd_lbr_pmc_freeze
+Virtualization:                          AMD-V
+L1d cache:                               384 KiB (8 instances)
+L1i cache:                               256 KiB (8 instances)
+L2 cache:                                8 MiB (8 instances)
+L3 cache:                                16 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-15
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Mitigation; IBPB on VMEXIT only
+Vulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; STIBP always-on; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Mitigation; IBPB on VMEXIT
+
+== online logical CPUs ==
+16
+
+== NUMA ==
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-15
+
+== memory ==
+               total        used        free      shared  buff/cache   available
+Mem:            30Gi       3.6Gi        21Gi       245Mi       5.9Gi        26Gi
+Swap:          8.0Gi          0B       8.0Gi
+
+== cpufreq governor ==
+     16 performance
+
+== frequency boost ==
+1
+
+== cpufreq driver / EPP ==
+amd-pstate-epp
+     16 performance
+
+== per-CPU core id and max frequency (heterogeneous cores, SMT siblings) ==
+CPU CORE    MAXMHZ   MINMHZ ONLINE
+  0    0 5090.9102 623.3770    yes
+  1    1 3506.4939 623.3770    yes
+  2    2 5090.9102 623.3770    yes
+  3    3 3506.4939 623.3770    yes
+  4    4 5090.9102 623.3770    yes
+  5    5 3506.4939 623.3770    yes
+  6    6 5090.9102 623.3770    yes
+  7    7 3506.4939 623.3770    yes
+  8    0 5090.9102 623.3770    yes
+  9    1 3506.4939 623.3770    yes
+ 10    2 5090.9102 623.3770    yes
+ 11    3 3506.4939 623.3770    yes
+ 12    4 5090.9102 623.3770    yes
+ 13    5 3506.4939 623.3770    yes
+ 14    6 5090.9102 623.3770    yes
+ 15    7 3506.4939 623.3770    yes
+
+== power supply (1 = on AC, 0 = on battery) ==
+/sys/class/power_supply/ACAD/online: 1
+/sys/class/power_supply/ucsi-source-psy-USBC000:001/online: 0
+/sys/class/power_supply/ucsi-source-psy-USBC000:002/online: 1
+
+== transparent huge pages ==
+always [madvise] never
+
+== load average ==
+0.71 1.35 1.95 1/839 1588453
+
+== compiler ==
+g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
+== cmake ==
+/usr/bin/cmake
+cmake version 4.2.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+
+== make ==
+GNU Make 4.4.1
+
+== perf ==
+perf version 7.0.12
+
+== perf_event_paranoid ==
+1
+
+== kptr_restrict (nonzero hides kernel symbols from perf) ==
+1
+
+== perf stat usable (unprivileged) ==
+yes
+
+== FlameGraph scripts ==
+/home/overmind/Documents/DOCS/assignment2/NOVA-KV/.tools/FlameGraph (https://github.com/brendangregg/FlameGraph)
+commit: 41fee1f99f9276008b7cd112fca19dc3ea84ac32
+
+== pandoc / LaTeX ==
+pandoc 3.7.0.2
+XeTeX 3.141592653-2.6-0.999997 (TeX Live 2025/Debian)
+
+== other tools ==
+clang++    /usr/bin/clang++
+valgrind   /usr/bin/valgrind
+taskset    /usr/bin/taskset
+numactl    /usr/bin/numactl
+python3    /usr/bin/python3
+zip        /usr/bin/zip
+unzip      /usr/bin/unzip
+pdfinfo    /usr/bin/pdfinfo
+xz         /usr/bin/xz

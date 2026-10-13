@@ -1,0 +1,8 @@
+# gate: no_external_deps
+# started_utc: 2026-10-13T07:52:32Z
+# cwd: /home/overmind/Documents/DOCS/assignment2/NOVA-KV
+# command: scripts/check_no_external_deps.sh
+
+no external container or concurrent hash-map dependency found
+
+# exit_status: 0

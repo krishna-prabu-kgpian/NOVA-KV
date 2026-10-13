@@ -6,6 +6,8 @@
 > its statements were later corrected or withdrawn: see `reports/milestones/D_corrected.md`
 > and `reports/part_d_report.md`. The paths it gives under `results/part_d/` are now under
 > `results/part_d/original-wrapped-20261013T090846-615f4357f015/`.
+> One count is corrected in this copy: the suite has 22 mandatory gates, not 23 as the tagged
+> text says (22 of 22 passed; the failed run before it 21 of 22).
 
 Date: 2026-10-13. Branch `part-d/benchmarks`, from the audited Part C checkpoint `b27efd7`.
 Measured commit: `615f435`. Verified commit: `e09da24`.
@@ -95,7 +97,7 @@ Full table: `docs/part_d_compliance.md`.
 ## Build commands and exact exit statuses
 
 `scripts/verify_all.sh` on a clean tree at `e09da24`, every mode from a deleted build
-directory; cmake 4.2.3, GCC 15.2.0. **Exit 0; 23 of 23 mandatory gates PASS**
+directory; cmake 4.2.3, GCC 15.2.0. **Exit 0; 22 of 22 mandatory gates PASS**
 (`results/verification/e09da24ffe0d/summary.md`).
 
 | Mode | Configure + build exit | Warnings | Tests | `ctest` exit | Wall time |
@@ -108,7 +110,7 @@ directory; cmake 4.2.3, GCC 15.2.0. **Exit 0; 23 of 23 mandatory gates PASS**
 Clean checkout (`results/D/clean_clone_build.log`): `git clone`, checkout `e09da24`, release configure exit 0, build exit 0 (0 warnings), `ctest` exit 0, 75/75.
 
 **This was the second verification run of the milestone. The first, at `1006123`, exited 1**
-(`results/verification/1006123097e1/`, kept): 22 of 23 mandatory gates passed and
+(`results/verification/1006123097e1/`, kept): 21 of 22 mandatory gates passed and
 `tsan_ctest` failed with 74 of 75 tests, the failure being the new harness self-test
 `bench_validate_reclaim_stw`. The cause was a wrong expectation in the new benchmark, not the
 store: it required the retire list to reach zero, while the stop-the-world comparator frees
