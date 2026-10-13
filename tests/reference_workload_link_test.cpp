@@ -8,6 +8,7 @@
 // printed at the end of Appendix A.2.
 #include "workload_gen.h"
 
+#include "build_info.h"
 #include "test_util.h"
 
 #include <cstdio>
@@ -44,6 +45,23 @@ void run(const std::string& label, const WorkloadConfig& cfg, bool with_instrume
     NOVA_CHECK(res.rps > 0);
     NOVA_CHECK(res.p50_us <= res.p99_us);
     NOVA_CHECK(res.p99_us <= res.p999_us);
+
+    // The generator's load_instruments() calls create_index() and then inserts
+    // 50 instruments. On the rcu build (the one with a secondary index, since
+    // milestone C2) each symbol must then be found through the index; the
+    // lock-based baselines have no index and find nothing.
+    if (with_instruments && cfg.use_join) {
+        const bool has_index = std::strcmp(nova_kv_sync_mode_name(), "rcu") == 0;
+        int found = 0;
+        for (int sidx = 0; sidx < 50; sidx++) {
+            char symbol[8] = {};  // zero-padded, as the generator's Instrument{} is
+            std::snprintf(symbol, sizeof(symbol), "SYM%03d", sidx);
+            long keys[4] = {-1, -1, -1, -1};
+            const int n = instruments.index_get(symbol, sizeof(symbol), keys, 4);
+            if (n == 1 && keys[0] == sidx) ++found;
+        }
+        NOVA_CHECK(found == (has_index ? 50 : 0));
+    }
 
     // The generator's writer must have left every trade in the store, readable
     // and intact: with plain puts (Part A path) and, since milestone C1, with

@@ -184,6 +184,21 @@ foreach(hooked single rcu)
     nova_add_test(txn_failure_test_${hooked})
 endforeach()
 
+# Part C.2: the secondary index under allocation failure, forced hash
+# collisions and forced interleavings (rcu hook build).
+foreach(test index_failure_test index_concurrency_test)
+    add_executable(${test} tests/${test}.cpp)
+    target_include_directories(${test} PRIVATE src benchmarks)
+    target_link_libraries(${test} PRIVATE nova_kv_rcu_testhooks nova_warnings)
+    nova_add_test(${test})
+endforeach()
+
+# Part C.2: the index-nested-loop join (benchmarks/join.h), rcu build.
+add_executable(join_test tests/join_test.cpp)
+target_include_directories(join_test PRIVATE src benchmarks)
+target_link_libraries(join_test PRIVATE nova_kv_rcu nova_warnings)
+nova_add_test(join_test)
+
 add_executable(txn_concurrency_test tests/txn_concurrency_test.cpp)
 target_include_directories(txn_concurrency_test PRIVATE src)
 target_link_libraries(txn_concurrency_test PRIVATE nova_kv_rcu_testhooks nova_warnings)
@@ -223,7 +238,7 @@ foreach(variant IN LISTS NOVA_VARIANTS)
 
     add_executable(reference_workload_link_test_${variant}
         tests/reference_workload_link_test.cpp $<TARGET_OBJECTS:nova_workload>)
-    target_include_directories(reference_workload_link_test_${variant} PRIVATE supplied)
+    target_include_directories(reference_workload_link_test_${variant} PRIVATE supplied src)
     target_link_libraries(reference_workload_link_test_${variant}
         PRIVATE nova_kv_${variant} nova_warnings)
     nova_add_test(reference_workload_link_test_${variant})
